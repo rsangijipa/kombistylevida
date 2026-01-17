@@ -151,7 +151,7 @@ export function CartDrawer() {
                                 return (
                                     <div key={item.productId} className="flex gap-4 items-center">
                                         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper2">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            { }
                                             {product.imageSrc ? (
                                                 <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
                                             ) : (

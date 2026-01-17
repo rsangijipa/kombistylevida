@@ -64,7 +64,7 @@ export async function GET() {
         "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("[sitemap] error", e);
     // Fallback minimal sitemap to avoid 500
     const backupSitemap = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://kombistylevida.com.br</loc></url></urlset>`;

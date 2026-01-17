@@ -57,7 +57,7 @@ export const useCartStore = create<CartState>()(
                 if (!bundle) return;
 
                 set((state) => {
-                    let newItems = [...state.items];
+                    const newItems = [...state.items];
                     bundle.items.forEach(bItem => {
                         const existingIdx = newItems.findIndex(i => i.productId === bItem.productId);
                         if (existingIdx >= 0) {

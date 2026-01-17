@@ -55,7 +55,7 @@ export async function GET() {
         "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("[rss] error", e);
     const backupRss = `<?xml version="1.0" encoding="UTF-8" ?><rss version="2.0"><channel><title>Kombistyle Vida</title></channel></rss>`;
     return new NextResponse(backupRss, { status: 200, headers: { "Content-Type": "application/xml" } });

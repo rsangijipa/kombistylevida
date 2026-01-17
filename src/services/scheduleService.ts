@@ -90,8 +90,8 @@ export async function getScheduleAvailability(
         if (dayOverride?.overrideClosed !== undefined) isOpen = !dayOverride.overrideClosed; // Note: overrideClosed means "is closed?", so isOpen = !closed
 
         // Merge Capacities
-        let dailyCap = dayOverride?.overrideDailyCapacity ?? template.dailyCapacity;
-        let dailyBooked = dayOverride?.dailyBooked || 0;
+        const dailyCap = dayOverride?.overrideDailyCapacity ?? template.dailyCapacity;
+        const dailyBooked = dayOverride?.dailyBooked || 0;
 
         // Check Daily Cap
         if (dailyBooked >= dailyCap) {
@@ -103,8 +103,8 @@ export async function getScheduleAvailability(
         const slots = template.slots.map(slotConfig => {
             const slotOverride = dayOverride?.slots?.[slotConfig.id];
 
-            let slotCap = slotConfig.capacity;
-            let slotEnabled = slotConfig.enabled;
+            const slotCap = slotConfig.capacity;
+            const slotEnabled = slotConfig.enabled;
 
             // If snapshot in override exists, use it? Or use override fields?
             // The defined type says 'capacitySnapshot'. Usually we rely on config unless override explicitly set.
