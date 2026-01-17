@@ -11,6 +11,7 @@ interface BuildMessageParams {
     selectedDate: string | null;
     selectedSlotId: string | null;
     notes: string;
+    bottlesToReturn?: number; // New
 }
 
 /**
@@ -42,6 +43,7 @@ export function buildOrderMessage({
     selectedDate,
     selectedSlotId,
     notes,
+    bottlesToReturn
 }: BuildMessageParams): string {
     let message = `🍃 *PEDIDO NOVO - KOMBISTYLE VIDA* 🍃\n`;
     message += `───────────────────────\n`;
@@ -102,8 +104,13 @@ export function buildOrderMessage({
         message += `📅 *Retirada:* Vamos combinar o horário!\n`;
     }
 
-    // 4. Notes
+    // 4. Notes & Bottles
     const cleanNotes = (notes || "").trim();
+
+    if (bottlesToReturn && bottlesToReturn > 0) {
+        message += `\n♻️ *Logística Reversa:*\nTenho ${bottlesToReturn} garrafas para devolver/trocar.\n`;
+    }
+
     if (cleanNotes) {
         message += `\n📝 *Observações:*\n${cleanNotes.substring(0, 300)}\n`;
     }

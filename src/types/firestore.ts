@@ -33,6 +33,7 @@ export interface Order {
     customer: OrderCustomerSnapshot;
     schedule: OrderScheduleSnapshot;
     notes: string;
+    bottlesToReturn?: number; // New field
 
     createdAt: string; // ISO
     updatedAt: string; // ISO

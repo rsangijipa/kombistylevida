@@ -1,77 +1,72 @@
+"use client";
+
 import React from "react";
 import { SiteShell } from "@/components/SiteShell";
-import { Heart, Activity, Zap, ShieldPlus, Brain } from "lucide-react";
+import { Droplet, Heart, Zap, ShieldCheck } from "lucide-react";
 
 export default function BeneficiosPage() {
     return (
         <SiteShell>
-            <div className="mx-auto max-w-4xl pb-20">
-                <header className="mb-12 text-center">
-                    <h1 className="font-serif text-[40px] font-bold text-olive md:text-[56px]">
-                        Benefícios
+            <div className="pb-20">
+                {/* Header */}
+                <div className="mb-16 text-center">
+                    <h1 className="font-serif text-[40px] leading-tight text-ink font-bold md:text-[56px] tracking-tight">
+                        Por Que Beber?
                     </h1>
-                    <p className="mt-4 text-lg text-ink2 font-serif italic max-w-xl mx-auto">
-                        Muito além do sabor: um brinde à sua microbiota.
+                    <div className="mx-auto mt-6 h-[1px] w-20 bg-ink/30" />
+                    <p className="mx-auto mt-6 max-w-2xl text-ink2 text-lg font-serif italic leading-relaxed">
+                        Muito além do sabor. Um aliado vivo para o seu equilíbrio diário.
                     </p>
-                </header>
-
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
-                    {/* Benefit Cards */}
-                    <div className="rounded-xl border border-ink/10 bg-paper p-6 hover:shadow-md transition-shadow">
-                        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-olive/10 text-olive">
-                            <Activity size={24} />
-                        </div>
-                        <h3 className="mb-2 font-serif text-xl font-bold text-ink">Saúde Intestinal</h3>
-                        <p className="text-sm text-ink2 leading-relaxed">
-                            Rica em probióticos e ácidos orgânicos que auxiliam no equilíbrio da flora intestinal, essencial para a digestão e absorção de nutrientes.
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl border border-ink/10 bg-paper p-6 hover:shadow-md transition-shadow">
-                        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber/20 text-ink">
-                            <ShieldPlus size={24} />
-                        </div>
-                        <h3 className="mb-2 font-serif text-xl font-bold text-ink">Imunidade</h3>
-                        <p className="text-sm text-ink2 leading-relaxed">
-                            Um intestino saudável é a primeira linha de defesa do corpo. Os antioxidantes do chá também combatem radicais livres.
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl border border-ink/10 bg-paper p-6 hover:shadow-md transition-shadow">
-                        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-olive/10 text-olive">
-                            <Zap size={24} />
-                        </div>
-                        <h3 className="mb-2 font-serif text-xl font-bold text-ink">Energia Natural</h3>
-                        <p className="text-sm text-ink2 leading-relaxed">
-                            Contém vitaminas do complexo B e uma dose suave de cafeína do chá, proporcionando energia estável sem o "crash" do café.
-                        </p>
-                    </div>
                 </div>
 
-                {/* Layered Science - "Evidence Layer" */}
-                <section className="rounded-[24px] bg-paper2/50 p-8 md:p-12 border border-ink/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-5">
-                        <Brain size={200} />
-                    </div>
+                {/* Grid de Benefícios Editorial */}
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-2 max-w-4xl mx-auto mb-20">
 
-                    <h2 className="relative z-10 font-serif text-3xl font-bold text-olive mb-6">
-                        O que a Ciência Diz?
-                    </h2>
-
-                    <div className="relative z-10 space-y-6 text-ink/80 leading-relaxed">
-                        <p>
-                            Estudos preliminares e a tradição milenar sugerem que a kombucha pode atuar como um modulador metabólico leve. O <strong>ácido acético</strong>, também presente no vinagre de maçã, tem sido associado ao controle dos níveis de açúcar no sangue.
+                    {/* Item 1 */}
+                    <article className="bg-paper2 border-l-4 border-amber p-8 shadow-sm">
+                        <Heart className="w-10 h-10 text-ink mb-4 opacity-80" />
+                        <h3 className="font-serif text-2xl font-bold text-ink mb-3">Saúde Intestinal</h3>
+                        <p className="font-serif text-ink2 leading-relaxed">
+                            Rica em probióticos naturais, a kombucha ajuda a repovoar a flora intestinal, melhorando a digestão e a absorção de nutrientes. Um intestino feliz reflete em todo o corpo.
                         </p>
-                        <p>
-                            Além disso, os <strong>polifenóis</strong> derivados do chá são potentes antioxidantes, protegendo as células contra o estresse oxidativo.
-                        </p>
+                    </article>
 
-                        <div className="mt-8 p-4 rounded-lg bg-white/60 border border-ink/10 text-xs text-ink/60 italic">
-                            <strong className="block text-ink mb-1 not-italic font-bold uppercase tracking-wider">Disclaimer Legal</strong>
-                            A Kombucha é um alimento funcional, não um medicamento. Nossas alegações não substituem aconselhamento médico profissional. Os efeitos podem variar de pessoa para pessoa. Se você tem condições de saúde específicas, consulte seu médico.
-                        </div>
-                    </div>
-                </section>
+                    {/* Item 2 */}
+                    <article className="bg-paper2 border-l-4 border-olive p-8 shadow-sm">
+                        <Zap className="w-10 h-10 text-ink mb-4 opacity-80" />
+                        <h3 className="font-serif text-2xl font-bold text-ink mb-3">Energia Natural</h3>
+                        <p className="font-serif text-ink2 leading-relaxed">
+                            Contém vitaminas do complexo B e enzimas ativas produzidas durante a fermentação. Uma fonte de vitalidade limpa, sem os picos de açúcar de refrigerantes.
+                        </p>
+                    </article>
+
+                    {/* Item 3 */}
+                    <article className="bg-paper2 border-l-4 border-olive p-8 shadow-sm">
+                        <ShieldCheck className="w-10 h-10 text-ink mb-4 opacity-80" />
+                        <h3 className="font-serif text-2xl font-bold text-ink mb-3">Imunidade</h3>
+                        <p className="font-serif text-ink2 leading-relaxed">
+                            O equilíbrio da microbiota é essencial para o sistema imunológico. Consumir alimentos fermentados regularmente fortalece suas defesas naturais.
+                        </p>
+                    </article>
+
+                    {/* Item 4 */}
+                    <article className="bg-paper2 border-l-4 border-amber p-8 shadow-sm">
+                        <Droplet className="w-10 h-10 text-ink mb-4 opacity-80" />
+                        <h3 className="font-serif text-2xl font-bold text-ink mb-3">Antioxidantes</h3>
+                        <p className="font-serif text-ink2 leading-relaxed">
+                            Feita a partir do chá (Camellia sinensis), preserva os polifenóis que combatem os radicais livres, auxiliando na renovação celular.
+                        </p>
+                    </article>
+
+                </div>
+
+                {/* Disclaimer Compliance */}
+                <div className="mx-auto max-w-2xl text-center border border-dashed border-ink/30 p-6 rounded-xl bg-ink/5">
+                    <p className="text-xs text-ink/60 uppercase tracking-widest font-bold mb-2">Aviso Importante</p>
+                    <p className="text-sm text-ink/70 font-serif italic">
+                        Conteúdo informativo. A Kombucha é um alimento funcional, não um medicamento. Não substitui orientação médica. Em caso de condições específicas (gestação, imunossupressão, problemas gastrointestinais severos), consulte sempre um profissional de saúde.
+                    </p>
+                </div>
             </div>
         </SiteShell>
     );

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { TopNav } from "@/components/TopNav";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { StickyCTA } from "@/components/StickyCTA";
+import Image from "next/image";
 
 interface SiteShellProps {
     children: React.ReactNode;
@@ -64,11 +65,26 @@ export function SiteShell({ children }: SiteShellProps) {
                                 </a>
                             </div>
                         </div>
-                        <p className="mt-10 text-sm md:text-base text-ink/60 font-serif italic tracking-wide">
+
+                        {/* Selo de Origem */}
+                        <div className="mt-8 mb-4">
+                            {/* Placeholder visual se a imagem não carregar, ou o componente */}
+                            <div className="relative mx-auto h-[100px] w-[100px] md:h-[120px] md:w-[120px] opacity-90 rotate-[-1deg]">
+                                <Image
+                                    src="/images/illustrations/badges/feito-em-ariquemes.png"
+                                    alt="Feito em Ariquemes - Rondônia"
+                                    fill
+                                    className="object-contain drop-shadow-sm"
+                                    sizes="(max-width: 768px) 100px, 120px"
+                                />
+                            </div>
+                        </div>
+
+                        <p className="mt-4 text-sm md:text-base text-ink font-serif font-medium tracking-wide">
                             © 2026 Kombistyle Vida. Todos os direitos reservados.
                         </p>
                         <div className="mt-4 flex justify-center">
-                            <Link href="/admin" className="text-[11px] text-ink/30 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
+                            <Link href="/admin" className="text-[11px] text-ink/40 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
                                 Área Administrativa
                             </Link>
                         </div>

@@ -13,6 +13,7 @@ interface CreateOrderParams {
     selectedDate: string | null;
     selectedSlotId: string | null;
     notes: string;
+    bottlesToReturn: number; // New
 }
 
 /**
@@ -20,7 +21,7 @@ interface CreateOrderParams {
  * Handles snapshoting data (price, names) and capacity checks (optimistic).
  */
 export async function createOrder(params: CreateOrderParams): Promise<string> {
-    const { cart, customer, selectedDate, selectedSlotId, notes } = params;
+    const { cart, customer, selectedDate, selectedSlotId, notes, bottlesToReturn } = params;
 
     // 1. Prepare Items Snapshot
     let totalCents = 0;
@@ -65,6 +66,7 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
             slotLabel
         },
         notes,
+        bottlesToReturn, // New
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     };

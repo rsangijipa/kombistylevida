@@ -14,14 +14,16 @@ import { FLAVORS, FlavorDetails } from "@/data/flavors";
 // Minimal data for Home (Top items)
 const flavors: FlavorDetails[] = FLAVORS;
 
+import { HeroFruitBand } from "@/components/decor/HeroFruitBand";
+
 export default function Page() {
     const [selectedFlavor, setSelectedFlavor] = useState<FlavorDetails | null>(null);
 
     return (
         <SiteShell>
             {/* HERO SECTION */}
-            <div className="relative mb-20 text-center md:mb-32">
-                <div className="mx-auto max-w-2xl px-4 pt-10 md:pt-16">
+            <div className="relative mb-20 text-center md:mb-32 overflow-hidden pb-10"> {/* overflow-hidden and pb for band */}
+                <div className="mx-auto max-w-2xl px-4 pt-10 md:pt-16 relative z-10">
                     <div className="relative mx-auto mb-6 h-[156px] w-[364px] md:h-[234px] md:w-[546px]">
                         <Image
                             src="/images/logo.png"
@@ -48,6 +50,9 @@ export default function Page() {
                         </span>
                     </div>
                 </div>
+
+                {/* Decorative Fruit Band */}
+                <HeroFruitBand />
             </div>
 
             {/* SABORES SECTION */}

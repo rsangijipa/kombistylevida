@@ -15,6 +15,8 @@ export function TopNav() {
         () => [
             { path: "/", label: "Home" },
             { path: "/menu", label: "Menu" },
+            { path: "/quiz", label: "Quiz" },
+            { path: "/monte-seu-pack", label: "Monte Seu Pack" },
             { path: "/como-fazemos", label: "Processo" },
             { path: "/beneficios", label: "Benefícios" },
             { path: "/noticias", label: "Notícias" },
