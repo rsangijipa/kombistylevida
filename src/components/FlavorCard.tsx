@@ -19,35 +19,33 @@ export function FlavorCard({
 }) {
     return (
         <article
-            className="group relative flex min-h-[400px] w-full cursor-pointer flex-col justify-between overflow-hidden rounded-[2px] bg-paper2 shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
+            className="group relative flex h-full w-full cursor-pointer flex-col justify-between overflow-hidden rounded-xl bg-paper transition-all duration-700 hover:-translate-y-2 hover:shadow-paper"
             onClick={onOpen}
         >
             {/* 
-         1. Borda Dupla Externa (Vintage Label Style)
-         - Outer: 1px ink/35 border
-         - Inner: 2px ink/20 border (inset)
+         Editorial Frame: Subtle single line, inset.
       */}
-            <div className="absolute inset-0 border border-ink/35 pointer-events-none z-20" />
-            <div className="absolute inset-[6px] border-[2px] border-ink/20 pointer-events-none z-20" />
+            <div className="absolute inset-[12px] border border-ink/10 pointer-events-none z-20 rounded-lg transition-colors group-hover:border-ink/20" />
 
             {/* Conteúdo */}
-            <div className="relative z-10 flex flex-1 flex-col items-center p-8 text-center pt-10 pb-8">
-                {/* Imagem Grande e Natural */}
-                <div className="relative w-full aspect-square mb-6 flex items-center justify-center p-4">
+            <div className="relative z-10 flex flex-1 flex-col items-center px-6 pt-12 pb-10 text-center">
+
+                {/* Imagem */}
+                <div className="relative w-48 aspect-square mb-8 flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-105">
                     {flavor.imageSrc && (
                         <Image
                             src={flavor.imageSrc}
                             alt={flavor.title}
                             fill
-                            className="object-contain drop-shadow-sm transition-transform duration-700 group-hover:scale-105"
+                            className="object-contain drop-shadow-sm"
                             sizes="(max-width: 768px) 100vw, 300px"
                         />
                     )}
                 </div>
 
-                {/* Título Serifado */}
-                <div className="flex-1 flex flex-col items-center justify-center min-h-[80px]">
-                    <h3 className="font-serif text-[26px] font-semibold leading-[1.1] text-ink tracking-tight">
+                {/* Título */}
+                <div className="flex-1 flex flex-col items-center justify-start">
+                    <h3 className="font-serif text-3xl text-ink font-normal leading-tight">
                         {flavor.title.split('\n').map((line, i) => (
                             <React.Fragment key={i}>
                                 {line}
@@ -55,14 +53,19 @@ export function FlavorCard({
                             </React.Fragment>
                         ))}
                     </h3>
-                    <div className="mt-3 h-[1px] w-12 bg-ink/20" />
+                    {/* Decorative Flourish */}
+                    <div className="mt-4 opacity-40 text-amber">
+                        <Flourish className="w-16 h-4" />
+                    </div>
                 </div>
 
-                {/* Botão Pílula Style */}
-                <div className="mt-6">
+                {/* Botão (Hidden by default on desktop, visible on mobile?) 
+                    User request: "No hover desktop, opacity 0 -> 1. Mobile static."
+                */}
+                <div className="mt-8 opacity-100 md:opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0">
                     <button
                         className={cn(
-                            "inline-flex h-[48px] items-center rounded-full border border-ink/60 bg-amber px-8 text-[14px] font-bold uppercase tracking-wider text-ink shadow-print transition-all hover:bg-amber2 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0",
+                            "inline-flex h-10 items-center rounded-full border border-ink/20 bg-transparent px-6 text-xs font-bold uppercase tracking-widest text-ink transition-all hover:bg-ink hover:text-paper hover:border-transparent",
                         )}
                         type="button"
                         onClick={(e) => {
@@ -70,13 +73,13 @@ export function FlavorCard({
                             onOpen?.();
                         }}
                     >
-                        Ver detalhes
+                        Ver Sabor
                     </button>
                 </div>
             </div>
 
-            {/* Vintage Background Texture (Subtle) */}
-            <div className="absolute inset-0 bg-paper opacity-40 mix-blend-multiply pointer-events-none z-0"></div>
+            {/* Background Texture is handled by global body, but we can add a subtle tint here */}
+            <div className="absolute inset-0 bg-white/40 opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
         </article>
     );
 }

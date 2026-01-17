@@ -27,43 +27,47 @@ const STEPS = [
 
 export function ProcessTimeline() {
     return (
-        <div className="relative max-w-5xl mx-auto px-4 py-16">
+        <div className="relative max-w-4xl mx-auto px-4 py-16">
+            {/* Central Organic Line (Vine) */}
+            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-ink/10 hidden md:block"></div>
+
             {STEPS.map((step, index) => {
                 const isEven = index % 2 === 0;
                 return (
-                    <div key={step.id} className="relative mb-24 last:mb-0">
-                        {/* Connecting Line (except last) */}
-                        {index !== STEPS.length - 1 && (
-                            <div className="absolute left-1/2 bottom-[-100px] h-[100px] w-[1px] border-l border-dashed border-ink/20 hidden md:block" />
-                        )}
+                    <div key={step.id} className="relative mb-32 last:mb-0 group">
+                        {/* Leaf decoration on line */}
+                        <div className={`hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 w-8 h-8 items-center justify-center bg-paper z-10 rounded-full border border-ink/10 text-olive`}>
+                            <div className="w-2 h-2 rounded-full bg-olive/40" />
+                        </div>
 
-                        <div className={`flex flex-col md:flex-row items-center gap-8 md:gap-16 ${isEven ? "" : "md:flex-row-reverse"}`}>
-                            {/* Image Side */}
-                            <div className="flex-1 w-full max-w-sm">
-                                <div className="relative aspect-square w-full rounded-2xl border-2 border-ink/5 bg-paper2 p-4 rotate-1 transition-transform hover:rotate-0">
-                                    <div className="relative h-full w-full overflow-hidden rounded-xl bg-paper">
-                                        {/* We use Next/Image but anticipate it might missing, so we use a fallback strategy visually if needed by wrapper bg */}
+                        <div className={`flex flex-col md:flex-row items-center gap-12 md:gap-24 ${isEven ? "" : "md:flex-row-reverse"}`}>
+                            {/* Image Side - Organic Shape */}
+                            <div className="flex-1 w-full max-w-[320px] relative">
+                                <div className="relative aspect-square w-full">
+                                    {/* Abstract organic blob background */}
+                                    <div className={`absolute inset-0 rounded-[40px] bg-paper2 transition-transform duration-700 group-hover:rotate-2 ${isEven ? 'rotate-3' : '-rotate-3'}`} />
+                                    <div className={`absolute inset-0 rounded-[40px] border border-ink/10 transition-transform duration-700 delay-100 group-hover:-rotate-1 ${isEven ? '-rotate-2' : 'rotate-2'}`} />
+
+                                    <div className="relative h-full w-full overflow-hidden p-6 flex items-center justify-center z-10 transition-transform duration-500 group-hover:scale-105">
                                         <Image
                                             src={step.imageSrc}
                                             alt={step.alt}
-                                            fill
-                                            className="object-contain p-4 opacity-90"
-                                            sizes="(max-width: 768px) 100vw, 400px"
+                                            width={300}
+                                            height={300}
+                                            className="object-contain drop-shadow-sm"
                                         />
-                                        <div className="absolute inset-0 bg-ink/5 pointer-events-none mix-blend-multiply" />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Text Side */}
-                            <div className="flex-1 text-center md:text-left">
-                                <div className="mb-4 inline-block rounded-full border border-ink/20 px-3 py-1 font-serif text-sm italic text-ink/60">
-                                    Passo {step.id}
-                                </div>
-                                <h3 className="mb-4 font-serif text-3xl font-bold text-ink md:text-4xl">
+                            <div className={`flex-1 text-center ${isEven ? 'md:text-left' : 'md:text-right'}`}>
+                                <h3 className="mb-4 font-serif text-3xl font-bold text-ink md:text-5xl tracking-tight">
+                                    <span className="text-amber/60 text-lg md:text-xl block mb-2 font-sans font-bold tracking-widest uppercase">0{step.id}</span>
                                     {step.title}
                                 </h3>
-                                <p className="font-serif text-lg leading-relaxed text-ink2">
+                                <div className={`h-px w-16 bg-ink/20 mb-6 mx-auto ${isEven ? 'md:mx-0' : 'md:ml-auto'}`} />
+                                <p className="font-serif text-lg leading-relaxed text-ink2/90">
                                     {step.description}
                                 </p>
                             </div>

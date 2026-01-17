@@ -3,19 +3,16 @@ import React from "react";
 
 export function HeroFruitBand() {
     return (
-        <div className="absolute bottom-0 left-0 right-0 h-[120px] md:h-[180px] w-full pointer-events-none z-0 opacity-90 overflow-hidden select-none">
-            {/* 
-                Use object-cover or object-contain depending on desired fit. 
-                object-cover bottom ensures the bottom is aligned.
-            */}
-            <Image
-                src="/images/illustrations/decor/hero-fruit-band.png"
-                alt="Frutas tropicais e folhas de chá"
-                fill
-                className="object-cover object-bottom"
-                priority
-                quality={90}
-            />
+        <div className="absolute top-0 left-0 w-full h-12 md:h-16 z-20 pointer-events-none overflow-hidden">
+            <div className="relative w-full h-full max-w-[1920px] mx-auto opacity-90">
+                <Image
+                    src="/images/hero-fruits.png"
+                    alt="Frutas frescas"
+                    fill
+                    className="object-cover object-top md:object-contain md:object-top"
+                    priority
+                />
+            </div>
             {/* Optional: Gradient Fade to blend with background if needed */}
             <div className="absolute inset-0 bg-gradient-to-t from-paper/10 to-transparent" />
         </div>

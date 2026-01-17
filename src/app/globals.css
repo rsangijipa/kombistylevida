@@ -68,6 +68,8 @@ body {
   color: var(--color-ink);
   background: var(--color-paper);
   font-family: var(--font-serif);
+  line-height: 1.75;
+  /* Editorial leading */
   /* Fallback sem textura */
   background-color: var(--color-paper);
 }

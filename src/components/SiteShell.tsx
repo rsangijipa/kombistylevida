@@ -48,43 +48,47 @@ export function SiteShell({ children }: SiteShellProps) {
                         {children}
                     </main>
 
-                    {/* FOOTER GLOBAL - Opcional, mantendo aqui para consistência */}
-                    <footer id="contato-footer" className="mt-20 md:mt-24 mx-auto max-w-2xl text-center">
-                        <div className="rounded-[22px] border border-ink/20 bg-paper p-8 shadow-sm">
-                            <h3 className="mb-4 font-serif text-[24px] text-ink font-semibold">Fale com a gente</h3>
-                            <p className="mb-6 text-[16px] text-ink2/80 font-serif">
+                    {/* FOOTER GLOBAL */}
+                    <footer id="contato-footer" className="mt-32 md:mt-40 mx-auto max-w-2xl text-center pb-8 border-t border-ink/5 pt-16">
+                        <div className="rounded-[28px] border border-ink/10 bg-paper p-10 shadow-paper relative overflow-hidden group hover:shadow-xl transition-shadow duration-500">
+                            {/* Decorative Corner */}
+                            <div className="absolute top-0 left-0 w-16 h-16 border-t border-l border-ink/10 rounded-tl-[28px]" />
+                            <div className="absolute bottom-0 right-0 w-16 h-16 border-b border-r border-ink/10 rounded-br-[28px]" />
+
+                            <h3 className="mb-4 font-serif text-3xl text-ink font-bold">Fale com a gente</h3>
+                            <p className="mb-8 text-lg text-ink2/90 font-serif leading-relaxed">
                                 Para pedidos, dúvidas ou parcerias. Bebida artesanal feita com tempo e carinho.
                             </p>
-                            <div className="flex justify-center gap-6">
-                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4 transition-colors">
+                            <div className="flex justify-center gap-8">
+                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors">
                                     Instagram
                                 </a>
-                                <span className="text-ink/20">•</span>
-                                <a href="https://wa.me/5599999999999" target="_blank" rel="noreferrer" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4 transition-colors">
+                                <span className="text-ink/20">|</span>
+                                <a href="https://wa.me/5599999999999" target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors">
                                     WhatsApp
                                 </a>
                             </div>
                         </div>
 
                         {/* Selo de Origem */}
-                        <div className="mt-8 mb-4">
-                            {/* Placeholder visual se a imagem não carregar, ou o componente */}
-                            <div className="relative mx-auto h-[100px] w-[100px] md:h-[120px] md:w-[120px] opacity-90 rotate-[-1deg]">
-                                <Image
-                                    src="/images/illustrations/badges/feito-em-ariquemes.png"
-                                    alt="Feito em Ariquemes - Rondônia"
-                                    fill
-                                    className="object-contain drop-shadow-sm"
-                                    sizes="(max-width: 768px) 100px, 120px"
-                                />
-                            </div>
+                        <div className="mt-12 mb-6 grayscale hover:grayscale-0 transition-all duration-700 opacity-80 hover:opacity-100 hover:scale-105 transform cursor-pointer">
+                            <Link href="/como-fazemos">
+                                <div className="relative mx-auto h-[100px] w-[100px] md:h-[120px] md:w-[120px]">
+                                    <Image
+                                        src="/images/illustrations/badges/feito-em-ariquemes.png"
+                                        alt="Feito em Ariquemes - Rondônia"
+                                        fill
+                                        className="object-contain drop-shadow-md mix-blend-multiply"
+                                    />
+                                </div>
+                            </Link>
                         </div>
 
-                        <p className="mt-4 text-sm md:text-base text-ink font-serif font-medium tracking-wide">
+                        <p className="text-xs md:text-sm text-ink/60 font-serif tracking-wide">
                             © 2026 Kombistyle Vida. Todos os direitos reservados.
                         </p>
-                        <div className="mt-4 flex justify-center">
-                            <Link href="/admin" className="text-[11px] text-ink/40 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
+                        <div className="mt-6 flex justify-center">
+                            <Link href="/admin" className="text-[10px] text-ink/30 hover:text-ink/60 font-bold uppercase tracking-widest transition-colors border-b border-transparent hover:border-ink/20 pb-0.5">
                                 Área Administrativa
                             </Link>
                         </div>

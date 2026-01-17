@@ -22,9 +22,10 @@ export default function Page() {
     return (
         <SiteShell>
             {/* HERO SECTION */}
-            <div className="relative mb-20 text-center md:mb-32 overflow-hidden pb-10"> {/* overflow-hidden and pb for band */}
-                <div className="mx-auto max-w-2xl px-4 pt-10 md:pt-16 relative z-10">
-                    <div className="relative mx-auto mb-6 h-[156px] w-[364px] md:h-[234px] md:w-[546px]">
+            <div className="relative mb-24 text-center md:mb-40 overflow-hidden pb-16"> {/* Increased margins */}
+                <div className="mx-auto max-w-2xl px-6 pt-12 md:pt-20 relative z-10">
+                    {/* Logo: Smaller on mobile for balance */}
+                    <div className="relative mx-auto mb-8 h-[120px] w-[280px] md:h-[234px] md:w-[546px] transition-all duration-700 ease-out animate-in fade-in zoom-in-95">
                         <Image
                             src="/images/logo.png"
                             alt="Kombistyle Vida"
@@ -33,15 +34,18 @@ export default function Page() {
                             priority
                         />
                     </div>
-                    <p className="mx-auto mt-8 max-w-lg font-serif text-lg leading-relaxed text-ink2 md:text-xl">
-                        Bebida fermentada naturalmente, feita com paciência e ingredientes de verdade.
-                        Um brinde à sua saúde.
+
+                    {/* Slogan: Editorial Serif */}
+                    <p className="mx-auto mt-10 max-w-lg font-serif text-xl leading-relaxed text-ink md:text-2xl animate-in slide-in-from-bottom-4 fade-in duration-1000 delay-150">
+                        Estilo e sabor em cada gole. <br className="hidden md:block" />
+                        <span className="text-ink2/80 text-lg md:text-xl">Fermentação natural, ingredientes reais.</span>
                     </p>
 
-                    <div className="mt-10 flex flex-col items-center justify-center gap-4 min-[450px]:flex-row">
+                    {/* CTA Section */}
+                    <div className="mt-12 flex flex-col items-center justify-center gap-6 min-[450px]:flex-row animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-300">
                         <a
-                            href="https://wa.me/5548999999999" // TODO: config
-                            className="inline-flex h-12 items-center justify-center rounded-full bg-amber px-8 text-sm font-bold uppercase tracking-widest text-ink shadow-paper transition-all hover:-translate-y-0.5 hover:bg-amber2 hover:shadow-lg"
+                            href="https://wa.me/5548999999999"
+                            className="inline-flex h-14 items-center justify-center rounded-full bg-amber px-10 text-sm font-bold uppercase tracking-widest text-ink shadow-paper transition-all hover:-translate-y-1 hover:bg-amber2 hover:shadow-xl active:scale-95"
                         >
                             Pedir no WhatsApp
                         </a>

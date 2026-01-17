@@ -46,7 +46,7 @@ export default function RootLayout({
                 className={cn(
                     serif.variable,
                     sans.variable,
-                    "antialiased selection:bg-amber/30 selection:text-ink"
+                    "antialiased selection:bg-amber/30 selection:text-ink text-ink leading-relaxed"
                 )}
             >
                 <CatalogProvider>

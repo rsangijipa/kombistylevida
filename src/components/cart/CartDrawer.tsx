@@ -127,75 +127,91 @@ export function CartDrawer() {
             {/* Drawer */}
             <div className="relative h-full w-full max-w-md bg-paper shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
 
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-ink/10 bg-paper2/50">
-                    <h2 className="flex items-center gap-2 font-serif text-xl font-bold text-olive">
-                        <ShoppingBag size={20} />
-                        Sua Sacola
-                    </h2>
-                    <button
-                        onClick={() => toggleCart(false)}
-                        className="rounded-full p-2 text-ink/50 hover:bg-black/5 transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
+                {/* Header with Visual Stepper */}
+                <div className="flex flex-col border-b border-ink/10 bg-paper2/50">
+                    <div className="flex items-center justify-between p-4 pb-2">
+                        <h2 className="flex items-center gap-2 font-serif text-xl font-bold text-olive">
+                            <ShoppingBag size={20} />
+                            Sua Sacola
+                        </h2>
+                        <button
+                            onClick={() => toggleCart(false)}
+                            className="rounded-full p-2 text-ink/50 hover:bg-black/5 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                    {/* Stepper */}
+                    {items.length > 0 && (
+                        <div className="px-4 pb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink/40">
+                            <div className={cn("flex items-center gap-1", !customer.name ? "text-olive" : "text-olive/60")}>
+                                <span className={cn("w-4 h-4 rounded-full flex items-center justify-center border", !customer.name ? "border-olive bg-olive text-paper" : "border-olive/60")}>1</span>
+                                <span>Sacola</span>
+                            </div>
+                            <div className="h-px w-4 bg-ink/10" />
+                            <div className={cn("flex items-center gap-1", customer.name && !isCheckingOut ? "text-olive" : "text-ink/30")}>
+                                <span className={cn("w-4 h-4 rounded-full flex items-center justify-center border ", customer.name && !isCheckingOut ? "border-olive bg-olive text-paper" : "border-ink/20")}>2</span>
+                                <span>Dados</span>
+                            </div>
+                            <div className="h-px w-4 bg-ink/10" />
+                            <div className={cn("flex items-center gap-1", isCheckingOut ? "text-olive" : "text-ink/30")}>
+                                <span className="w-4 h-4 rounded-full flex items-center justify-center border border-ink/20">3</span>
+                                <span>Enviar</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-8">
 
                     {/* 1. Items List */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {items.length === 0 ? (
-                            <div className="py-10 text-center text-ink2 italic">
-                                Sua sacola está vazia.
+                            <div className="py-12 text-center text-ink2 italic flex flex-col items-center gap-4">
+                                <div className="w-16 h-16 rounded-full bg-ink/5 flex items-center justify-center text-ink/20">
+                                    <ShoppingBag size={32} />
+                                </div>
+                                <p>Sua sacola está vazia.</p>
+                                <button onClick={() => toggleCart(false)} className="text-sm font-bold underline text-olive">
+                                    Ver produtos
+                                </button>
                             </div>
                         ) : (
                             items.map((item) => {
                                 // 1. HANDLE CUSTOM PACKS
                                 if (item.isPack) {
-                                    // Calculate price for pack (e.g. 6 = R$ 90, 12 = R$ 170 - dummy logic or catalog logic)
-                                    // For MVP let's assume fixed price per size:
-                                    // Pack 6 = R$ 89,90 | Pack 12 = R$ 169,90
                                     const priceCents = item.packSize === 6 ? 8990 : 16990;
 
-                                    // Need to find flavor titles
-                                    // We can't import FLAVORS here easily if we want to keep this pure? 
-                                    // Actually we can import the static data.
-
                                     return (
-                                        <div key={item.productId} className="flex gap-4 items-start bg-paper2/50 p-2 rounded-lg border border-ink/5">
-                                            <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper flex items-center justify-center">
-                                                <div className="text-center leading-none">
-                                                    <span className="block font-bold text-lg text-olive">{item.packSize}</span>
-                                                    <span className="text-[10px] uppercase">Pack</span>
-                                                </div>
+                                        <div key={item.productId} className="flex gap-4 items-start bg-paper p-4 rounded-xl border border-ink/5 shadow-sm">
+                                            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper2/50 flex flex-col items-center justify-center gap-1">
+                                                <span className="font-serif font-bold text-2xl text-olive leading-none">{item.packSize}</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-widest text-ink/40">Pack</span>
                                             </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-serif font-bold text-ink text-sm leading-tight">
-                                                    Monte Seu Pack ({item.packSize} un.)
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-serif font-bold text-ink text-base">
+                                                    Monte Seu Pack
                                                 </h4>
-                                                <div className="mt-1 text-xs text-ink2 font-medium">
+                                                <div className="mt-1 text-sm text-ink2 font-medium">
                                                     R$ {(priceCents / 100).toFixed(2).replace(".", ",")}
                                                 </div>
-                                                {/* Flavor List */}
-                                                <ul className="mt-2 text-[10px] text-ink/70 space-y-0.5 border-l-2 border-olive/20 pl-2">
+
+                                                {/* Flavor List Refined */}
+                                                <div className="mt-3 flex flex-wrap gap-1">
                                                     {item.packFlavors?.map((pf, idx) => (
-                                                        <li key={idx} className="flex justify-between">
-                                                            <span>Flavor {pf.flavorId}</span>
-                                                            <span>x{pf.quantity}</span>
-                                                        </li>
+                                                        <span key={idx} className="inline-flex items-center rounded-sm bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink/70">
+                                                            {pf.quantity}x Flavor {pf.flavorId}
+                                                        </span>
                                                     ))}
-                                                </ul>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <button
-                                                    onClick={() => removeItem(item.productId)}
-                                                    className="text-red-400 hover:text-red-600 p-1"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => removeItem(item.productId)}
+                                                className="text-ink/30 hover:text-red-500 p-2 transition-colors"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </div>
                                     );
                                 }
@@ -204,10 +220,10 @@ export function CartDrawer() {
                                 const product = getProduct(item.productId); // Dynamic
                                 if (!product) return null;
                                 return (
-                                    <div key={item.productId} className="flex gap-4 items-center">
-                                        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper2">
-                                            {item.productId.includes('pack') ? ( // Fallback for old packs if any
-                                                <div className="h-full w-full flex items-center justify-center bg-olive/10">Pack</div>
+                                    <div key={item.productId} className="flex gap-4 items-center bg-paper p-3 rounded-xl border border-transparent hover:border-ink/5 transition-colors">
+                                        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/5 bg-paper2">
+                                            {item.productId.includes('pack') ? (
+                                                <div className="h-full w-full flex items-center justify-center bg-olive/10 text-xs">Pack</div>
                                             ) : (
                                                 product.imageSrc ? (
                                                     <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
@@ -235,14 +251,14 @@ export function CartDrawer() {
                         )}
                     </div>
 
-                    {items.length > 0 && <div className="h-[1px] w-full bg-ink/10" />}
+                    {items.length > 0 && <div className="h-px w-full bg-ink/10 my-4" />}
 
-                    {/* 2. Customer Data (Step 1) */}
+                    {/* 2. Customer Data (Step 2) */}
                     {items.length > 0 && (
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-olive font-bold">
+                        <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in duration-500">
+                            <div className="flex items-center gap-2 text-olive font-bold border-b border-ink/5 pb-2">
                                 <User size={18} />
-                                <span className="text-sm uppercase tracking-wider">Seus Dados</span>
+                                <span className="text-xs uppercase tracking-wider">Seus Dados</span>
                             </div>
                             <CustomerForm />
                         </div>
@@ -286,12 +302,12 @@ export function CartDrawer() {
                                      */}
                                     <div className="flex items-center border border-ink/20 rounded-md">
                                         <button
-                                            onClick={() => useCartStore.getState().setBottlesToReturn(Math.max(0, useCartStore.getState().bottlesToReturn - 1))}
+                                            onClick={() => setBottlesToReturn(Math.max(0, bottlesToReturn - 1))}
                                             className="px-2 py-1 text-ink/50 hover:bg-black/5"
                                         >-</button>
-                                        <span className="w-6 text-center text-sm">{useCartStore((s) => s.bottlesToReturn)}</span>
+                                        <span className="w-6 text-center text-sm">{bottlesToReturn}</span>
                                         <button
-                                            onClick={() => useCartStore.getState().setBottlesToReturn(useCartStore.getState().bottlesToReturn + 1)}
+                                            onClick={() => setBottlesToReturn(bottlesToReturn + 1)}
                                             className="px-2 py-1 text-ink/50 hover:bg-black/5"
                                         >+</button>
                                     </div>
@@ -352,13 +368,13 @@ export function CartDrawer() {
                             <span>Processando...</span>
                         ) : (
                             <>
-                                <span>Finalizar no WhatsApp</span>
+                                <span>Enviar Pedido ✨</span>
                                 <ArrowRight size={18} />
                             </>
                         )}
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
