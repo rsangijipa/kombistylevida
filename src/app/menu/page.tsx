@@ -12,31 +12,51 @@ export default function MenuPage() {
     const { items, addItem, removeItem, addBundle, toggleCart } = useCartStore();
 
     // Helper to get cart qty for a product
-    const getQty = (pid: string) => items.find(i => i.productId === pid)?.qty || 0;
+    // Helper to get Qty for a product from cart (summing direct products and maybe packs if we want, but for now just direct)
+    // Actually, packs contain products. If we want to show "You have 2 of these in cart", we might need to sum them up.
+    // For simplicity in MVP Menu, we just count direct product items.
+    const getQty = (pid: string) => {
+        const item = items.find(i => i.type === 'PRODUCT' && i.productId === pid);
+        return item ? item.qty : 0;
+    };
 
     // Calculate total count for sticky footer
     const totalCount = items.reduce((acc, el) => acc + el.qty, 0);
 
     return (
         <SiteShell>
-            <div className="pb-24"> {/* Editorial Bottom Padding */}
+            <div className="pb-12"> {/* Editorial Bottom Padding */}
 
-                {/* Header Editorial */}
-                <div className="mb-16 text-center md:mb-20">
-                    <h1 className="font-serif text-[40px] leading-tight text-ink font-bold md:text-[56px] tracking-tight">
-                        Nosso Menu
-                    </h1>
-                    <div className="mx-auto mt-6 h-[1px] w-16 bg-ink/30" />
-                    <p className="mx-auto mt-6 max-w-2xl text-ink2 text-lg font-serif italic leading-relaxed">
-                        Seleção de sabores vivos, fermentados com ingredientes reais. <br className="hidden md:block" />
-                        Escolha seus favoritos para entrega em Ariquemes e Região.
-                    </p>
+                {/* Header Editorial - Full Bleed */}
+                <div className="mb-12 md:mb-16 text-center relative py-16 -mx-4 md:-mx-12 rounded-t-[32px] md:rounded-t-[48px] overflow-hidden">
+                    {/* Background Image */}
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src="/images/menu/header_bg.jpg"
+                            alt="Background Texture"
+                            fill
+                            className="object-cover opacity-90"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-paper/80 via-paper/50 to-transparent" />
+                    </div>
+
+                    <div className="relative z-10 px-6">
+                        <h1 className="font-serif text-[40px] leading-tight text-ink font-bold md:text-[56px] tracking-tight drop-shadow-sm">
+                            Nosso Menu
+                        </h1>
+                        <div className="mx-auto mt-6 h-[1px] w-16 bg-ink/30" />
+                        <p className="mx-auto mt-6 max-w-2xl text-ink2 text-lg font-serif italic leading-relaxed font-medium">
+                            Seleção de sabores vivos, fermentados com ingredientes reais. <br className="hidden md:block" />
+                            Escolha seus favoritos para entrega em Ariquemes e Região.
+                        </p>
+                    </div>
                 </div>
 
                 {/* COMBOS (Opcional: Se houver, manter estilo) */}
                 {BUNDLES.length > 0 && (
-                    <section className="mb-24">
-                        <div className="mb-10 flex items-center justify-center gap-4">
+                    <section className="mb-16">
+                        <div className="mb-8 flex items-center justify-center gap-4">
                             <div className="h-[1px] w-12 bg-ink/10" />
                             <h2 className="font-serif text-2xl font-bold text-ink uppercase tracking-widest text-[14px]">Combos Especiais</h2>
                             <div className="h-[1px] w-12 bg-ink/10" />
@@ -48,15 +68,15 @@ export default function MenuPage() {
                                     {/* Editorial Border (Inset) */}
                                     <div className="absolute inset-[10px] border border-ink/10 rounded-lg pointer-events-none z-10 transition-colors group-hover:border-ink/20" />
 
-                                    <div className="p-10 text-center relative z-0 flex flex-col h-full justify-between">
+                                    <div className="p-6 md:p-8 text-center relative z-0 flex flex-col h-full justify-between">
                                         {bundle.badge && (
                                             <span className="absolute right-6 top-6 bg-amber/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm rounded-sm">
                                                 {bundle.badge}
                                             </span>
                                         )}
                                         <div>
-                                            <h3 className="font-serif text-3xl font-normal text-ink mb-4">{bundle.name}</h3>
-                                            <p className="text-base text-ink2/80 mb-8 font-serif leading-relaxed">{bundle.description}</p>
+                                            <h3 className="font-serif text-3xl font-normal text-ink mb-3">{bundle.name}</h3>
+                                            <p className="text-base text-ink2/80 mb-6 font-serif leading-relaxed">{bundle.description}</p>
                                         </div>
 
                                         <div className="mt-auto flex flex-col items-center gap-4">
@@ -79,7 +99,7 @@ export default function MenuPage() {
 
                 {/* SABORES INDIVIDUAIS */}
                 <section className="max-w-6xl mx-auto px-4">
-                    <div className="mb-12 flex items-center justify-center gap-4">
+                    <div className="mb-8 flex items-center justify-center gap-4">
                         <div className="h-[1px] w-12 bg-ink/10" />
                         <h2 className="font-serif text-2xl font-bold text-ink uppercase tracking-widest text-[14px]">Sabores Individuais</h2>
                         <div className="h-[1px] w-12 bg-ink/10" />
@@ -93,7 +113,7 @@ export default function MenuPage() {
                                     {/* Editorial Border */}
                                     <div className="absolute inset-[8px] border border-ink/5 rounded-lg pointer-events-none z-20 group-hover:border-ink/15 transition-colors" />
 
-                                    <div className="relative z-10 p-8 flex flex-col items-center flex-1">
+                                    <div className="relative z-10 p-6 flex flex-col items-center flex-1">
                                         {/* Image Frame */}
                                         <div className="relative mb-6 h-40 w-40 flex-shrink-0 transition-transform duration-700 group-hover:scale-105">
                                             {prod.imageSrc ? (

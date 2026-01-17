@@ -23,19 +23,19 @@ export function StickyCTA() {
     return (
         <div
             className={cn(
-                "fixed bottom-6 left-1/2 z-50 w-[90%] max-w-sm -translate-x-1/2 transform transition-all duration-500 md:hidden",
+                "fixed bottom-24 right-6 z-50 transform transition-all duration-500 md:hidden",
                 visible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
             )}
         >
             <a
-                href="https://wa.me/5599999999999"
+                href="https://wa.me/5548999999999"
                 target="_blank"
                 rel="noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-ink/40 bg-amber py-3.5 text-[14px] font-bold uppercase tracking-widest text-ink shadow-[0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-ink/40 bg-[#25D366] text-white shadow-[0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-110 active:scale-95"
+                aria-label="Pedir no WhatsApp"
             >
-                <span>Pedir no WhatsApp</span>
                 <svg
-                    className="h-5 w-5"
+                    className="h-8 w-8"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"

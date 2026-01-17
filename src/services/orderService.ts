@@ -26,6 +26,22 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
     // 1. Prepare Items Snapshot
     let totalCents = 0;
     const orderItems: OrderItem[] = cart.map(item => {
+        if (item.type === 'PACK') {
+            const price = item.size === 6 ? 8990 : 16990;
+            totalCents += price * item.qty;
+            return {
+                productId: `pack-${item.size}`, // Generic ID for analytics
+                productName: item.displayName,
+                qty: item.qty,
+                priceCents: price,
+                subItems: item.items.map(sub => ({
+                    productId: sub.productId,
+                    qty: sub.qty,
+                    name: CATALOG_MAP[sub.productId]?.name
+                }))
+            };
+        }
+
         const product = CATALOG_MAP[item.productId];
         const price = product?.priceCents || 0;
         totalCents += price * item.qty;
@@ -84,11 +100,23 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
     const docRef = await addDoc(collection(db, "orders"), orderData);
 
     // 4. Reserve Stock (Fire & Forget or Await - safer to await to ensure consistency log)
+    // 4. Reserve Stock (Fire & Forget or Await - safer to await to ensure consistency log)
     try {
-        const reservations = orderItems.map(item =>
-            reserveStock(item.productId, item.qty, docRef.id)
-        );
-        await Promise.all(reservations);
+        const reservationPromises: Promise<void>[] = [];
+
+        orderItems.forEach(item => {
+            if (item.subItems && item.subItems.length > 0) {
+                // It's a Pack -> Reserve individual flavors
+                item.subItems.forEach(sub => {
+                    reservationPromises.push(reserveStock(sub.productId, sub.qty, docRef.id));
+                });
+            } else {
+                // It's a direct product -> Reserve it
+                reservationPromises.push(reserveStock(item.productId, item.qty, docRef.id));
+            }
+        });
+
+        await Promise.all(reservationPromises);
     } catch (e) {
         console.error("Failed to reserve stock", e);
         // We don't fail the order flow, but we log serious error

@@ -25,13 +25,13 @@ export function FlavorCard({
             {/* 
          Editorial Frame: Subtle single line, inset.
       */}
-            <div className="absolute inset-[12px] border border-ink/10 pointer-events-none z-20 rounded-lg transition-colors group-hover:border-ink/20" />
+            <div className="absolute inset-[8px] md:inset-[12px] border border-ink/10 pointer-events-none z-20 rounded-lg transition-colors group-hover:border-ink/20" />
 
             {/* Conteúdo */}
-            <div className="relative z-10 flex flex-1 flex-col items-center px-6 pt-12 pb-10 text-center">
+            <div className="relative z-10 flex flex-1 flex-col items-center px-2 py-6 md:px-6 md:pt-12 md:pb-10 text-center">
 
                 {/* Imagem */}
-                <div className="relative w-48 aspect-square mb-8 flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-105">
+                <div className="relative w-28 md:w-48 aspect-square mb-4 md:mb-8 flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-105">
                     {flavor.imageSrc && (
                         <Image
                             src={flavor.imageSrc}
@@ -45,7 +45,7 @@ export function FlavorCard({
 
                 {/* Título */}
                 <div className="flex-1 flex flex-col items-center justify-start">
-                    <h3 className="font-serif text-3xl text-ink font-normal leading-tight group-active:scale-95 transition-transform">
+                    <h3 className="font-serif text-xl md:text-3xl text-ink font-normal leading-tight group-active:scale-95 transition-transform">
                         {flavor.title.split('\n').map((line, i) => (
                             <React.Fragment key={i}>
                                 {line}
@@ -54,18 +54,18 @@ export function FlavorCard({
                         ))}
                     </h3>
                     {/* Decorative Flourish */}
-                    <div className="mt-4 opacity-40 text-amber">
-                        <Flourish className="w-16 h-4" />
+                    <div className="mt-2 md:mt-4 opacity-40 text-amber">
+                        <Flourish className="w-12 h-3 md:w-16 md:h-4" />
                     </div>
                 </div>
 
                 {/* Botão (Hidden by default on desktop, visible on mobile?) 
                     User request: "No hover desktop, opacity 0 -> 1. Mobile static."
                 */}
-                <div className="mt-8 opacity-100 md:opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0">
+                <div className="mt-4 md:mt-8 opacity-100 md:opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0">
                     <button
                         className={cn(
-                            "inline-flex h-10 items-center rounded-full border border-ink/20 bg-transparent px-6 text-xs font-bold uppercase tracking-widest text-ink transition-all hover:bg-ink hover:text-paper hover:border-transparent",
+                            "inline-flex h-8 md:h-10 items-center rounded-full border border-ink/20 bg-transparent px-4 md:px-6 text-[10px] md:text-xs font-bold uppercase tracking-widest text-ink transition-all hover:bg-ink hover:text-paper hover:border-transparent",
                         )}
                         type="button"
                         onClick={(e) => {

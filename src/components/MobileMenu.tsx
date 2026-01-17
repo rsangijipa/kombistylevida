@@ -9,6 +9,9 @@ import { Menu, X } from "lucide-react";
 const NAV_ITEMS = [
     { path: "/", label: "Home" },
     { path: "/menu", label: "Menu" },
+    { path: "/quiz", label: "Quiz" },
+    { path: "/monte-seu-pack", label: "Monte Seu Pack" },
+    { path: "/receitas", label: "Receitas" },
     { path: "/como-fazemos", label: "Processo" },
     { path: "/beneficios", label: "Benefícios" },
     { path: "/noticias", label: "Notícias" },
@@ -39,42 +42,47 @@ export function MobileMenu() {
         <div className="md:hidden">
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center justify-center p-2 text-ink hover:bg-ink/5 rounded-full transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-paper border border-ink/10 text-ink shadow-sm transition-all active:scale-95 touch-target"
                 aria-label="Abrir menu"
             >
-                <Menu size={28} />
+                <Menu size={24} />
             </button>
 
             {/* Overlay */}
             <div
                 className={cn(
-                    "fixed inset-0 z-50 bg-paper2 transition-transform duration-300 ease-in-out",
+                    "fixed inset-0 z-[60] bg-paper2/95 backdrop-blur-md transition-transform duration-300 ease-in-out flex flex-col",
                     isOpen ? "translate-x-0" : "translate-x-full"
                 )}
             >
-                {/* Header */}
-                <div className="flex items-center justify-end p-6">
+                {/* Header with Close Button */}
+                <div className="flex items-center justify-between p-6 border-b border-ink/5">
+                    <span className="text-xs font-bold uppercase tracking-widest text-ink/40">Menu</span>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="flex items-center justify-center p-2 text-ink hover:bg-ink/5 rounded-full transition-colors"
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-paper border border-ink/10 text-ink shadow-sm transition-all active:scale-95 touch-target"
                         aria-label="Fechar menu"
                     >
-                        <X size={28} />
+                        <X size={24} />
                     </button>
                 </div>
 
-                {/* Links */}
-                <nav className="flex flex-col items-center justify-center gap-8 p-8 mt-10">
-                    {NAV_ITEMS.map((item) => {
+                {/* Scrollable Nav Items */}
+                <nav className="flex-1 overflow-y-auto py-8 px-6 flex flex-col items-center gap-6">
+                    {NAV_ITEMS.map((item, idx) => {
                         const isActive = pathname === item.path;
                         return (
                             <Link
                                 key={item.path}
                                 href={item.path}
+                                onClick={() => setIsOpen(false)}
                                 className={cn(
-                                    "font-serif text-3xl font-medium transition-colors active:scale-95",
-                                    isActive ? "text-olive font-bold" : "text-ink/80 hover:text-ink"
+                                    "font-serif text-2xl md:text-3xl font-medium transition-all duration-200 w-full text-center py-2",
+                                    isActive
+                                        ? "text-olive scale-105"
+                                        : "text-ink/70 hover:text-ink hover:scale-105"
                                 )}
+                                style={{ animationDelay: `${idx * 50}ms` }}
                             >
                                 {item.label}
                             </Link>
@@ -83,7 +91,7 @@ export function MobileMenu() {
                 </nav>
 
                 {/* Footer Decor */}
-                <div className="absolute bottom-10 left-0 right-0 text-center">
+                <div className="p-8 text-center border-t border-ink/5 bg-paper/50">
                     <p className="text-sm font-serif italic text-ink/40">Kombucha Viva & Autêntica</p>
                 </div>
             </div>

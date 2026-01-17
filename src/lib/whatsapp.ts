@@ -11,7 +11,11 @@ interface BuildMessageParams {
     selectedDate: string | null;
     selectedSlotId: string | null;
     notes: string;
-    bottlesToReturn?: number; // New
+    bottlesToReturn?: number;
+    isGift?: boolean;
+    giftFrom?: string;
+    giftTo?: string;
+    giftMessage?: string;
 }
 
 /**
@@ -43,10 +47,23 @@ export function buildOrderMessage({
     selectedDate,
     selectedSlotId,
     notes,
-    bottlesToReturn
+    bottlesToReturn,
+    isGift,
+    giftFrom,
+    giftTo,
+    giftMessage
 }: BuildMessageParams): string {
     let message = `🍃 *PEDIDO NOVO - KOMBUCHA ARIKÊ* 🍃\n`;
     message += `───────────────────────\n`;
+
+    // GIFT BLOCK
+    if (isGift) {
+        message += `🎁 *É PARA PRESENTE!* 🎁\n`;
+        if (giftFrom) message += `De: ${giftFrom}\n`;
+        if (giftTo) message += `Para: ${giftTo}\n`;
+        if (giftMessage) message += `💌 "${giftMessage}"\n`;
+        message += `───────────────────────\n`;
+    }
 
     // 1. Items Section
     message += `📋 *RESUMO DO PEDIDO*\n\n`;
@@ -54,14 +71,31 @@ export function buildOrderMessage({
     let totalCents = 0;
 
     cart.forEach((item) => {
-        const product = CATALOG_MAP[item.productId];
-        if (product) {
-            const itemTotal = (product.priceCents || 0) * item.qty;
-            totalCents += itemTotal;
-            const sizeStr = product.size ? `(${product.size})` : "";
+        if (item.type === 'PACK') {
+            const packPrice = item.size === 6 ? 8990 : 16990;
+            totalCents += packPrice * item.qty;
+            message += `📦 *${item.displayName}* (${item.qty}x)\n`;
 
-            // Format: 2x Gengibre & Limão (300ml)
-            message += `▪️ *${item.qty}x* ${product.name} ${sizeStr}\n`;
+            // Group flavors for cleaner display
+            const flavorSummary: Record<string, number> = {};
+            item.items.forEach(sub => {
+                flavorSummary[sub.productId] = (flavorSummary[sub.productId] || 0) + sub.qty;
+            });
+
+            Object.entries(flavorSummary).forEach(([pid, qty]) => {
+                const p = CATALOG_MAP[pid];
+                if (p) message += `   ├ ${qty}x ${p.name}\n`;
+            });
+            message += `\n`;
+
+        } else if (item.type === 'PRODUCT') {
+            const product = CATALOG_MAP[item.productId];
+            if (product) {
+                const itemTotal = (product.priceCents || 0) * item.qty;
+                totalCents += itemTotal;
+                const sizeStr = product.size ? `(${product.size})` : "";
+                message += `▪️ *${item.qty}x* ${product.name} ${sizeStr}\n`;
+            }
         }
     });
 

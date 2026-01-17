@@ -64,7 +64,11 @@ export function CartDrawer() {
             selectedDate,
             selectedSlotId,
             notes,
-            bottlesToReturn
+            bottlesToReturn,
+            isGift: useCartStore.getState().isGift,
+            giftFrom: useCartStore.getState().giftFrom,
+            giftTo: useCartStore.getState().giftTo,
+            giftMessage: useCartStore.getState().giftMessage
         });
         const link = buildWhatsAppLink(message);
 
@@ -72,6 +76,10 @@ export function CartDrawer() {
         try {
             // Calculate total for CRM
             const totalCents = items.reduce((acc, item) => {
+                if (item.type === 'PACK') {
+                    const price = item.size === 6 ? 8990 : 16990;
+                    return acc + (price * item.qty);
+                }
                 const prod = getProduct(item.productId); // Dynamic
                 return acc + (prod?.priceCents || 0) * item.qty;
             }, 0);
@@ -108,8 +116,8 @@ export function CartDrawer() {
     if (!isOpen) return null;
 
     const subtotal = items.reduce((acc, item) => {
-        if (item.isPack) {
-            const priceCents = item.packSize === 6 ? 8990 : 16990;
+        if (item.type === 'PACK') {
+            const priceCents = item.size === 6 ? 8990 : 16990;
             return acc + (priceCents * item.qty);
         }
 
@@ -199,18 +207,18 @@ export function CartDrawer() {
                         ) : (
                             items.map((item) => {
                                 // 1. HANDLE CUSTOM PACKS
-                                if (item.isPack) {
-                                    const priceCents = item.packSize === 6 ? 8990 : 16990;
+                                if (item.type === 'PACK') {
+                                    const priceCents = item.size === 6 ? 8990 : 16990;
 
                                     return (
-                                        <div key={item.productId} className="flex gap-4 items-start bg-paper p-4 rounded-xl border border-ink/5 shadow-sm">
+                                        <div key={item.id} className="flex gap-4 items-start bg-paper p-4 rounded-xl border border-ink/5 shadow-sm">
                                             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper2/50 flex flex-col items-center justify-center gap-1">
-                                                <span className="font-serif font-bold text-2xl text-olive leading-none">{item.packSize}</span>
+                                                <span className="font-serif font-bold text-2xl text-olive leading-none">{item.size}</span>
                                                 <span className="text-[9px] font-bold uppercase tracking-widest text-ink/40">Pack</span>
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-serif font-bold text-ink text-base">
-                                                    Monte Seu Pack
+                                                    {item.displayName}
                                                 </h4>
                                                 <div className="mt-1 text-sm text-ink2 font-medium">
                                                     R$ {(priceCents / 100).toFixed(2).replace(".", ",")}
@@ -218,15 +226,18 @@ export function CartDrawer() {
 
                                                 {/* Flavor List Refined */}
                                                 <div className="mt-3 flex flex-wrap gap-1">
-                                                    {item.packFlavors?.map((pf, idx) => (
-                                                        <span key={idx} className="inline-flex items-center rounded-sm bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink/70">
-                                                            {pf.quantity}x Flavor {pf.flavorId}
-                                                        </span>
-                                                    ))}
+                                                    {item.items.map((subItem, idx) => {
+                                                        const p = getProduct(subItem.productId);
+                                                        return (
+                                                            <span key={idx} className="inline-flex items-center rounded-sm bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink/70">
+                                                                {subItem.qty}x {p?.name.split(' ')[0] || 'Sabor'}
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => removeItem(item.productId)}
+                                                onClick={() => removeItem(item.id)}
                                                 className="text-ink/30 hover:text-red-500 p-2 transition-colors"
                                             >
                                                 <Trash2 size={18} />
@@ -328,41 +339,51 @@ export function CartDrawer() {
                     {items.length > 0 && (
                         <div className="space-y-4">
                             {/* Eco Points / Return */}
-                            <div className="bg-paper border border-olive/20 rounded-lg p-3 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-olive/10 flex items-center justify-center text-olive">
-                                        ♻️
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-sm text-ink">Devolver Garrafas</p>
-                                        <p className="text-[10px] text-ink2">Ganhe desconto na próxima</p>
-                                    </div>
+                            <div className="bg-paper border border-olive/20 rounded-lg p-3 flex flex-col gap-2 relative overflow-hidden">
+                                {/* Decorative Background Element */}
+                                <div className="absolute -right-4 -top-4 text-olive/5 rotate-12">
+                                    <div className="text-[100px] leading-none">♻️</div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {useCartStore.getState().bottlesToReturn > 0 && (
-                                        <span className="text-xs font-bold text-olive">{useCartStore.getState().bottlesToReturn} un.</span>
-                                    )}
-                                    {/* Simple toggle for MVP: 0 or 6? Or Input? Let's use numeric input styled small */}
-                                    {/* Actually, user prompt said "Checkbox 'Tenho garrafas'". A checkbox is boolean. But dossier/logic implied quantity. Let's do a simple checkbox that sets it to "1" (flag) or a small stepper. 
-                                         Let's stick to Checkbox "Tenho garrafas" -> If checked, we assume some quantity or ask later. 
-                                         Wait, I implemented `bottlesToReturn: number` in store. 
+
+                                <div className="flex items-center justify-between z-10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-olive/10 flex items-center justify-center text-olive">
+                                            ♻️
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm text-ink">Devolver Garrafas</p>
+                                            <p className="text-[10px] text-ink2 max-w-[150px] leading-tight">
+                                                Avise quantas garrafas vazias irá devolver na entrega e ganhe Eco-Points!
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {useCartStore.getState().bottlesToReturn > 0 && (
+                                            <span className="text-xs font-bold text-olive">{useCartStore.getState().bottlesToReturn} un.</span>
+                                        )}
+                                        {/* Simple toggle for MVP: 0 or 6? Or Input? Let's use numeric input styled small */}
+                                        {/* Actually, user prompt said "Checkbox 'Tenho garrafas'". A checkbox is boolean. But dossier/logic implied quantity. Let's do a simple checkbox that sets it to "1" (flag) or a small stepper.
+                                         Let's stick to Checkbox "Tenho garrafas" -> If checked, we assume some quantity or ask later.
+                                         Wait, I implemented `bottlesToReturn: number` in store.
                                          Let's use a simple Quantity Stepper or just a toggle that sets it to 6 (standard pack) or 0.
                                          Better: Simple number input.
                                      */}
-                                    <div className="flex items-center border border-ink/20 rounded-md">
-                                        <button
-                                            onClick={() => setBottlesToReturn(Math.max(0, bottlesToReturn - 1))}
-                                            className="px-2 py-1 text-ink/50 hover:bg-black/5"
-                                        >-</button>
-                                        <span className="w-6 text-center text-sm">{bottlesToReturn}</span>
-                                        <button
-                                            onClick={() => setBottlesToReturn(bottlesToReturn + 1)}
-                                            className="px-2 py-1 text-ink/50 hover:bg-black/5"
-                                        >+</button>
+                                        <div className="flex items-center border border-ink/20 rounded-md bg-white">
+                                            <button
+                                                onClick={() => setBottlesToReturn(Math.max(0, bottlesToReturn - 1))}
+                                                className="px-2 py-1 text-ink/50 hover:bg-black/5"
+                                            >-</button>
+                                            <span className="w-6 text-center text-sm">{bottlesToReturn}</span>
+                                            <button
+                                                onClick={() => setBottlesToReturn(bottlesToReturn + 1)}
+                                                className="px-2 py-1 text-ink/50 hover:bg-black/5"
+                                            >+</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Notes */}
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Observações</label>
                                 <textarea
@@ -375,7 +396,6 @@ export function CartDrawer() {
                             </div>
                         </div>
                     )}
-
                     {/* Clear Data Action */}
                     <div className="pt-4 flex justify-center">
                         <button

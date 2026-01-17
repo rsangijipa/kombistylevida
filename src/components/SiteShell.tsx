@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import { FrameChrome } from "@/components/FrameChrome";
-import { BotanicalCorners } from "@/components/BotanicalCorners";
 import { BubblesOverlay } from "@/components/BubblesOverlay";
 import Link from "next/link";
 import { TopNav } from "@/components/TopNav";
@@ -16,7 +14,11 @@ interface SiteShellProps {
 
 export function SiteShell({ children }: SiteShellProps) {
     return (
-        <div className="min-h-screen w-full px-4 py-8 md:px-6 md:py-12 lg:py-16">
+        <div
+            className="min-h-screen w-full px-4 pb-8 md:px-6 md:pb-12 lg:pb-16"
+        >
+            {/* Nav Global - Fixed Viewport */}
+            <TopNav />
 
             {/* Global Elements */}
             <StickyCTA />
@@ -27,29 +29,22 @@ export function SiteShell({ children }: SiteShellProps) {
         - Max-width restrito: 1040px
         - Relative + Overflow hidden
       */}
-            <div className="relative mx-auto max-w-[1100px] overflow-hidden rounded-frame bg-paper2/95 min-h-[90vh]">
+            <div className="relative mx-auto max-w-[1100px] overflow-hidden bg-paper2/95 min-h-[90vh] rounded-[32px] md:rounded-[48px] shadow-2xl mb-4 mt-0 md:mb-8 md:mt-0">
 
-                {/* Decoração: Cantos Botânicos */}
-                <BotanicalCorners />
+
 
                 {/* Camadas Decorativas Absolutas */}
-                <FrameChrome />
                 <BubblesOverlay />
 
                 {/* Conteúdo Scrollável (dentro da moldura) */}
-                <div className="relative z-10 px-6 pb-16 pt-8 md:px-12 md:pt-10">
-
-                    {/* NAV SECTION */}
-                    <header className="mb-14">
-                        <TopNav />
-                    </header>
+                <div className="relative z-10 px-4 pb-8 pt-0 md:px-12 md:pt-0">
 
                     <main>
                         {children}
                     </main>
 
                     {/* FOOTER GLOBAL */}
-                    <footer id="contato-footer" className="mt-32 md:mt-40 mx-auto max-w-2xl text-center pb-8 border-t border-ink/5 pt-16">
+                    <footer id="contato-footer" className="mt-20 md:mt-24 mx-auto max-w-2xl text-center pb-8 border-t border-ink/5 pt-12">
                         <div className="rounded-[28px] border border-ink/10 bg-paper p-10 shadow-paper relative overflow-hidden group hover:shadow-xl transition-shadow duration-500">
                             {/* Decorative Corner */}
                             <div className="absolute top-0 left-0 w-16 h-16 border-t border-l border-ink/10 rounded-tl-[28px]" />

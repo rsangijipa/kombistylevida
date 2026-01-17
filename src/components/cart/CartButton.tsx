@@ -20,13 +20,13 @@ export function CartButton({ className }: { className?: string }) {
         <button
             onClick={() => toggleCart(true)}
             className={cn(
-                "relative flex h-10 w-10 items-center justify-center rounded-full bg-paper2 text-ink transition-all hover:bg-amber/20 hover:text-olive",
+                "relative flex h-14 w-14 items-center justify-center rounded-full bg-olive text-white shadow-xl transition-all hover:bg-olive/90 hover:scale-110 active:scale-95",
                 className
             )}
         >
-            <ShoppingBag size={20} />
+            <ShoppingBag size={24} />
             {totalQty > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber px-1 text-[11px] font-bold text-ink shadow-sm border border-paper">
+                <span className="absolute -right-1 -top-1 flex h-6 min-w-[24px] items-center justify-center rounded-full bg-amber px-1 text-xs font-bold text-ink shadow-md border-2 border-paper">
                     {totalQty}
                 </span>
             )}

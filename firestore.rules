@@ -104,7 +104,13 @@ service cloud.firestore {
     // Testimonials: Public Read Approved.
     match /testimonials/{id} {
       allow read: if (resource.data.status == 'APPROVED') || isContent();
-      allow write: if isContent() || isStaff(); // Staff can write (manual entry) but ideally strict rules would prevent approve. Rules can't easily validate fields diff without complexity. Trusting Staff for now as per "manual entry" req.
+      allow write: if isContent() || isStaff();
+    }
+
+    // Recipes: Public Read, Admin/Content Write
+    match /recipes/{slug} {
+      allow read: if true;
+      allow write: if isContent();
     }
 
     // Default deny

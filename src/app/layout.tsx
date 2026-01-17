@@ -35,6 +35,8 @@ export const metadata: Metadata = {
     },
 };
 
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -51,6 +53,7 @@ export default function RootLayout({
             >
                 <CatalogProvider>
                     {children}
+                    <ScrollToTop />
                 </CatalogProvider>
             </body>
         </html>

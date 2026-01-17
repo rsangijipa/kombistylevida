@@ -9,6 +9,8 @@ export interface DashboardStats {
     lowStockCount: number;
     packsSold: number;
     returnsPending: number;
+    salesHistory: { date: string; value: number }[];
+    topFlavors: { name: string; qty: number }[];
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -83,14 +85,94 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     // 2. Low Stock
     const qInventory = query(collection(db, "inventory"));
-    // Ideally filter "currentStock < 10" but firestore doesn't do "currentStock < X" easily across all.
-    // We fetch all inventory (small catalog) and filter.
     const invSnap = await getDocs(qInventory);
     let lowStockCount = 0;
     invSnap.forEach(doc => {
         const data = doc.data() as InventoryItem;
         if (data.currentStock < 10) lowStockCount++;
     });
+
+    // 3. Historical Data for Charts (Last 30 Days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const qHistory = query(collection(db, "orders"), where("createdAt", ">=", thirtyDaysAgo.toISOString()));
+    const historySnap = await getDocs(qHistory);
+
+    const salesRef: Record<string, number> = {}; // YYYY-MM-DD -> totalCents
+    const flavorsRef: Record<string, number> = {}; // ProductName -> Qty
+
+    // Initialize last 30 days with 0
+    for (let i = 0; i < 30; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        salesRef[d.toLocaleDateString('pt-BR')] = 0;
+    }
+
+    historySnap.forEach(doc => {
+        const data = doc.data() as Order;
+        // Sales History
+        if (data.status !== 'CANCELED') {
+            const dateStr = new Date(data.createdAt).toLocaleDateString('pt-BR');
+            // If key exists (within 30 days range), add. (Logic handles partial overlap if needed)
+            // Using locale string might be tricky with timezone if server/client differs. 
+            // Best to use simple ISO YYYY-MM-DD split.
+            const isoDate = data.createdAt.split('T')[0];
+            // Let's stick to a reliable mapping.
+            // Re-map:
+        }
+    });
+
+    // Better Approach: Iterate snapshot and allow dynamic keys. Sort later.
+    const salesMap: Record<string, number> = {};
+    const flavorMap: Record<string, number> = {};
+
+    historySnap.forEach(doc => {
+        const data = doc.data() as Order;
+        if (data.status === 'CANCELED') return;
+
+        // Sales
+        const day = data.createdAt.split("T")[0]; // YYYY-MM-DD
+        salesMap[day] = (salesMap[day] || 0) + data.totalCents;
+
+        // Flavors
+        data.items.forEach(item => {
+            // Unpack packs if possible or count pack as item? prompt asked for flavors.
+            // "Sabores mais vendidos". Packs obscure this.
+            // Ideally we iterate subItems if they exist (added in P1).
+            if (item.subItems && item.subItems.length > 0) {
+                item.subItems.forEach(sub => {
+                    const name = sub.name || "Sabor (Pack)";
+                    flavorMap[name] = (flavorMap[name] || 0) + sub.qty;
+                });
+            } else if (!item.productId.startsWith('pack-')) {
+                // Direct product
+                flavorMap[item.productName] = (flavorMap[item.productName] || 0) + item.qty;
+            }
+        });
+    });
+
+    // Format Sales Array (Last 7 reasonable for small chart, or 30?)
+    // Prompt said "Last 7 / 30". Let's do 7 for visual clarity in MVP.
+    const salesHistory: { date: string; value: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        salesHistory.push({
+            date: `${dd}/${mm}`,
+            value: (salesMap[key] || 0) / 100
+        });
+    }
+
+    // Format Top Flavors (Top 5)
+    // Avoid pack generic names if possible.
+    const topFlavors = Object.entries(flavorMap)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, qty]) => ({ name, qty }));
 
     return {
         ordersToday,
@@ -99,5 +181,27 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         lowStockCount,
         packsSold,
         returnsPending,
+        salesHistory,
+        topFlavors
     };
+}
+
+export async function getDailyRoutes(dateStr: string): Promise<Order[]> {
+    const q = query(
+        collection(db, "orders"),
+        where("schedule.date", "==", dateStr),
+        orderBy("createdAt", "asc")
+    );
+
+    const snap = await getDocs(q);
+    const orders: Order[] = [];
+
+    snap.forEach(doc => {
+        const data = doc.data() as Order;
+        if (data.status !== 'CANCELED') {
+            orders.push(data);
+        }
+    });
+
+    return orders;
 }

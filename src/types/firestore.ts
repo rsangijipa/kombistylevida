@@ -6,6 +6,7 @@ export type OrderItem = {
     qty: number;
     priceCents: number; // Snapshot
     size?: string; // Snapshot
+    subItems?: { productId: string; qty: number; name?: string }[]; // For packs
 };
 
 export type OrderCustomerSnapshot = {
@@ -50,6 +51,12 @@ export interface Customer {
     lastOrderAt: string;
     orderCount: number;
     lifetimeValueCents: number;
+
+    ecoPoints: number; // Current balance
+    bottlesReturned: number; // Total bottles returned history
+
+    isSubscriber?: boolean; // P4: Manual VIP
+    subscriptionNotes?: string;
 
     consentToSave: boolean; // LGPD
     updatedAt: string;
@@ -224,4 +231,43 @@ export interface AuditLog { // Updated to match Phase 6 spec
     after?: any;
     reason?: string;
     createdAt: string;
+}
+
+export type RecipeCategory =
+    | "Mocktail (Sem Álcool)"
+    | "Coquetel (Com Álcool)"
+    | "Gastronomia (Salgados)"
+    | "Sobremesas";
+
+export interface Recipe {
+    id: string; // slug
+    title: string;
+    slug: string; // docId imutável
+    category: RecipeCategory;
+    difficulty: "Fácil" | "Médio" | "Avançado";
+    timeMinutes: number;
+    servings: string; // "1 drink", "2 porções"
+    excerpt: string;
+    image: string; // /images/recipes/<slug>.png (mapped from coverImage request)
+    tags: string[];
+
+    kombuchaBase: string; // ex: Chá Verde, Hibisco
+    kombuchaFlavorSuggested: string[]; // ex: ["Gengibre", "Limão"]
+
+    ingredients: string[];
+    steps: string[];
+    tips: string[]; // dicas técnicas
+    pairings: string[]; // harmonizações
+
+    hasAlcohol: boolean;
+    disclaimer: string;
+    ctaWhatsAppText: string;
+
+    relatedProductRefs?: string[]; // productIds
+    status: "DRAFT" | "PUBLISHED";
+    featuredRank?: 1 | 2 | 3; // para destaque na home
+
+    publishedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }

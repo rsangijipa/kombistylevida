@@ -27,26 +27,26 @@ const STEPS = [
 
 export function ProcessTimeline() {
     return (
-        <div className="relative max-w-4xl mx-auto px-4 py-16">
-            {/* Central Organic Line (Vine) */}
-            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-ink/10 hidden md:block"></div>
+        <div className="relative max-w-5xl mx-auto px-4 py-8">
+            {/* Central Organic Line (Vine) - subtle dotted */}
+            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px border-l border-dashed border-ink/20 hidden md:block"></div>
 
             {STEPS.map((step, index) => {
                 const isEven = index % 2 === 0;
                 return (
-                    <div key={step.id} className="relative mb-32 last:mb-0 group">
-                        {/* Leaf decoration on line */}
-                        <div className={`hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 w-8 h-8 items-center justify-center bg-paper z-10 rounded-full border border-ink/10 text-olive`}>
-                            <div className="w-2 h-2 rounded-full bg-olive/40" />
+                    <div key={step.id} className="relative mb-20 last:mb-0 group">
+                        {/* Center Marker */}
+                        <div className="hidden md:flex absolute left-1/2 top-10 -translate-x-1/2 w-4 h-4 rounded-full bg-paper border-2 border-olive z-10 box-content p-[2px]">
+                            <div className="w-full h-full rounded-full bg-olive"></div>
                         </div>
 
-                        <div className={`flex flex-col md:flex-row items-center gap-12 md:gap-24 ${isEven ? "" : "md:flex-row-reverse"}`}>
-                            {/* Image Side - Organic Shape */}
-                            <div className="flex-1 w-full max-w-[320px] relative">
+                        <div className={`flex flex-col md:flex-row items-center gap-8 md:gap-20 ${isEven ? "" : "md:flex-row-reverse"}`}>
+                            {/* Image Side - Refined */}
+                            <div className="flex-1 w-full max-w-[280px] md:max-w-[320px] relative">
                                 <div className="relative aspect-square w-full">
-                                    {/* Abstract organic blob background */}
-                                    <div className={`absolute inset-0 rounded-[40px] bg-paper2 transition-transform duration-700 group-hover:rotate-2 ${isEven ? 'rotate-3' : '-rotate-3'}`} />
-                                    <div className={`absolute inset-0 rounded-[40px] border border-ink/10 transition-transform duration-700 delay-100 group-hover:-rotate-1 ${isEven ? '-rotate-2' : 'rotate-2'}`} />
+                                    {/* Abstract organic blob background - More subtle */}
+                                    <div className={`absolute inset-4 rounded-[40px] bg-paper2 shadow-sm transition-transform duration-700 group-hover:rotate-1 ${isEven ? 'rotate-2' : '-rotate-2'}`} />
+                                    <div className={`absolute inset-4 rounded-[40px] border border-ink/10 transition-transform duration-700 delay-100 group-hover:-rotate-1 ${isEven ? '-rotate-1' : 'rotate-1'}`} />
 
                                     <div className="relative h-full w-full overflow-hidden p-6 flex items-center justify-center z-10 transition-transform duration-500 group-hover:scale-105">
                                         <Image
@@ -54,7 +54,7 @@ export function ProcessTimeline() {
                                             alt={step.alt}
                                             width={300}
                                             height={300}
-                                            className="object-contain drop-shadow-sm"
+                                            className="object-contain drop-shadow-sm opacity-90 group-hover:opacity-100 transition-opacity"
                                         />
                                     </div>
                                 </div>
@@ -62,12 +62,15 @@ export function ProcessTimeline() {
 
                             {/* Text Side */}
                             <div className={`flex-1 text-center ${isEven ? 'md:text-left' : 'md:text-right'}`}>
-                                <h3 className="mb-4 font-serif text-3xl font-bold text-ink md:text-5xl tracking-tight">
-                                    <span className="text-amber/60 text-lg md:text-xl block mb-2 font-sans font-bold tracking-widest uppercase">0{step.id}</span>
+                                <span className={`inline-block mb-3 font-sans font-bold tracking-[0.2em] text-xs uppercase text-white bg-olive px-3 py-1 rounded-full shadow-sm`}>
+                                    Passo 0{step.id}
+                                </span>
+
+                                <h3 className="mb-4 font-serif text-3xl font-normal text-ink md:text-4xl leading-tight">
                                     {step.title}
                                 </h3>
-                                <div className={`h-px w-16 bg-ink/20 mb-6 mx-auto ${isEven ? 'md:mx-0' : 'md:ml-auto'}`} />
-                                <p className="font-serif text-lg leading-relaxed text-ink2/90">
+
+                                <p className="font-serif text-base md:text-lg leading-relaxed text-ink2/80 max-w-sm mx-auto md:mx-0">
                                     {step.description}
                                 </p>
                             </div>

@@ -79,6 +79,76 @@ export default function AdminPage() {
                     </div>
                 </div>
 
+                {/* CHARTS SECTION */}
+                <div className="mt-8 grid gap-6 md:grid-cols-2">
+
+                    {/* Sales History Chart */}
+                    <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">Vendas (Últimos 7 dias)</h3>
+                            <TrendingUp size={16} className="text-ink/40" />
+                        </div>
+
+                        <div className="flex h-48 items-end justify-between gap-2 overflow-hidden text-xs text-ink/60 relative">
+                            {/* Y-Axis Grid Lines? Keep simple for MVP: just bars */}
+                            {loading ? (
+                                <div className="flex h-full w-full items-center justify-center text-ink/20">Carregando...</div>
+                            ) : (
+                                stats?.salesHistory.map((day, i) => {
+                                    // Calculate relative height. Max value?
+                                    const maxVal = Math.max(...(stats?.salesHistory.map(d => d.value) || [100]));
+                                    const hPercent = maxVal === 0 ? 0 : Math.round((day.value / maxVal) * 100);
+
+                                    return (
+                                        <div key={i} className="flex flex-1 flex-col items-center gap-2 group">
+                                            <div className="relative w-full rounded-t-sm bg-olive/20 transition-all duration-500 hover:bg-olive group-hover:shadow-md" style={{ height: `${Math.max(4, hPercent)}%` }}>
+                                                {/* Tooltip */}
+                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-ink px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap z-10">
+                                                    R$ {day.value.toFixed(2)}
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] font-medium">{day.date}</span>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Top Flavors */}
+                    <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
+                        <h3 className="mb-6 text-xs font-bold uppercase tracking-wider text-ink/40">Sabores Mais Vendidos</h3>
+                        <div className="space-y-4">
+                            {loading ? (
+                                <div className="text-sm text-ink/40">Carregando...</div>
+                            ) : (
+                                stats?.topFlavors.map((flavor, i) => {
+                                    const maxQty = stats?.topFlavors[0]?.qty || 1;
+                                    const percent = Math.round((flavor.qty / maxQty) * 100);
+
+                                    return (
+                                        <div key={i}>
+                                            <div className="mb-1 flex items-center justify-between text-sm">
+                                                <span className="font-medium text-ink truncate max-w-[200px]">{flavor.name}</span>
+                                                <span className="text-ink/60 text-xs">{flavor.qty} un.</span>
+                                            </div>
+                                            <div className="h-2 w-full overflow-hidden rounded-full bg-ink/5">
+                                                <div
+                                                    className="h-full bg-amber/80 rounded-full"
+                                                    style={{ width: `${percent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                            {(!loading && stats?.topFlavors.length === 0) && (
+                                <p className="text-sm text-ink/40 italic">Nenhum dado de vendas ainda.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
             </AdminLayout>
         </AuthProvider>
     );

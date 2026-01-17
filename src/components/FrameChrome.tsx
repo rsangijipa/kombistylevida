@@ -27,9 +27,7 @@ export function FrameChrome() {
         - Centered
         - Opacity controlled
       */}
-            <div className="absolute left-1/2 top-5 -translate-x-1/2 opacity-60 md:top-7">
-                <TopFlourish className="h-6 w-32 text-ink/40" />
-            </div>
+
         </>
     );
 }

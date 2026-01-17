@@ -17,6 +17,7 @@ export function TopNav() {
             { path: "/menu", label: "Menu" },
             { path: "/quiz", label: "Quiz" },
             { path: "/monte-seu-pack", label: "Monte Seu Pack" },
+            { path: "/receitas", label: "Receitas" },
             { path: "/como-fazemos", label: "Processo" },
             { path: "/beneficios", label: "Benefícios" },
             { path: "/noticias", label: "Notícias" },
@@ -25,41 +26,48 @@ export function TopNav() {
     );
 
     return (
-        <div className="relative z-20 mx-auto flex max-w-5xl items-center justify-between pt-4 md:pt-6 px-4">
+        /* Nav Wrapper - Relative Flow (Not Fixed) */
+        <div
+            className="relative w-full z-50 flex justify-center items-center pointer-events-none mb-6"
+            style={{ height: "var(--topnav-h)" }}
+        >
 
-            {/* Mobile Menu Trigger */}
-            <div className="md:hidden">
-                <MobileMenu />
-            </div>
+            <div className="relative pointer-events-auto mx-auto flex max-w-5xl items-center justify-between px-4 w-full h-full">
 
-            {/* Desktop Nav - Hidden on mobile */}
-            <nav className="hidden md:flex flex-wrap items-center justify-center gap-6 text-[16px] font-medium tracking-wide md:gap-8 mx-auto">
-                {items.map((it) => {
-                    const isActive = pathname === it.path;
-                    return (
-                        <Link
-                            key={it.path}
-                            href={it.path}
-                            className={cn(
-                                "relative font-serif text-ink2 transition-colors duration-300 hover:text-ink",
-                                // Linha fina base
-                                "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-ink2/30 after:transition-all after:duration-300",
-                                // Hover visuals
-                                "hover:after:bg-ink/60 hover:after:h-[1.5px]",
-                                // Active state
-                                isActive && "text-ink font-semibold"
-                            )}
-                        >
-                            {/* Highlighter visual for active state */}
-                            <span className={cn("relative z-10 px-1", isActive && "vintage-highlight")}>{it.label}</span>
-                        </Link>
-                    );
-                })}
-            </nav>
+                {/* Mobile Menu Trigger */}
+                <div className="md:hidden">
+                    <MobileMenu />
+                </div>
 
-            {/* Cart Button Integrated */}
-            <div className="flex-shrink-0 md:absolute md:right-0 md:top-6">
-                <CartButton />
+                {/* Desktop Nav - Always Visible, Refined Pill */}
+                <nav className="hidden md:flex flex-wrap items-center justify-center gap-6 text-[16px] font-medium tracking-wide md:gap-8 mx-auto bg-paper/60 backdrop-blur-[2px] px-8 py-3 rounded-full shadow-sm border border-ink/5">
+                    {items.map((it) => {
+                        const isActive = pathname === it.path;
+                        return (
+                            <Link
+                                key={it.path}
+                                href={it.path}
+                                className={cn(
+                                    "relative font-serif text-ink2 transition-colors duration-300 hover:text-ink",
+                                    // Linha fina base
+                                    "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1px] after:bg-ink2/30 after:transition-all after:duration-300",
+                                    // Hover visuals
+                                    "hover:after:bg-ink/60 hover:after:h-[1.5px]",
+                                    // Active state
+                                    isActive && "text-ink font-semibold"
+                                )}
+                            >
+                                {/* Highlighter visual for active state */}
+                                <span className={cn("relative z-10 px-1", isActive && "vintage-highlight")}>{it.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Cart Button Integrated */}
+                <div className="flex-shrink-0 md:absolute md:right-0 md:top-6 pointer-events-auto">
+                    <CartButton />
+                </div>
             </div>
         </div>
     );

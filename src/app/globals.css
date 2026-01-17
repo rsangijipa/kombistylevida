@@ -23,6 +23,8 @@ html {
   --radius-frame: 22px;
   --radius-frameInner: 18px;
 
+
+
   --font-serif: "Cormorant Garamond", var(--font-serif), ui-serif, Georgia, serif;
   --font-sans: "Inter", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 
@@ -71,7 +73,7 @@ body {
   color: var(--color-ink);
   background: var(--color-paper);
   font-family: var(--font-serif);
-  line-height: 1.8;
+  line-height: 1.6;
   /* Senior A11y: Increased leading */
   background-color: var(--color-paper);
 }
@@ -151,9 +153,18 @@ button {
     padding-left: 1rem !important;
   }
 
-  /* Force labels to be visible if they were placeholders */
   ::placeholder {
     opacity: 0.7;
     color: var(--color-ink2);
+  }
+}
+
+:root {
+  --topnav-h: 80px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --topnav-h: 64px;
   }
 }
