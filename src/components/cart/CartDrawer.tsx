@@ -4,17 +4,22 @@ import React, { useEffect, useState } from "react";
 import { X, ShoppingBag, Trash2, Calendar, User, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useCustomerStore } from "@/store/customerStore";
-import { CATALOG_MAP } from "@/data/catalog";
 import { cn } from "@/lib/cn";
 import { QuantityStepper } from "./QuantityStepper";
 import { DeliveryScheduler } from "@/components/schedule/DeliveryScheduler";
 import { CustomerForm } from "@/components/customer/CustomerForm";
+import { createOrder } from "@/services/orderService";
+import { upsertCustomer } from "@/services/customerService";
 import { buildOrderMessage, buildWhatsAppLink, validateOrder } from "@/lib/whatsapp";
+import { useCatalog } from "@/context/CatalogContext"; // New Import
 
 export function CartDrawer() {
     const { items, isOpen, removeItem, updateQty, toggleCart, selectedDate, selectedSlotId, notes, setNotes, clearCart } = useCartStore();
     const customer = useCustomerStore(); // contains .reset()
+    const { getProduct } = useCatalog(); // Dynamic Catalog
+
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
 
     // Lock body scroll
     useEffect(() => {
@@ -36,7 +41,7 @@ export function CartDrawer() {
         }
     }, [items, customer, selectedDate, selectedSlotId, notes, validationError]);
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         const error = validateOrder({
             cart: items,
             customer,
@@ -50,6 +55,9 @@ export function CartDrawer() {
             return;
         }
 
+        setIsCheckingOut(true);
+
+        // 1. WhatsApp Logic (Always prepared)
         const message = buildOrderMessage({
             cart: items,
             customer,
@@ -57,9 +65,34 @@ export function CartDrawer() {
             selectedSlotId,
             notes
         });
-
         const link = buildWhatsAppLink(message);
+
+        // 2. Firestore Logic (Try best effort)
+        try {
+            // Calculate total for CRM
+            const totalCents = items.reduce((acc, item) => {
+                const prod = getProduct(item.productId); // Dynamic
+                return acc + (prod?.priceCents || 0) * item.qty;
+            }, 0);
+
+            await Promise.all([
+                createOrder({
+                    cart: items,
+                    customer,
+                    selectedDate,
+                    selectedSlotId,
+                    notes
+                }),
+                upsertCustomer(customer, totalCents)
+            ]);
+
+        } catch (e) {
+            console.error("Failed to save order/customer to Firestore", e);
+        }
+
+        // 3. Redirect
         window.open(link, "_blank");
+        setIsCheckingOut(false);
     };
 
     const handleClearData = () => {
@@ -73,7 +106,7 @@ export function CartDrawer() {
     if (!isOpen) return null;
 
     const subtotal = items.reduce((acc, item) => {
-        const prod = CATALOG_MAP[item.productId];
+        const prod = getProduct(item.productId); // Dynamic
         return acc + (prod?.priceCents || 0) * item.qty;
     }, 0);
 
@@ -113,13 +146,17 @@ export function CartDrawer() {
                             </div>
                         ) : (
                             items.map((item) => {
-                                const product = CATALOG_MAP[item.productId];
+                                const product = getProduct(item.productId); // Dynamic
                                 if (!product) return null;
                                 return (
                                     <div key={item.productId} className="flex gap-4 items-center">
                                         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/10 bg-paper2">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
+                                            {product.imageSrc ? (
+                                                <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
+                                            ) : (
+                                                <div className="h-full w-full bg-gray-100" />
+                                            )}
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-serif font-bold text-ink text-sm leading-tight">{product.name}</h4>
@@ -207,16 +244,22 @@ export function CartDrawer() {
 
                     <button
                         onClick={handleCheckout}
-                        disabled={items.length === 0}
+                        disabled={items.length === 0 || isCheckingOut}
                         className={cn(
                             "w-full flex items-center justify-center gap-2 rounded-full py-4 text-sm font-bold uppercase tracking-widest shadow-lg transition-transform",
-                            items.length > 0
+                            (items.length > 0 && !isCheckingOut)
                                 ? "bg-green-700 text-white hover:bg-green-800 active:scale-95"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         )}
                     >
-                        <span>Finalizar no WhatsApp</span>
-                        <ArrowRight size={18} />
+                        {isCheckingOut ? (
+                            <span>Processando...</span>
+                        ) : (
+                            <>
+                                <span>Finalizar no WhatsApp</span>
+                                <ArrowRight size={18} />
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

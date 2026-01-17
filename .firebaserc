@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "elosusgrupos"
+  },
+  "targets": {
+    "elosusgrupos": {
+      "hosting": {
+        "elosusgrupos-8c420": [
+          "elosusgrupos-8c420"
+        ]
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ import { Faq } from "@/components/Faq";
 import { ScientificSection } from "@/components/ScientificSection";
 import { FlavorModal, FlavorDetails } from "@/components/FlavorModal";
 import { PromoSection } from "@/components/PromoSection";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 
 // Minimal data for Home (Top items)
 const flavors: FlavorDetails[] = [
@@ -159,6 +160,9 @@ export default function Page() {
             <div className="mt-20 md:mt-24">
                 <PromoSection />
             </div>
+
+            {/* TESTIMONIALS */}
+            <TestimonialsSection />
 
             {/* CULTURA VIVA / SCIENTIFIC SECTION */}
             <div className="mt-24 md:mt-28">

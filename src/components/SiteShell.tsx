@@ -3,6 +3,7 @@
 import React from "react";
 import { FrameChrome } from "@/components/FrameChrome";
 import { BubblesOverlay } from "@/components/BubblesOverlay";
+import Link from "next/link";
 import { TopNav } from "@/components/TopNav";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { StickyCTA } from "@/components/StickyCTA";
@@ -62,6 +63,11 @@ export function SiteShell({ children }: SiteShellProps) {
                         <p className="mt-10 text-[13px] text-ink/40 font-serif italic tracking-wide">
                             © 2026 Kombistyle Vida. Todos os direitos reservados.
                         </p>
+                        <div className="mt-4 flex justify-center">
+                            <Link href="/admin" className="text-[11px] text-ink/40 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
+                                Área Administrativa
+                            </Link>
+                        </div>
                     </footer>
                 </div>
             </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/cn";
+import { CatalogProvider } from "@/context/CatalogContext";
 
 const serif = Cormorant_Garamond({
     subsets: ["latin"],
@@ -48,7 +49,9 @@ export default function RootLayout({
                     "antialiased selection:bg-amber/30 selection:text-ink"
                 )}
             >
-                {children}
+                <CatalogProvider>
+                    {children}
+                </CatalogProvider>
             </body>
         </html>
     );

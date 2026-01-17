@@ -3,7 +3,7 @@ import { CustomerState } from "@/store/customerStore";
 import { CATALOG_MAP } from "@/data/catalog";
 import { DELIVERY_SLOTS } from "@/data/deliverySlots";
 
-const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5599999999999";
+const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "556981123681";
 
 interface BuildMessageParams {
     cart: CartItem[];
@@ -26,6 +26,8 @@ export function validateOrder({
     if (cart.length === 0) return "Sua sacola está vazia.";
     if (!customer.name.trim()) return "Por favor, informe seu Nome.";
 
+    // We can relax the validation slightly if pickup, but let's keep name required.
+    // What if the user wants to finalize but forgot address? We remind them.
     if (customer.deliveryMethod === "delivery") {
         if (!customer.address.trim()) return "Para entrega, precisamos do seu Endereço.";
         if (!selectedDate || !selectedSlotId) return "Por favor, agende uma data e horário para a entrega.";
@@ -41,10 +43,12 @@ export function buildOrderMessage({
     selectedSlotId,
     notes,
 }: BuildMessageParams): string {
-    let message = `🌿 *PEDIDO KOMBISTYLE VIDA* 🌿\n\n`;
+    let message = `🍃 *PEDIDO NOVO - KOMBISTYLE VIDA* 🍃\n`;
+    message += `───────────────────────\n`;
 
-    // 1. Items
-    message += `*ITENS:*\n`;
+    // 1. Items Section
+    message += `📋 *RESUMO DO PEDIDO*\n\n`;
+
     let totalCents = 0;
 
     cart.forEach((item) => {
@@ -52,51 +56,65 @@ export function buildOrderMessage({
         if (product) {
             const itemTotal = (product.priceCents || 0) * item.qty;
             totalCents += itemTotal;
-            message += `• ${item.qty}x ${product.name}\n`;
+            const sizeStr = product.size ? `(${product.size})` : "";
+
+            // Format: 2x Gengibre & Limão (300ml)
+            message += `▪️ *${item.qty}x* ${product.name} ${sizeStr}\n`;
         }
     });
 
-    // 2. Total
+    // 2. Pricing
     if (totalCents > 0) {
-        message += `\n💰 *Total: R$ ${(totalCents / 100).toFixed(2).replace(".", ",")}*\n`;
+        message += `\n💰 *Total Estimado: R$ ${(totalCents / 100).toFixed(2).replace(".", ",")}*\n`;
+        message += `_(Pagamento via Pix ou na entrega)_\n`;
     }
 
-    // 3. Customer Data
-    message += `\n----------------\n`;
-    message += `👤 *CLIENTE:*\n`;
-    message += `Nome: ${customer.name}\n`;
-    if (customer.phone) message += `WhatsApp: ${customer.phone}\n`;
+    message += `───────────────────────\n`;
 
-    // 4. Delivery / Schedule
+    // 3. Delivery / Customer Info
     const isDelivery = customer.deliveryMethod === "delivery";
-    message += `\n📦 *${isDelivery ? "ENTREGA" : "RETIRADA"}*\n`;
+    const methodEmoji = isDelivery ? "🛵" : "🏃";
+    const methodTitle = isDelivery ? "ENTREGA" : "RETIRADA";
 
+    message += `${methodEmoji} *DADOS PARA ${methodTitle}*\n`;
+
+    // Customer Name
+    message += `👤 *Nome:* ${customer.name}\n`;
+
+    // Delivery Details
     if (isDelivery) {
-        if (customer.address) message += `End: ${customer.address}\n`;
-        if (customer.neighborhood) message += `Bairro: ${customer.neighborhood}\n`;
+        if (customer.address) message += `📍 *Endereço:* ${customer.address}\n`;
+        if (customer.neighborhood) message += `🏙️ *Bairro:* ${customer.neighborhood}\n`;
 
+        // Slot Logic
         if (selectedDate && selectedSlotId) {
             const dateObj = new Date(selectedDate);
             const dateFmt = dateObj.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' });
             const slot = DELIVERY_SLOTS.find(s => s.id === selectedSlotId);
-            message += `Data: ${dateFmt} (${slot?.label || selectedSlotId})\n`;
+            const slotLabel = slot ? slot.label : selectedSlotId;
+
+            message += `📅 *Agendamento:* ${dateFmt} - ${slotLabel}\n`;
         } else {
-            message += `Data: A combinar\n`;
+            message += `📅 *Agendamento:* A combinar\n`;
         }
+    } else {
+        // Pickup Logic
+        message += `📅 *Retirada:* Vamos combinar o horário!\n`;
     }
 
-    // 5. Notes
-    // Truncate notes if too long to avoid URL breakage
+    // 4. Notes
     const cleanNotes = (notes || "").trim();
     if (cleanNotes) {
-        message += `\n📝 *Obs:* ${cleanNotes.substring(0, 200)}${cleanNotes.length > 200 ? "..." : ""}\n`;
+        message += `\n📝 *Observações:*\n${cleanNotes.substring(0, 300)}\n`;
     }
+
+    message += `───────────────────────\n`;
+    message += `Aguardando confirmação! 🙌`;
 
     return message;
 }
 
 export function buildWhatsAppLink(message: string): string {
-    // Encodes characters properly for WhatsApp URL
     const encodedMsg = encodeURIComponent(message);
     return `https://wa.me/${PHONE_NUMBER}?text=${encodedMsg}`;
 }

@@ -4,6 +4,7 @@ export type Product = {
     shortDesc?: string;
     imageSrc?: string;
     priceCents?: number; // Optional for MVP, if we want to show totals
+    size?: string; // New field for pre-message clarity
 };
 
 export type BundleItem = {
@@ -27,6 +28,7 @@ export const PRODUCTS: Product[] = [
         shortDesc: "Clássico revigorante",
         imageSrc: "/images/flavor-ginger-lemon.png",
         priceCents: 1500, // R$ 15,00
+        size: "300ml"
     },
     {
         id: "red-berries",
@@ -34,6 +36,7 @@ export const PRODUCTS: Product[] = [
         shortDesc: "Doce e antioxidante",
         imageSrc: "/images/flavor-red-berries.png",
         priceCents: 1600,
+        size: "300ml"
     },
     {
         id: "purple-grape",
@@ -41,6 +44,7 @@ export const PRODUCTS: Product[] = [
         shortDesc: "Intenso e encorpado",
         imageSrc: "/images/flavor-purple-grape.png",
         priceCents: 1600,
+        size: "300ml"
     },
     {
         id: "passionfruit",
@@ -48,6 +52,7 @@ export const PRODUCTS: Product[] = [
         shortDesc: "Tropical e calmante",
         imageSrc: "/images/flavor-passionfruit.png",
         priceCents: 1500,
+        size: "300ml"
     },
 ];
 
