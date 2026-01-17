@@ -9,38 +9,43 @@ type Feature = {
 
 export function CultureFeature({ feature }: { feature: Feature }) {
     return (
-        <article className="text-center">
-            <div className="mx-auto flex h-[78px] w-[96px] items-center justify-center">
-                {feature.iconSrc ? (
+        <article className="relative flex flex-col items-center text-center">
+            {/* 
+        Background Arabesque 
+        - "Hugging" the icon
+        - Very low opacity (0.15-0.25)
+      */}
+            <div className="absolute top-[10px] -z-10 h-28 w-28 translate-y-[-10%] opacity-[0.12] text-ink">
+                <IconArabesque />
+            </div>
+
+            <div className="relative mb-5 flex h-[100px] w-[120px] items-center justify-center">
+                {feature.iconSrc && (
                     <Image
                         src={feature.iconSrc}
                         alt={feature.title}
-                        width={96}
-                        height={78}
+                        fill
                         className="object-contain"
+                        sizes="120px"
                     />
-                ) : (
-                    <FallbackIcon />
                 )}
             </div>
 
-            <h3 className="mt-2 font-serif text-[18px] font-semibold text-ink">
-                {feature.title}
+            <h3 className="mb-3 font-serif text-[22px] font-semibold text-ink leading-tight">
+                {feature.title.replace('\n', ' ')}
             </h3>
-            <p className="mx-auto mt-1 max-w-[260px] text-[14px] text-ink2/80">
+            <p className="max-w-[260px] text-[16px] leading-relaxed text-ink2/90 font-serif">
                 {feature.desc}
             </p>
         </article>
     );
 }
 
-function FallbackIcon() {
+function IconArabesque() {
     return (
-        <svg viewBox="0 0 120 90" fill="none" aria-hidden>
-            <rect x="36" y="18" width="48" height="50" rx="12" fill="rgba(236,188,117,.35)" stroke="rgba(50,41,24,.35)" strokeWidth="2" />
-            <path d="M46 18c2-8 26-8 28 0" stroke="rgba(50,41,24,.45)" strokeWidth="2" strokeLinecap="round" />
-            <path d="M24 48c10-6 10-18 0-24" stroke="rgba(50,41,24,.25)" strokeWidth="2" strokeLinecap="round" />
-            <path d="M96 48c-10-6-10-18 0-24" stroke="rgba(50,41,24,.25)" strokeWidth="2" strokeLinecap="round" />
+        <svg viewBox="0 0 100 100" fill="currentColor">
+            <path d="M50 0 C 10 25, 0 50, 50 100 C 100 50, 90 25, 50 0" opacity="0.5" />
+            <path d="M50 10 L 20 50 L 50 90 L 80 50 Z" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.8" />
         </svg>
-    );
+    )
 }

@@ -20,8 +20,8 @@ html {
   --radius-frame: 22px;
   --radius-frameInner: 18px;
 
-  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", var(--font-serif), ui-serif, Georgia, serif;
+  --font-sans: "Inter", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 
   --animate-floaty: floaty 6s ease-in-out infinite;
   --animate-drift: drift 10s ease-in-out infinite;
@@ -68,47 +68,51 @@ body {
   color: var(--color-ink);
   background: var(--color-paper);
   font-family: var(--font-serif);
+  /* Fallback sem textura */
+  background-color: var(--color-paper);
 }
 
-/* Papel + vinheta + grão */
+/* Layer 1: Textura de Papel (Multiply) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.16;
+  background-image: url("/images/paper-texture.png");
+  background-repeat: repeat;
+  background-size: 500px;
+  /* Tamanho ajustado para tile sutil */
+  opacity: 0.15;
+  /* Conforme plano */
   mix-blend-mode: multiply;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+  z-index: -2;
 }
 
+/* Layer 2: Vinheta Suave */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(1000px 600px at 50% 0%, rgba(0, 0, 0, 0.04), transparent 60%),
-    radial-gradient(900px 700px at 10% 20%, rgba(0, 0, 0, 0.05), transparent 60%),
-    radial-gradient(900px 700px at 90% 20%, rgba(0, 0, 0, 0.05), transparent 60%),
-    radial-gradient(1200px 900px at 50% 100%, rgba(0, 0, 0, 0.06), transparent 65%);
+  background: radial-gradient(circle at center, transparent 40%, rgba(50, 41, 24, 0.08) 100%);
+  opacity: 1;
+  z-index: -1;
 }
 
-/* utilitário: sublinhado “vintage” */
-.vintage-underline {
+/* Utilitário: Sublinhado Vintage */
+.vintage-highlight {
   position: relative;
-  display: inline-block;
+  z-index: 1;
 }
 
-.vintage-underline::after {
+.vintage-highlight::before {
   content: "";
   position: absolute;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--color-amber2);
+  inset: 0;
+  bottom: 2px;
+  background-color: var(--color-amber2);
   opacity: 0.55;
   z-index: -1;
+  border-radius: 2px;
+  transform: scaleX(1.1) skewX(-10deg);
 }

@@ -26,6 +26,10 @@ export default {
         frame: "22px",
         frameInner: "18px",
       },
+      fontFamily: {
+        serif: ["Cormorant Garamond", "var(--font-serif)", "ui-serif", "Georgia", "serif"],
+        sans: ["Inter", "var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       keyframes: {
         floaty: {
           "0%, 100%": { transform: "translateY(0px)" },
@@ -44,10 +48,6 @@ export default {
         floaty: "floaty 6s ease-in-out infinite",
         drift: "drift 10s ease-in-out infinite",
         pulseSoft: "pulseSoft 5s ease-in-out infinite",
-      },
-      fontFamily: {
-        serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

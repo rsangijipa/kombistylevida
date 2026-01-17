@@ -2,64 +2,81 @@ import Image from "next/image";
 import React from "react";
 import { cn } from "@/lib/cn";
 
-type Flavor = {
+export type Flavor = {
     title: string;
-    subtitle?: string;
     imageSrc?: string;
+    longDesc?: string;
+    ingredients?: string[];
+    pairings?: string[];
 };
 
 export function FlavorCard({
     flavor,
-    variant = "clean",
+    onOpen,
 }: {
     flavor: Flavor;
-    variant?: "home" | "clean";
+    onOpen?: () => void;
 }) {
-    const showSubtitle = variant === "home" && flavor.subtitle;
-
     return (
-        <article className="group relative rounded-[18px] bg-paper2/70 shadow-print">
-            {/* borda dupla */}
-            <div className="rounded-[18px] border border-ink/55 p-3">
-                <div className="rounded-[14px] border border-ink/30 p-4 text-center">
-                    <h3 className="font-serif text-[18px] font-semibold leading-tight text-ink">
-                        {flavor.title}
-                    </h3>
+        <article
+            className="group relative flex min-h-[380px] w-full cursor-pointer flex-col justify-between overflow-hidden rounded-[22px] bg-paper2 shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-transform duration-500 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
+            onClick={onOpen}
+        >
+            {/* 
+         1. Borda Dupla Externa (Consistent spacing) 
+         - Outer: border-ink/40
+         - Inner: border-ink/20
+      */}
+            <div className="absolute inset-0 rounded-[22px] border border-ink/40" />
+            <div className="absolute inset-[5px] rounded-[17px] border border-ink/20" />
 
-                    <div className="mt-3 flex items-center justify-center">
-                        <div className="relative h-[108px] w-[140px]">
-                            {flavor.imageSrc ? (
-                                <Image
-                                    src={flavor.imageSrc}
-                                    alt={flavor.title}
-                                    fill
-                                    className="object-contain"
-                                />
-                            ) : (
-                                <FallbackIllustration />
-                            )}
-                        </div>
-                    </div>
+            {/* Conteúdo */}
+            <div className="relative z-10 flex flex-1 flex-col items-center p-6 text-center">
+                {/* Título com quebra de linha manual */}
+                <h3 className="min-h-[54px] font-serif text-[20px] font-semibold leading-[1.15] text-ink tracking-tight">
+                    {flavor.title.split('\n').map((line, i) => (
+                        <React.Fragment key={i}>
+                            {line}
+                            {i < flavor.title.split('\n').length - 1 && <br />}
+                        </React.Fragment>
+                    ))}
+                </h3>
 
-                    {/* flourish (variação clean) */}
-                    {variant === "clean" && <Flourish className="mx-auto mt-2 h-4 w-16 opacity-70" />}
-
-                    {/* subtítulo (variação home) */}
-                    {showSubtitle && (
-                        <p className="mt-2 text-[14px] text-ink2/85">{flavor.subtitle}</p>
-                    )}
-
-                    <button
-                        className={cn(
-                            "mt-3 inline-flex items-center justify-center rounded-full border border-ink/60",
-                            "bg-amber px-4 py-2 text-[14px] font-medium text-ink shadow-print",
-                            "transition group-hover:brightness-[1.02]"
+                {/* 
+            Imagens Grandes e Naturais
+            - height: ~50% of card
+            - object-contain
+        */}
+                <div className="relative flex-1 w-full flex items-center justify-center my-4">
+                    <div className="relative h-[180px] w-full">
+                        {flavor.imageSrc && (
+                            <Image
+                                src={flavor.imageSrc}
+                                alt={flavor.title}
+                                fill
+                                className="object-contain drop-shadow-sm transition-transform duration-700 group-hover:scale-105"
+                                sizes="(max-width: 768px) 100vw, 25vw"
+                            />
                         )}
-                        type="button"
-                    >
-                        Ver detalhes
-                    </button>
+                    </div>
                 </div>
+
+                {/* Flourish decorativo sob a imagem */}
+                <Flourish className="mb-5 h-3 w-16 text-ink/30" />
+
+                {/* Botão Pílula Style */}
+                <button
+                    className={cn(
+                        "inline-flex h-[36px] items-center rounded-full border border-ink/60 bg-amber px-6 text-[13px] font-bold uppercase tracking-wider text-ink shadow-print transition-all group-hover:bg-amber2 group-hover:shadow-md",
+                    )}
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Avoid double click if Article also has handler
+                        onOpen?.();
+                    }}
+                >
+                    Ver detalhes
+                </button>
             </div>
         </article>
     );
@@ -67,29 +84,22 @@ export function FlavorCard({
 
 function Flourish({ className }: { className?: string }) {
     return (
-        <svg className={className} viewBox="0 0 120 24" fill="none" aria-hidden>
+        <svg className={className} viewBox="0 0 100 20" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
             <path
-                d="M10 12c14-10 26-10 40 0 14 10 26 10 40 0"
-                stroke="rgba(50,41,24,.55)"
-                strokeWidth="2"
-                strokeLinecap="round"
+                d="M50 15 C 30 15, 20 5, 0 10"
+                stroke="currentColor"
+                strokeWidth="1"
+                fill="none"
+                opacity="0.8"
             />
             <path
-                d="M60 12c4-6 10-6 14 0-4 6-10 6-14 0Z"
-                fill="rgba(50,41,24,.25)"
-                stroke="rgba(50,41,24,.4)"
+                d="M50 15 C 70 15, 80 5, 100 10"
+                stroke="currentColor"
+                strokeWidth="1"
+                fill="none"
+                opacity="0.8"
             />
-        </svg>
-    );
-}
-
-function FallbackIllustration() {
-    return (
-        <svg viewBox="0 0 180 140" fill="none" aria-hidden>
-            <path d="M20 110c25-35 50-52 80-52s55 17 80 52" stroke="rgba(50,41,24,.35)" strokeWidth="3" />
-            <circle cx="70" cy="70" r="24" fill="rgba(236,188,117,.45)" stroke="rgba(50,41,24,.35)" strokeWidth="2" />
-            <circle cx="110" cy="72" r="18" fill="rgba(124,118,68,.35)" stroke="rgba(50,41,24,.35)" strokeWidth="2" />
-            <circle cx="126" cy="56" r="10" fill="rgba(138,68,65,.35)" stroke="rgba(50,41,24,.35)" strokeWidth="2" />
+            <circle cx="50" cy="8" r="1.5" fill="currentColor" opacity="0.6" />
         </svg>
     );
 }
