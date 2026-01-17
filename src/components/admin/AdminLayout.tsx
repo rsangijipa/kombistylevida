@@ -117,8 +117,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {/* Sidebar */}
             <aside className="fixed left-0 top-0 h-full w-64 border-r border-ink/10 bg-paper hidden md:flex flex-col">
                 <div className="p-6 border-b border-ink/5">
-                    <h1 className="font-serif text-xl font-bold text-olive">Kombistyle Ops</h1>
-                    <p className="text-xs text-ink/50 mt-1">v1.0.0 (Phase 6)</p>
+                    <h1 className="font-serif text-xl font-bold text-olive">Arikê Ops</h1>
+                    <p className="text-xs text-ink/50 mt-1">v1.1.0 (Rebranding)</p>
                 </div>
 
                 <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -159,6 +159,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                         <LogOut size={14} />
                         Sair
                     </button>
+                    <Link
+                        href="/"
+                        className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink/50 hover:text-olive hover:bg-olive/5 mt-2 transition-colors"
+                    >
+                        <Truck size={14} />
+                        Voltar para o Site
+                    </Link>
                 </div>
             </aside>
 

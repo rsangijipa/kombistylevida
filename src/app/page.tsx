@@ -22,10 +22,10 @@ export default function Page() {
     return (
         <SiteShell>
             {/* HERO SECTION */}
-            <div className="relative mb-24 text-center md:mb-40 overflow-hidden pb-16"> {/* Increased margins */}
+            <div className="relative mb-16 text-center md:mb-24 overflow-hidden pb-10"> {/* Reduced margins */}
                 <div className="mx-auto max-w-2xl px-6 pt-12 md:pt-20 relative z-10">
                     {/* Logo: Smaller on mobile for balance */}
-                    <div className="relative mx-auto mb-8 h-[120px] w-[280px] md:h-[234px] md:w-[546px] transition-all duration-700 ease-out animate-in fade-in zoom-in-95">
+                    <div className="relative mx-auto mb-6 h-[100px] w-[220px] md:h-[234px] md:w-[546px] transition-all duration-700 ease-out animate-in fade-in zoom-in-95">
                         <Image
                             src="/images/logo.png"
                             alt="Kombistyle Vida"
@@ -50,7 +50,7 @@ export default function Page() {
                             Pedir no WhatsApp
                         </a>
                         <span className="text-xs font-bold uppercase tracking-widest text-ink/40">
-                            Entrega em Florianópolis
+                            Entrega em Ariquemes e Região
                         </span>
                     </div>
                 </div>
@@ -60,7 +60,7 @@ export default function Page() {
             </div>
 
             {/* SABORES SECTION */}
-            <section id="sabores" className="relative z-10 mx-auto mb-24 max-w-6xl px-4">
+            <section id="sabores" className="relative z-10 mx-auto mb-16 max-w-6xl px-4">
                 <div className="mb-14 text-center">
                     <h2 className="font-serif text-3xl font-bold text-ink md:text-5xl">Nossos Sabores</h2>
                     <div className="mx-auto mt-6 h-px w-20 bg-ink/20" />
@@ -83,11 +83,8 @@ export default function Page() {
                 </div>
             </section>
 
-            {/* CULTURA VIVA */}
-            <CulturaVivaSection />
-
-            {/* CIÊNCIA / POR QUE BEBER */}
-            <div className="my-20">
+            {/* CIÊNCIA LEVE / POR QUE BEBER */}
+            <div className="my-10">
                 <ScientificSection />
             </div>
 

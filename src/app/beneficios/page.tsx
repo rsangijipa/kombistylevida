@@ -27,7 +27,7 @@ export default function BeneficiosPage() {
                         <Heart className="w-10 h-10 text-ink mb-4 opacity-80" />
                         <h3 className="font-serif text-2xl font-bold text-ink mb-3">Saúde Intestinal</h3>
                         <p className="font-serif text-ink2 leading-relaxed">
-                            Rica em probióticos naturais, a kombucha ajuda a repovoar a flora intestinal, melhorando a digestão e a absorção de nutrientes. Um intestino feliz reflete em todo o corpo.
+                            Rica em probióticos naturais, a kombucha pode auxiliar no equilíbrio da microbiota intestinal, favorecendo a digestão. Um intestino feliz reflete em todo o corpo.
                         </p>
                     </article>
 
@@ -45,7 +45,7 @@ export default function BeneficiosPage() {
                         <ShieldCheck className="w-10 h-10 text-ink mb-4 opacity-80" />
                         <h3 className="font-serif text-2xl font-bold text-ink mb-3">Imunidade</h3>
                         <p className="font-serif text-ink2 leading-relaxed">
-                            O equilíbrio da microbiota é essencial para o sistema imunológico. Consumir alimentos fermentados regularmente fortalece suas defesas naturais.
+                            O equilíbrio da microbiota é essencial para o sistema imunológico. Consumir alimentos fermentados regularmente pode contribuir para suas defesas naturais.
                         </p>
                     </article>
 

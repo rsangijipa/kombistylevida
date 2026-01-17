@@ -3,8 +3,9 @@ export type Product = {
     name: string;
     shortDesc?: string;
     imageSrc?: string;
-    priceCents?: number; // Optional for MVP, if we want to show totals
-    size?: string; // New field for pre-message clarity
+    priceCents?: number;
+    size?: string;
+    variants?: { size: string; price: number }[];
 };
 
 export type BundleItem = {
@@ -27,32 +28,48 @@ export const PRODUCTS: Product[] = [
         name: "Gengibre & Limão",
         shortDesc: "Clássico revigorante",
         imageSrc: "/images/flavors/_processed/gengibre-limao.square.png",
-        priceCents: 1500, // R$ 15,00
-        size: "300ml"
+        priceCents: 1200, // Base price 300ml
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "red-berries",
         name: "Frutas Vermelhas",
         shortDesc: "Doce e antioxidante",
         imageSrc: "/images/flavors/_processed/frutas-vermelhas.square.png",
-        priceCents: 1600,
-        size: "300ml"
+        priceCents: 1200,
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "purple-grape",
         name: "Uva Roxa",
         shortDesc: "Intenso e encorpado",
         imageSrc: "/images/flavors/_processed/uva-roxa.square.png",
-        priceCents: 1600,
-        size: "300ml"
+        priceCents: 1200,
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "passionfruit",
         name: "Maracujá",
         shortDesc: "Tropical e calmante",
         imageSrc: "/images/flavors/_processed/maracuja.square.png",
-        priceCents: 1500,
-        size: "300ml"
+        priceCents: 1200,
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
 ];
 

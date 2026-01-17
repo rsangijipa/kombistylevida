@@ -20,7 +20,7 @@ const STEPS = [
         id: 3,
         title: "Envase & Saborização",
         description: "Adicionamos frutas frescas e envasamos. Ocorre aqui a segunda fermentação, criando o gás natural (carbonatação) que faz aquele 'pop' ao abrir.",
-        imageSrc: "/images/illustrations/process/passo-3-envase.jpg",
+        imageSrc: "/images/illustrations/process/passo-3-envase.png",
         alt: "Garrafas sendo rotuladas a mão"
     }
 ];

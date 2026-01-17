@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { SiteShell } from "@/components/SiteShell";
+import { NewsEmptyState } from "@/components/content/NewsEmptyState";
 
 export default function NoticiasIndexPage() {
     const [posts, setPosts] = useState<Post[]>([]);
@@ -112,7 +113,9 @@ export default function NoticiasIndexPage() {
                     <section>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
                             {list.length === 0 && featured.length === 0 ? (
-                                <div className="col-span-full text-center text-ink/40 py-12 font-serif italic">Nenhuma notícia publicada ainda.</div>
+                                <div className="col-span-full">
+                                    <NewsEmptyState />
+                                </div>
                             ) : list.map(post => (
                                 <Link href={`/noticias/${post.slug}`} key={post.id} className="group flex flex-col h-full bg-paper2 transition-all hover:-translate-y-1 hover:shadow-md">
                                     <div className="relative aspect-[3/2] overflow-hidden border-b border-ink/5">

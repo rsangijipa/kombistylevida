@@ -21,7 +21,7 @@ export function CustomerForm() {
                         value={name}
                         onChange={(e) => setField("name", e.target.value)}
                         placeholder="Seu nome"
-                        className="w-full rounded-md border border-ink/20 bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-olive"
+                        className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
                     />
                 </div>
                 <div>
@@ -31,7 +31,7 @@ export function CustomerForm() {
                         value={phone}
                         onChange={(e) => setField("phone", e.target.value)}
                         placeholder="(00) 00000-0000"
-                        className="w-full rounded-md border border-ink/20 bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-olive"
+                        className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
                     />
                 </div>
             </div>
@@ -43,7 +43,7 @@ export function CustomerForm() {
                     <button
                         onClick={() => setField("deliveryMethod", "delivery")}
                         className={cn(
-                            "flex-1 rounded-md py-2 text-sm font-bold transition-colors",
+                            "flex-1 h-[48px] rounded-md text-sm font-bold transition-colors touch-target",
                             deliveryMethod === "delivery" ? "bg-olive text-paper shadow-sm" : "bg-paper border border-ink/10 text-ink/60 hover:bg-paper2"
                         )}
                     >
@@ -52,7 +52,7 @@ export function CustomerForm() {
                     <button
                         onClick={() => setField("deliveryMethod", "pickup")}
                         className={cn(
-                            "flex-1 rounded-md py-2 text-sm font-bold transition-colors",
+                            "flex-1 h-[48px] rounded-md text-sm font-bold transition-colors touch-target",
                             deliveryMethod === "pickup" ? "bg-olive text-paper shadow-sm" : "bg-paper border border-ink/10 text-ink/60 hover:bg-paper2"
                         )}
                     >
@@ -71,7 +71,7 @@ export function CustomerForm() {
                             value={neighborhood}
                             onChange={(e) => setField("neighborhood", e.target.value)}
                             placeholder="Ex: Centro"
-                            className="w-full rounded-md border border-ink/20 bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-olive"
+                            className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
                         />
                     </div>
                     <div>

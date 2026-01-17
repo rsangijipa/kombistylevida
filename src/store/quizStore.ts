@@ -7,12 +7,14 @@ interface QuizState {
     safetyTriggered: boolean;
     currentQuestionIndex: number;
     isFinished: boolean;
+    isStarted: boolean;
 
     // Actions
     setAnswer: (qId: string, optId: string, points: number, isSafety: boolean) => void;
     nextQuestion: (totalQuestions: number) => void;
     prevQuestion: () => void;
     resetQuiz: () => void;
+    startQuiz: () => void;
 }
 
 export const useQuizStore = create<QuizState>()(
@@ -23,6 +25,9 @@ export const useQuizStore = create<QuizState>()(
             safetyTriggered: false,
             currentQuestionIndex: 0,
             isFinished: false,
+            isStarted: false, // Initialize isStarted
+
+            startQuiz: () => set({ isStarted: true }), // Add startQuiz implementation
 
             setAnswer: (qId, optId, points, isSafety) => set((state) => {
                 // Remove potential previous score for this question if changing answer (simplified: just overwrite)
@@ -52,20 +57,20 @@ export const useQuizStore = create<QuizState>()(
             }),
 
             prevQuestion: () => set((state) => ({
-                currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1),
-                isFinished: false
+                currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1)
             })),
 
             resetQuiz: () => set({
-                answers: {},
-                score: 0,
-                safetyTriggered: false,
                 currentQuestionIndex: 0,
-                isFinished: false
+                answers: {},
+                isFinished: false,
+                isStarted: false,
+                score: 0,
+                safetyTriggered: false
             })
         }),
         {
-            name: 'kombi-quiz-storage',
+            name: 'quiz-storage',
         }
     )
 );

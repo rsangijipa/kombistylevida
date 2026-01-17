@@ -6,7 +6,7 @@ export function buildWhatsAppShareLink(result: ResultCategory) {
     // Safety check for safety overrides
     const isSafety = result.id === 'safety';
 
-    const text = `Olá! Fiz o Quiz da Kombistyle Vida. 🌱\n\n` +
+    const text = `Olá! Fiz o Quiz da Kombucha Arikê. 🌱\n\n` +
         `Meu perfil deu: *${result.title}*\n` +
         `Sugestão: ${result.dosage}\n` +
         (isSafety ? `(Vou consultar meu médico antes)` : `Sabores sugeridos: ${result.flavors.join(", ")}`) +

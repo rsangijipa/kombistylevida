@@ -19,7 +19,7 @@ export function FlavorCard({
 }) {
     return (
         <article
-            className="group relative flex h-full w-full cursor-pointer flex-col justify-between overflow-hidden rounded-xl bg-paper transition-all duration-700 hover:-translate-y-2 hover:shadow-paper"
+            className="group relative flex h-full w-full cursor-pointer flex-col justify-between overflow-hidden rounded-xl bg-paper transition-all duration-300 active:scale-[0.98] hover:-translate-y-2 hover:shadow-paper touch-manipulation"
             onClick={onOpen}
         >
             {/* 
@@ -45,7 +45,7 @@ export function FlavorCard({
 
                 {/* Título */}
                 <div className="flex-1 flex flex-col items-center justify-start">
-                    <h3 className="font-serif text-3xl text-ink font-normal leading-tight">
+                    <h3 className="font-serif text-3xl text-ink font-normal leading-tight group-active:scale-95 transition-transform">
                         {flavor.title.split('\n').map((line, i) => (
                             <React.Fragment key={i}>
                                 {line}

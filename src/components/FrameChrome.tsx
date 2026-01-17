@@ -4,18 +4,9 @@ export function FrameChrome() {
     return (
         <>
             {/* 
-        1) Borda externa (Chrome) 
-        - position: absolute, inset-0
-        - border-ink/55 
+        1) Border lines removed for cleaner look
       */}
-            <div className="pointer-events-none absolute inset-0 rounded-frame border border-ink/55" />
 
-            {/* 
-        2) Borda interna (Inset) 
-        - position: absolute, inset-3 or inset-4
-        - border-ink/30
-      */}
-            <div className="pointer-events-none absolute inset-3 rounded-frameInner border border-ink/30 md:inset-4" />
 
             {/* 
         3) Ornamentos nos 4 cantos (SVG)

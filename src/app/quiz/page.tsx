@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { QuizShell } from "@/components/quiz/QuizShell";
 import { QuizStepper } from "@/components/quiz/QuizStepper";
 import { QuizResult } from "@/components/quiz/QuizResult";
+import { QuizIntro } from "@/components/quiz/QuizIntro"; // Import Intro
 import { useQuizStore } from "@/store/quizStore";
 import { QUIZ_QUESTIONS, RESULTS } from "@/data/quizFull";
 import { ChevronRight, Check } from "lucide-react";
@@ -14,26 +15,31 @@ export default function AdvancedQuizPage() {
         currentQuestionIndex,
         answers,
         isFinished,
+        isStarted,
         score,
         safetyTriggered,
         setAnswer,
         nextQuestion,
         prevQuestion,
-        resetQuiz
+        resetQuiz,
+        startQuiz
     } = useQuizStore(useShallow(state => ({
         currentQuestionIndex: state.currentQuestionIndex,
         answers: state.answers,
         isFinished: state.isFinished,
+        isStarted: state.isStarted,
         score: state.score,
         safetyTriggered: state.safetyTriggered,
         setAnswer: state.setAnswer,
         nextQuestion: state.nextQuestion,
         prevQuestion: state.prevQuestion,
-        resetQuiz: state.resetQuiz
+        resetQuiz: state.resetQuiz,
+        startQuiz: state.startQuiz
     })));
 
-    // Reset on mount if desired, but user asked for persistence. 
-    // We will keep state. If users want to restart, they can click restart in result.
+    // Reset on mount if isFinished is true? Or keep persistence?
+    // Let's keep persistence but if !isStarted, we show intro.
+    // If user refreshes on question 3, they stay on question 3 (isStarted was persisted).
 
     // Derived: Current Question
     const question = QUIZ_QUESTIONS[currentQuestionIndex];
@@ -65,6 +71,14 @@ export default function AdvancedQuizPage() {
         }, 250);
     };
 
+    if (!isStarted) {
+        return (
+            <QuizShell>
+                <QuizIntro onStart={startQuiz} />
+            </QuizShell>
+        );
+    }
+
     if (isFinished) {
         const finalResult = getResult();
         return (
@@ -91,18 +105,20 @@ export default function AdvancedQuizPage() {
                                 key={opt.id}
                                 onClick={() => handleOptionSelect(opt.id, opt.score, opt.isSafetyTrigger)}
                                 className={`
-                                    w-full text-left p-5 rounded-xl border transition-all flex items-center justify-between group
+                                    w-full text-left p-6 mb-3 rounded-2xl border-2 transition-all flex items-center justify-between group touch-target shadow-sm
                                     ${isSelected
-                                        ? "bg-olive text-paper border-olive shadow-md scale-[1.01]"
-                                        : "bg-paper border-ink/10 hover:border-olive/30 hover:bg-olive/5"
+                                        ? "bg-olive text-paper border-olive shadow-lg scale-[1.01]"
+                                        : "bg-paper border-ink/20 hover:border-olive hover:bg-olive/5"
                                     }
                                 `}
+                                aria-pressed={isSelected}
                             >
-                                <span className={`font-serif text-lg ${isSelected ? "font-bold" : "font-medium"}`}>
+                                <span className={`font-serif text-xl md:text-2xl leading-tight pr-4 ${isSelected ? "font-bold" : "font-medium text-ink"}`}>
                                     {opt.text}
                                 </span>
-                                <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${isSelected ? "border-paper bg-paper text-olive" : "border-ink/20 group-hover:border-olive/50"}`}>
-                                    {isSelected && <Check size={14} strokeWidth={4} />}
+                                <div className={`shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors 
+                                    ${isSelected ? "border-paper bg-paper text-olive" : "border-ink/20 group-hover:border-olive"}`}>
+                                    {isSelected && <Check size={20} strokeWidth={4} />}
                                 </div>
                             </button>
                         );
@@ -111,23 +127,32 @@ export default function AdvancedQuizPage() {
             </div>
 
             {/* Navigation Controls */}
-            <div className="mt-8 flex justify-between items-center border-t border-ink/5 pt-6">
+            <div className="mt-12 flex justify-between items-center border-t border-ink/10 pt-8 gap-6">
                 <button
                     onClick={prevQuestion}
                     disabled={currentQuestionIndex === 0}
-                    className="text-xs font-bold uppercase tracking-widest text-ink/40 hover:text-ink disabled:opacity-0 transition-colors"
+                    className="px-6 py-4 min-h-[60px] text-base font-bold uppercase tracking-widest text-ink/60 hover:text-ink hover:bg-ink/5 rounded-lg disabled:opacity-0 transition-all touch-target"
+                    aria-label="Voltar para pergunta anterior"
                 >
                     Voltar
                 </button>
 
-                {/* Manual Next if auto-advance fails or user wants to review */}
+                {/* Manual Next */}
                 <button
                     onClick={() => nextQuestion(QUIZ_QUESTIONS.length)}
                     disabled={!hasAnswer}
-                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-olive disabled:opacity-30 disabled:cursor-not-allowed hover:underline underline-offset-4"
+                    className={`
+                        flex items-center gap-4 px-10 py-4 min-h-[60px] rounded-full font-bold uppercase tracking-widest transition-all touch-target shadow-md
+                        ${hasAnswer
+                            ? "bg-olive text-paper hover:scale-105 active:scale-95"
+                            : "bg-ink/5 text-ink/30 cursor-not-allowed"}
+                    `}
+                    aria-label={currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Ver meu resultado" : "Ir para próxima pergunta"}
                 >
-                    {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Ver Resultado" : "Próxima"}
-                    <ChevronRight size={14} />
+                    <span className="text-base md:text-lg">
+                        {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Ver Resultado" : "Próxima"}
+                    </span>
+                    <ChevronRight size={24} />
                 </button>
             </div>
         </QuizShell>

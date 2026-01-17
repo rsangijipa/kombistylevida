@@ -19,11 +19,11 @@ const sans = Inter({
 
 export const metadata: Metadata = {
     title: "Kombistyle Vida | Kombucha Artesanal",
-    description: "Kombucha fermentada naturalmente, feita com ingredientes reais e carinho. Descubra o equilíbrio entre saúde e sabor.",
-    keywords: ["kombucha", "fermentação natural", "probióticos", "saúde", "bem-estar", "bebida artesanal", "chá fermentado"],
+    description: "Kombucha fermentada naturalmente em Ariquemes - RO, feita com ingredientes reais e carinho. Descubra o equilíbrio entre saúde e sabor.",
+    keywords: ["kombucha", "fermentação natural", "probióticos", "saúde", "bem-estar", "bebida artesanal", "chá fermentado", "Ariquemes", "Rondônia"],
     openGraph: {
         title: "Kombistyle Vida | Estilo e sabor em cada gole",
-        description: "Kombucha artesanal de verdade. Fermentação lenta, ingredientes naturais e muita vida.",
+        description: "Kombucha artesanal de verdade. Fermentação lenta, ingredientes naturais e muita vida. Feito em Ariquemes - RO.",
         type: "website",
         locale: "pt_BR",
         // images: ["/images/og-image.jpg"], // TODO: Add OG Image later if available

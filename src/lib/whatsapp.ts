@@ -45,7 +45,7 @@ export function buildOrderMessage({
     notes,
     bottlesToReturn
 }: BuildMessageParams): string {
-    let message = `🍃 *PEDIDO NOVO - KOMBISTYLE VIDA* 🍃\n`;
+    let message = `🍃 *PEDIDO NOVO - KOMBUCHA ARIKÊ* 🍃\n`;
     message += `───────────────────────\n`;
 
     // 1. Items Section

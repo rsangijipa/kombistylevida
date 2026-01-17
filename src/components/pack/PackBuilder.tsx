@@ -68,68 +68,90 @@ export function PackBuilder() {
             </div>
 
             {/* 2. Visual Box (Grid) */}
-            <div className="bg-paper2 border border-ink/10 rounded-2xl p-8 mb-12 relative overflow-hidden text-center shadow-inner">
-                <div className="text-xs font-bold uppercase tracking-widest text-ink/40 mb-6">Sua Caixa</div>
+            <div className="relative mb-12 rounded-2xl border-2 border-ink/10 bg-[#e3d7c2] p-8 text-center shadow-[inset_0_2px_15px_rgba(0,0,0,0.1)] transition-colors duration-700">
+                {/* Texture Overlay */}
+                <div className="pointer-events-none absolute inset-0 opacity-10 bg-[url('/images/texture-paper.png')] mix-blend-multiply" />
 
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-4 max-w-3xl mx-auto min-h-[120px]">
-                    {/* Render filled slots */}
-                    {Object.entries(selections).flatMap(([id, qty]) =>
-                        Array(qty).fill(id).map((fid, i) => (
-                            <div key={`${fid}-${i}`} className="aspect-[1/2] bg-paper rounded-lg border border-ink/20 flex items-center justify-center relative group animate-fade-in-up">
-                                <Image
-                                    src={FLAVORS.find(f => f.id === fid)?.imageSrc || ""}
-                                    alt="Kombucha"
-                                    fill
-                                    className="object-contain p-2"
-                                />
-                                <button
-                                    onClick={() => handleRemove(fid)}
-                                    className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                                >
-                                    <Minus size={12} />
-                                </button>
+                <div className="relative z-10">
+                    <div className="mb-6 flex items-center justify-between">
+                        <div className="text-xs font-bold uppercase tracking-widest text-ink/40">Sua Caixa</div>
+                        {/* Savings Badge */}
+                        {remaining < packSize && (
+                            <div className="animate-in fade-in zoom-in spin-in-3 duration-500 rounded-full bg-olive px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-paper shadow-sm">
+                                Economia de R$ {(packSize === 12 ? 24 : 10).toFixed(2).replace('.', ',')}
                             </div>
-                        ))
-                    )}
-
-                    {/* Render empty slots */}
-                    {Array(remaining).fill(0).map((_, i) => (
-                        <div key={`empty-${i}`} className="aspect-[1/2] rounded-lg border-2 border-dashed border-ink/10 flex items-center justify-center">
-                            <span className="text-ink/10 font-bold text-2xl">+</span>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-8 max-w-md mx-auto">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-2">
-                        <span>{totalSelected} de {packSize}</span>
-                        <span>{remaining === 0 ? "Completo!" : "Adicione mais"}</span>
+                        )}
                     </div>
-                    <div className="h-2 bg-ink/5 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full transition-all duration-300 ${remaining === 0 ? "bg-olive" : "bg-amber"}`}
-                            style={{ width: `${(totalSelected / packSize) * 100}%` }}
-                        />
+
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3 max-w-3xl mx-auto min-h-[120px]">
+                        {/* Render filled slots */}
+                        {Object.entries(selections).flatMap(([id, qty]) =>
+                            Array(qty).fill(id).map((fid, i) => (
+                                <div key={`${fid}-${i}`} className="group relative flex aspect-[1/2] items-center justify-center rounded-lg border border-ink/10 bg-paper shadow-sm transition-all animate-in zoom-in-50 duration-300">
+                                    <Image
+                                        src={FLAVORS.find(f => f.id === fid)?.imageSrc || ""}
+                                        alt="Kombucha"
+                                        fill
+                                        className="object-contain p-2 transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                    <button
+                                        onClick={() => handleRemove(fid)}
+                                        className="absolute -right-2 -top-2 rounded-full bg-red-100 p-1 text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:scale-110 active:scale-90"
+                                    >
+                                        <Minus size={12} />
+                                    </button>
+                                </div>
+                            ))
+                        )}
+
+                        {/* Render empty slots */}
+                        {Array(remaining).fill(0).map((_, i) => (
+                            <div key={`empty-${i}`} className="flex aspect-[1/2] items-center justify-center rounded-lg border-2 border-dashed border-ink/10 bg-black/5 transition-colors hover:bg-black/10">
+                                <span className="font-serif text-2xl font-bold text-ink/20 transition-transform duration-300 hover:scale-125 hover:text-ink/40">+</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-8 max-w-md mx-auto">
+                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-2 text-ink/60">
+                            <span>{totalSelected} de {packSize}</span>
+                            <span>{remaining === 0 ? "Completo!" : "Adicione mais"}</span>
+                        </div>
+                        <div className="h-3 bg-paper/50 rounded-full overflow-hidden border border-ink/5 box-content p-0.5">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ease-out ${remaining === 0 ? "bg-olive shadow-[0_0_10px_rgba(53,52,36,0.3)]" : "bg-amber"}`}
+                                style={{ width: `${(totalSelected / packSize) * 100}%` }}
+                            />
+                        </div>
+                        {remaining === 0 && (
+                            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-olive animate-pulse">
+                                Tudo pronto para fechar!
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* 3. Flavor Selection */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                 {FLAVORS.map(flavor => (
-                    <div key={flavor.id} className="group bg-paper border border-ink/10 rounded-xl p-4 hover:shadow-md transition-all flex flex-col items-center text-center">
-                        <div className="relative w-24 h-24 mb-4">
+                    <div key={flavor.id} className="group bg-paper border-2 border-ink/10 rounded-2xl p-6 hover:border-olive/30 transition-all flex flex-row sm:flex-col items-center gap-4 text-left sm:text-center relative overflow-hidden">
+
+                        <div className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0">
                             <Image src={flavor.imageSrc} alt={flavor.title} fill className="object-contain" />
                         </div>
-                        <h3 className="font-serif font-bold text-ink mb-1 leading-tight">{flavor.title}</h3>
-                        <div className="mt-auto pt-4">
+
+                        <div className="flex-1">
+                            <h3 className="font-serif font-bold text-2xl text-ink leading-tight mb-1">{flavor.title}</h3>
                             <button
                                 onClick={() => handleAdd(flavor.id)}
                                 disabled={remaining === 0}
-                                className="w-8 h-8 rounded-full bg-olive text-paper flex items-center justify-center hover:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all font-bold shadow-sm"
+                                className="mt-2 w-full sm:w-14 h-14 rounded-full bg-olive text-paper flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 transition-all font-bold shadow-md touch-target"
+                                aria-label={`Adicionar ${flavor.title}`}
                             >
-                                <Plus size={16} />
+                                <Plus size={28} />
+                                <span className="sm:hidden ml-2 text-lg">ADICIONAR</span>
                             </button>
                         </div>
                     </div>
@@ -141,10 +163,10 @@ export function PackBuilder() {
                 <div className="max-w-md mx-auto">
                     <button
                         onClick={handleAddToCart}
-                        className="w-full bg-olive text-paper font-bold uppercase tracking-widest py-4 rounded-full flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg"
+                        className="w-full bg-olive text-paper font-bold uppercase tracking-widest text-lg py-5 rounded-full flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all shadow-lg touch-target"
                     >
-                        <ShoppingBag size={20} />
-                        Adicionar Pack à Sacola
+                        <ShoppingBag size={24} />
+                        Adicionar à Sacola
                     </button>
                 </div>
             </div>

@@ -93,6 +93,7 @@ export interface Product {
     imageSrc?: string;
     priceCents: number;
     size?: string;
+    variants?: { size: string; price: number }[];
     active: boolean; // New: to hide products without deleting
     updatedAt: string;
 }

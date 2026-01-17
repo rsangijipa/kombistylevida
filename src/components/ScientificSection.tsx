@@ -34,7 +34,7 @@ export function ScientificSection() {
             <div className="mb-12 flex flex-col items-center gap-6">
                 <div>
                     <h2 className="font-serif text-[36px] font-semibold text-olive md:text-[42px]">
-                        Cultura Viva
+                        Leve Científico
                     </h2>
                     <div className="mt-4 h-[2px] w-12 mx-auto bg-amber rounded-full opacity-60" />
                 </div>

@@ -29,7 +29,7 @@ export default function MenuPage() {
                     <div className="mx-auto mt-6 h-[1px] w-16 bg-ink/30" />
                     <p className="mx-auto mt-6 max-w-2xl text-ink2 text-lg font-serif italic leading-relaxed">
                         Seleção de sabores vivos, fermentados com ingredientes reais. <br className="hidden md:block" />
-                        Escolha seus favoritos para entrega em Florianópolis.
+                        Escolha seus favoritos para entrega em Ariquemes e Região.
                     </p>
                 </div>
 
@@ -127,16 +127,16 @@ export default function MenuPage() {
                                                 {qty === 0 ? (
                                                     <button
                                                         onClick={() => addItem(prod.id)}
-                                                        className="flex w-full justify-center items-center gap-2 rounded-full border border-ink/20 bg-transparent py-2.5 text-[10px] font-bold uppercase tracking-widest text-ink hover:bg-ink hover:text-paper transition-all"
+                                                        className="flex w-full h-[48px] justify-center items-center gap-2 rounded-full border border-ink/20 bg-transparent py-2.5 text-[10px] font-bold uppercase tracking-widest text-ink hover:bg-ink hover:text-paper transition-all touch-target"
                                                     >
                                                         <Plus size={14} />
                                                         Adicionar
                                                     </button>
                                                 ) : (
-                                                    <div className="flex w-full items-center justify-between rounded-full border border-ink/20 bg-paper px-1 py-1 shadow-inner">
-                                                        <button onClick={() => removeItem(prod.id)} className="h-8 w-8 flex items-center justify-center text-ink/60 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><Minus size={16} /></button>
-                                                        <span className="text-sm font-bold w-full text-center">{qty}</span>
-                                                        <button onClick={() => addItem(prod.id)} className="h-8 w-8 flex items-center justify-center text-ink/60 hover:text-olive hover:bg-olive/10 rounded-full transition-colors"><Plus size={16} /></button>
+                                                    <div className="flex w-full h-[48px] items-center justify-between rounded-full border border-ink/20 bg-paper px-1 py-1 shadow-inner touch-target">
+                                                        <button onClick={() => removeItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-90"><Minus size={18} /></button>
+                                                        <span className="text-sm font-bold w-full text-center select-none">{qty}</span>
+                                                        <button onClick={() => addItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-olive hover:bg-olive/10 rounded-full transition-colors active:scale-90"><Plus size={18} /></button>
                                                     </div>
                                                 )}
                                             </div>

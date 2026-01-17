@@ -13,6 +13,7 @@ export type FlavorDetails = {
     longDesc?: string;
     ingredients?: string[];
     pairings?: string[]; // Harmonização
+    variants?: { size: string; price: number }[];
 };
 
 interface FlavorModalProps {
@@ -24,6 +25,7 @@ interface FlavorModalProps {
 export function FlavorModal({ isOpen, onClose, flavor }: FlavorModalProps) {
     const { addItem } = useCartStore();
     const [btnText, setBtnText] = useState("Adicionar ao Carrinho");
+    const [selectedSize, setSelectedSize] = useState<"300ml" | "500ml">("300ml");
 
     // Lock body scroll when open
     useEffect(() => {
@@ -130,12 +132,47 @@ export function FlavorModal({ isOpen, onClose, flavor }: FlavorModalProps) {
                                 </div>
                             )}
 
-                            <div className="pt-4">
+                            <div className="pt-4 space-y-4">
+                                {/* Size Selector */}
+                                <div className="flex bg-paper2/50 rounded-lg p-1 border border-ink/10 w-fit">
+                                    {(["300ml", "500ml"] as const).map((size) => {
+                                        const variant = flavor.variants?.find(v => v.size === size);
+                                        const price = variant ? `R$ ${variant.price.toFixed(2).replace('.', ',')}` : "";
+                                        const isSelected = selectedSize === size;
+
+                                        return (
+                                            <button
+                                                key={size}
+                                                onClick={() => setSelectedSize(size)}
+                                                className={cn(
+                                                    "px-6 py-3 rounded-md text-sm font-bold uppercase tracking-wider transition-all",
+                                                    isSelected
+                                                        ? "bg-white text-olive shadow-sm"
+                                                        : "text-ink/40 hover:text-ink/70"
+                                                )}
+                                            >
+                                                <div className="leading-none mb-1">{size}</div>
+                                                <div className="text-[10px] opacity-70">{price}</div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
                                 <button
-                                    onClick={handleAddToCart}
+                                    onClick={() => {
+                                        if (!flavor?.id) return;
+                                        // Composite ID: ginger-lemon::500
+                                        const variantId = `${flavor.id}::${selectedSize.replace("ml", "")}`;
+                                        addItem(variantId);
+                                        setBtnText("Adicionado!");
+                                        setTimeout(() => {
+                                            onClose();
+                                            setBtnText("Adicionar ao Carrinho");
+                                        }, 600);
+                                    }}
                                     className={cn(
-                                        "inline-flex w-full items-center justify-center gap-2 rounded-full py-4 text-[15px] font-bold uppercase tracking-widest shadow-md transition-transform hover:-translate-y-0.5 md:w-auto md:px-8",
-                                        btnText === "Adicionado!" ? "bg-green-100 text-green-800 border-green-200" : "bg-olive text-paper hover:bg-olive/90"
+                                        "inline-flex w-full items-center justify-center gap-2 rounded-full py-4 text-[15px] font-bold uppercase tracking-widest shadow-md transition-transform hover:-translate-y-0.5 md:w-auto md:px-8 bg-olive text-paper hover:bg-olive/90",
+                                        btnText === "Adicionado!" && "bg-green-100 text-green-800 border-green-200"
                                     )}
                                 >
                                     <ShoppingBag size={18} />

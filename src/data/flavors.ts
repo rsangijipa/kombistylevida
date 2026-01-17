@@ -6,6 +6,10 @@ export interface FlavorDetails {
     ingredients: string[];
     pairings: string[];
     price?: number;
+    variants?: {
+        size: "300ml" | "500ml";
+        price: number;
+    }[];
 }
 
 export const FLAVORS: FlavorDetails[] = [
@@ -13,9 +17,13 @@ export const FLAVORS: FlavorDetails[] = [
         id: "ginger-lemon",
         title: "Gengibre\n& Limão",
         imageSrc: "/images/flavors/_processed/gengibre-limao.square.png",
-        longDesc: "Um clássico revigorante. A picância natural do gengibre encontra a acidez vibrante do limão, criando uma bebida que desperta os sentidos e auxilia na digestão.",
+        longDesc: "Um clássico revigorante. A picância natural do gengibre encontra a acidez vibrante do limão, criando uma bebida que desperta os sentidos e pode auxiliar na digestão.",
         ingredients: ["Chá verde", "Gengibre fresco", "Suco de limão", "Açúcar orgânico"],
-        pairings: ["Saladas frescas", "Peixes grelhados", "Dias de sol"]
+        pairings: ["Saladas frescas", "Peixes grelhados", "Dias de sol"],
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "red-berries",
@@ -23,7 +31,11 @@ export const FLAVORS: FlavorDetails[] = [
         imageSrc: "/images/flavors/_processed/frutas-vermelhas.square.png",
         longDesc: "Explosão de sabores do bosque. Uma combinação antioxidante e levemente adocicada de morango, amora e mirtilo.",
         ingredients: ["Chá preto", "Morango", "Amora", "Mirtilo", "Hibisco"],
-        pairings: ["Sobremesas leves", "Queijos suaves", "Fim de tarde"]
+        pairings: ["Sobremesas leves", "Queijos suaves", "Fim de tarde"],
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "purple-grape",
@@ -31,7 +43,11 @@ export const FLAVORS: FlavorDetails[] = [
         imageSrc: "/images/flavors/_processed/uva-roxa.square.png",
         longDesc: "Intenso e encorpado. Feito com uvas de colheita selecionada, traz notas profundas que lembram um bom vinho, mas sem álcool.",
         ingredients: ["Chá preto", "Suco de uva integral", "Açúcar orgânico"],
-        pairings: ["Massas", "Risotos", "Jantares especiais"]
+        pairings: ["Massas", "Risotos", "Jantares especiais"],
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
     {
         id: "passionfruit",
@@ -39,6 +55,10 @@ export const FLAVORS: FlavorDetails[] = [
         imageSrc: "/images/flavors/_processed/maracuja.square.png",
         longDesc: "Tropicalidade pura. O perfume inconfundível do maracujá traz calma e refrescância, com aquele azedinho que todo mundo ama.",
         ingredients: ["Chá verde", "Polpa de maracujá", "Capim-santo"],
-        pairings: ["Aves", "Poke bowls", "Momentos relax"]
+        pairings: ["Aves", "Poke bowls", "Momentos relax"],
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
     },
 ];

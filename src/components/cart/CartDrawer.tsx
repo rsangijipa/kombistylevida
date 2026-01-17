@@ -112,7 +112,26 @@ export function CartDrawer() {
             const priceCents = item.packSize === 6 ? 8990 : 16990;
             return acc + (priceCents * item.qty);
         }
-        const prod = getProduct(item.productId); // Dynamic
+
+        // Handle Composite IDs for Price
+        let productId = item.productId;
+        let sizeCode = "";
+
+        if (item.productId.includes("::")) {
+            const parts = item.productId.split("::");
+            productId = parts[0];
+            sizeCode = parts[1];
+        }
+
+        const prod = getProduct(productId);
+
+        if (sizeCode && prod?.variants) {
+            const variant = prod.variants.find(v => v.size.includes(sizeCode));
+            if (variant) {
+                return acc + (variant.price * 100 * item.qty);
+            }
+        }
+
         return acc + (prod?.priceCents || 0) * item.qty;
     }, 0);
 
@@ -216,9 +235,31 @@ export function CartDrawer() {
                                     );
                                 }
 
-                                // 2. HANDLE STANDARD PRODUCTS
-                                const product = getProduct(item.productId); // Dynamic
+                                // 2. HANDLE STANDARD PRODUCTS (With Variants Support)
+                                let productId = item.productId;
+                                let sizeDisplay = "";
+                                let finalPrice = 0;
+
+                                // Check for composite ID (e.g., "ginger-lemon::300")
+                                if (item.productId.includes("::")) {
+                                    const parts = item.productId.split("::");
+                                    productId = parts[0];
+                                    const sizeCode = parts[1]; // "300"
+                                    sizeDisplay = `${sizeCode}ml`;
+                                }
+
+                                const product = getProduct(productId); // Dynamic Catalog
                                 if (!product) return null;
+
+                                // Determine Price: Variant or Base
+                                if (sizeDisplay) {
+                                    // Try to find specific variant price
+                                    const variant = product.variants?.find(v => v.size.includes(sizeDisplay));
+                                    finalPrice = variant ? (variant.price * 100) : (product.priceCents || 0);
+                                } else {
+                                    finalPrice = product.priceCents || 0;
+                                }
+
                                 return (
                                     <div key={item.productId} className="flex gap-4 items-center bg-paper p-3 rounded-xl border border-transparent hover:border-ink/5 transition-colors">
                                         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/5 bg-paper2">
@@ -234,8 +275,16 @@ export function CartDrawer() {
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-serif font-bold text-ink text-sm leading-tight">{product.name}</h4>
+
+                                            {/* Size Badge */}
+                                            {sizeDisplay && (
+                                                <span className="inline-block mt-1 mr-2 px-1.5 py-0.5 rounded bg-ink/5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
+                                                    {sizeDisplay}
+                                                </span>
+                                            )}
+
                                             <div className="mt-1 text-xs text-ink2 font-medium">
-                                                R$ {((product.priceCents || 0) / 100).toFixed(2).replace(".", ",")}
+                                                R$ {(finalPrice / 100).toFixed(2).replace(".", ",")}
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
@@ -358,18 +407,19 @@ export function CartDrawer() {
                         onClick={handleCheckout}
                         disabled={items.length === 0 || isCheckingOut}
                         className={cn(
-                            "w-full flex items-center justify-center gap-2 rounded-full py-4 text-sm font-bold uppercase tracking-widest shadow-lg transition-transform",
+                            "w-full flex items-center justify-center gap-3 rounded-full py-5 min-h-[64px] text-lg font-bold uppercase tracking-widest shadow-lg transition-transform touch-target",
                             (items.length > 0 && !isCheckingOut)
                                 ? "bg-green-700 text-white hover:bg-green-800 active:scale-95"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         )}
+                        aria-label="Enviar pedido pelo WhatsApp"
                     >
                         {isCheckingOut ? (
                             <span>Processando...</span>
                         ) : (
                             <>
-                                <span>Enviar Pedido ✨</span>
-                                <ArrowRight size={18} />
+                                <span>Enviar Pedido</span>
+                                <ArrowRight size={24} />
                             </>
                         )}
                     </button>

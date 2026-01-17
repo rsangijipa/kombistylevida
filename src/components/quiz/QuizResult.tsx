@@ -35,10 +35,35 @@ export function QuizResult({ result }: QuizResultProps) {
                 {result.description}
             </p>
 
-            <div className={`w-full p-6 rounded-xl border mb-10 ${result.color}`}>
-                <div className="text-xs font-bold uppercase tracking-widest opacity-60 mb-2">Sua Faixa de Consumo</div>
-                <div className="font-serif text-2xl font-bold text-ink">
-                    {result.dosage}
+            <div className={`w-full p-8 rounded-2xl border mb-10 ${result.color} relative overflow-hidden`}>
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+                    {/* Icon/Badge Area */}
+                    <div className="shrink-0 flex items-center justify-center w-20 h-20 rounded-full bg-paper shadow-sm border border-ink/5">
+                        <span className="text-4xl">
+                            {result.id === 'stable' ? '🌿' : result.id === 'moderate' ? '⚖️' : '🛡️'}
+                        </span>
+                    </div>
+
+                    <div className="text-left flex-1">
+                        <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">Diagnóstico</div>
+                        <h3 className="font-serif text-xl font-bold text-ink mb-2">Por que este perfil?</h3>
+                        <p className="text-sm text-ink2/90 leading-relaxed max-w-sm">
+                            {result.id === 'stable' && "Você já tem familiaridade com fermentados e seu sistema é robusto. Pode explorar sabores intensos."}
+                            {result.id === 'moderate' && "Você busca equilíbrio. Sabores frutados e botânicos são ideais para manter sua rotina leve."}
+                            {result.id === 'gentle' && "Seu sistema pede suavidade. Começamos com uva e frutas vermelhas para uma adaptação tranquila."}
+                            {result.id === 'safety' && "Sua saúde é prioridade. Neste momento, é melhor evitar fermentados vivos sem orientação médica."}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-ink/10 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-widest opacity-60">Dose Recomendada</span>
+                    <span className="font-serif font-bold text-lg text-ink bg-paper/50 px-4 py-1 rounded-full border border-ink/5">
+                        {result.dosage}
+                    </span>
                 </div>
             </div>
 

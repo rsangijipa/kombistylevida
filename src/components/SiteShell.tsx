@@ -27,7 +27,7 @@ export function SiteShell({ children }: SiteShellProps) {
         - Max-width restrito: 1040px
         - Relative + Overflow hidden
       */}
-            <div className="relative mx-auto max-w-[1100px] overflow-hidden rounded-frame bg-paper2/95 shadow-paper min-h-[90vh] border border-ink/5">
+            <div className="relative mx-auto max-w-[1100px] overflow-hidden rounded-frame bg-paper2/95 min-h-[90vh]">
 
                 {/* Decoração: Cantos Botânicos */}
                 <BotanicalCorners />
@@ -59,12 +59,12 @@ export function SiteShell({ children }: SiteShellProps) {
                             <p className="mb-8 text-lg text-ink2/90 font-serif leading-relaxed">
                                 Para pedidos, dúvidas ou parcerias. Bebida artesanal feita com tempo e carinho.
                             </p>
-                            <div className="flex justify-center gap-8">
-                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors">
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
+                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="flex h-[48px] items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors touch-target px-4 border border-transparent md:border-none rounded-full md:rounded-none bg-paper2 md:bg-transparent w-full md:w-auto justify-center">
                                     Instagram
                                 </a>
-                                <span className="text-ink/20">|</span>
-                                <a href="https://wa.me/5599999999999" target="_blank" rel="noreferrer" className="flex items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors">
+                                <span className="hidden md:block text-ink/20">|</span>
+                                <a href="https://wa.me/5599999999999" target="_blank" rel="noreferrer" className="flex h-[48px] items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors touch-target px-4 border border-transparent md:border-none rounded-full md:rounded-none bg-paper2 md:bg-transparent w-full md:w-auto justify-center">
                                     WhatsApp
                                 </a>
                             </div>
@@ -85,7 +85,7 @@ export function SiteShell({ children }: SiteShellProps) {
                         </div>
 
                         <p className="text-xs md:text-sm text-ink/60 font-serif tracking-wide">
-                            © 2026 Kombistyle Vida. Todos os direitos reservados.
+                            © 2026 Kombucha Arikê. Todos os direitos reservados.
                         </p>
                         <div className="mt-6 flex justify-center">
                             <Link href="/admin" className="text-[10px] text-ink/30 hover:text-ink/60 font-bold uppercase tracking-widest transition-colors border-b border-transparent hover:border-ink/20 pb-0.5">
