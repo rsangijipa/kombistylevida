@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { CartButton } from "@/components/cart/CartButton";
 
+import { MobileMenu } from "@/components/MobileMenu";
+
 export function TopNav() {
     const pathname = usePathname();
 
@@ -16,17 +18,20 @@ export function TopNav() {
             { path: "/como-fazemos", label: "Processo" },
             { path: "/beneficios", label: "Benefícios" },
             { path: "/noticias", label: "Notícias" },
-            // { path: "/contato", label: "Contato" }, // Footer handles contact effectively
         ],
         []
     );
 
     return (
         <div className="relative z-20 mx-auto flex max-w-5xl items-center justify-between pt-4 md:pt-6 px-4">
-            {/* Spacer for centering logic on desktop */}
-            <div className="w-10 md:hidden" />
 
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-[16px] font-medium tracking-wide md:gap-8 mx-auto">
+            {/* Mobile Menu Trigger */}
+            <div className="md:hidden">
+                <MobileMenu />
+            </div>
+
+            {/* Desktop Nav - Hidden on mobile */}
+            <nav className="hidden md:flex flex-wrap items-center justify-center gap-6 text-[16px] font-medium tracking-wide md:gap-8 mx-auto">
                 {items.map((it) => {
                     const isActive = pathname === it.path;
                     return (

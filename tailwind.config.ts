@@ -9,21 +9,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: "#F9F6EC",
-        paper2: "#FBF2E9",
-        ink: "#322918",
+        paper: "#F3EBDD",
+        paper2: "#EFE3D1",
+        ink: "#2D2A25",
         ink2: "#494834",
-        olive: "#353424",
-        amber: "#ECBC75",
+        inkSoft: "rgba(45, 42, 37, 0.65)",
+        olive: "#6B7A55",
+        amber: "#D7A85E",
         amber2: "#EECE88",
         faq: "#EDE4D5",
       },
       boxShadow: {
-        paper: "0 18px 45px rgba(0,0,0,.18)",
-        print: "0 1px 0 rgba(0,0,0,.18)",
+        paper: "0 18px 45px rgba(0,0,0,0.18)",
+        print: "0 1px 0 rgba(0,0,0,0.18)",
       },
       borderRadius: {
-        frame: "22px",
+        frame: "28px",
         frameInner: "18px",
       },
       fontFamily: {

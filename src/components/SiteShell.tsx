@@ -2,6 +2,7 @@
 
 import React from "react";
 import { FrameChrome } from "@/components/FrameChrome";
+import { BotanicalCorners } from "@/components/BotanicalCorners";
 import { BubblesOverlay } from "@/components/BubblesOverlay";
 import Link from "next/link";
 import { TopNav } from "@/components/TopNav";
@@ -25,7 +26,10 @@ export function SiteShell({ children }: SiteShellProps) {
         - Max-width restrito: 1040px
         - Relative + Overflow hidden
       */}
-            <div className="relative mx-auto max-w-[1040px] overflow-hidden rounded-frame bg-paper2/95 shadow-paper min-h-[85vh]">
+            <div className="relative mx-auto max-w-[1100px] overflow-hidden rounded-frame bg-paper2/95 shadow-paper min-h-[90vh] border border-ink/5">
+
+                {/* Decoração: Cantos Botânicos */}
+                <BotanicalCorners />
 
                 {/* Camadas Decorativas Absolutas */}
                 <FrameChrome />
@@ -51,20 +55,20 @@ export function SiteShell({ children }: SiteShellProps) {
                                 Para pedidos, dúvidas ou parcerias. Bebida artesanal feita com tempo e carinho.
                             </p>
                             <div className="flex justify-center gap-6">
-                                <a href="#" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4">
+                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4 transition-colors">
                                     Instagram
                                 </a>
                                 <span className="text-ink/20">•</span>
-                                <a href="#" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4">
+                                <a href="https://wa.me/5599999999999" target="_blank" rel="noreferrer" className="font-medium text-ink2 hover:text-ink hover:underline decoration-amber decoration-2 underline-offset-4 transition-colors">
                                     WhatsApp
                                 </a>
                             </div>
                         </div>
-                        <p className="mt-10 text-[13px] text-ink/40 font-serif italic tracking-wide">
+                        <p className="mt-10 text-sm md:text-base text-ink/60 font-serif italic tracking-wide">
                             © 2026 Kombistyle Vida. Todos os direitos reservados.
                         </p>
                         <div className="mt-4 flex justify-center">
-                            <Link href="/admin" className="text-[11px] text-ink/40 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
+                            <Link href="/admin" className="text-[11px] text-ink/30 hover:text-ink/80 font-bold uppercase tracking-widest transition-colors">
                                 Área Administrativa
                             </Link>
                         </div>
