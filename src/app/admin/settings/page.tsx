@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+// import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+// import { db } from "@/lib/firebase";
 import { DELIVERY_SLOTS, CLOSED_DAYS } from "@/data/deliverySlots";
 
 const SETTINGS_DOC_PATH = "settings/global";
@@ -26,9 +26,12 @@ function SettingsContent() {
     useEffect(() => {
         const load = async () => {
             try {
-                const snap = await getDoc(doc(db, SETTINGS_DOC_PATH));
-                if (snap.exists()) {
-                    setCurrentSettings(snap.data());
+                const res = await fetch('/api/admin/settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Object.keys(data).length > 0) {
+                        setCurrentSettings(data);
+                    }
                 }
             } catch (e) {
                 console.error("Error loading settings", e);
@@ -49,9 +52,18 @@ function SettingsContent() {
                 updatedAt: new Date().toISOString()
             };
 
-            await setDoc(doc(db, SETTINGS_DOC_PATH), defaultSettings, { merge: true });
-            setCurrentSettings(defaultSettings);
-            setMessage("Configurações padrão aplicadas com sucesso! (Capacidade: 20, Slots, Cutoff 14h)");
+            const res = await fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(defaultSettings)
+            });
+
+            if (res.ok) {
+                setCurrentSettings(defaultSettings);
+                setMessage("Configurações padrão aplicadas com sucesso! (Capacidade: 20, Slots, Cutoff 14h)");
+            } else {
+                throw new Error("API Error");
+            }
         } catch (e) {
             console.error(e);
             setMessage("Erro ao salvar: " + (e as Error).message);

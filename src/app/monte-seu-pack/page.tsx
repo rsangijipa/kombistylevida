@@ -3,7 +3,7 @@ import { PackBuilder } from "@/components/pack/PackBuilder";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Monte Seu Pack | Kombistyle Vida",
+    title: "Monte Seu Pack | Kombucha Arikê",
     description: "Escolha seus sabores favoritos e monte sua caixa personalizada.",
 };
 

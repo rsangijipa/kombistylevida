@@ -1,30 +1,33 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import { Product } from "@/types/firestore";
-import { getAllProducts, saveProduct, seedCatalog, toggleProductActive } from "@/services/catalogService";
-import { Loader2, Edit, Plus, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Loader2, Save, AlertCircle } from "lucide-react";
 
 export default function ProductsPage() {
     return (
         <AuthProvider>
-            <ProductManager />
+            <ProductsManager />
         </AuthProvider>
     );
 }
 
-function ProductManager() {
-    const [products, setProducts] = useState<Product[]>([]);
+function ProductsManager() {
     const [loading, setLoading] = useState(true);
-    const [editing, setEditing] = useState<Product | null>(null);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [saving, setSaving] = useState<string | null>(null);
 
-    const refresh = async () => {
+    const fetchProducts = async () => {
         setLoading(true);
         try {
-            const data = await getAllProducts();
-            setProducts(data);
+            const res = await fetch('/api/admin/products');
+            if (res.ok) {
+                const data = await res.json();
+                setProducts(data);
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -33,145 +36,115 @@ function ProductManager() {
     };
 
     useEffect(() => {
-        refresh();
+        fetchProducts();
     }, []);
 
-    const handleSeed = async () => {
-        if (confirm("Isso irá sobrescrever os produtos no banco com o catálogo estático padrão. Continuar?")) {
-            await seedCatalog();
-            refresh();
+    const handleUpdate = async (product: Product, updates: Partial<Product>) => {
+        setSaving(product.id);
+        const newProduct = { ...product, ...updates };
+
+        try {
+            const res = await fetch('/api/admin/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: product.id,
+                    priceCents: newProduct.priceCents,
+                    active: newProduct.active,
+                    variants: newProduct.variants
+                })
+            });
+
+            if (res.ok) {
+                setProducts(prev => prev.map(p => p.id === product.id ? newProduct : p));
+            }
+        } catch (e) {
+            alert("Erro ao salvar produto");
+        } finally {
+            setSaving(null);
         }
     };
 
-    const handleToggle = async (p: Product) => {
-        await toggleProductActive(p.id, !p.active);
-        refresh();
-    };
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editing) return;
-        await saveProduct(editing);
-        setEditing(null);
-        refresh();
+    const updateVariantPrice = (product: Product, size: '300ml' | '500ml', price: number) => {
+        const variants = product.variants?.map(v => v.size === size ? { ...v, price } : v) || [];
+        // Also update main priceCents if it's the base size (300ml)
+        const updates: Partial<Product> = { variants };
+        if (size === '300ml') {
+            updates.priceCents = price * 100;
+        }
+        handleUpdate(product, updates);
     };
 
     return (
         <AdminLayout>
-            <div className="mb-8 flex items-end justify-between">
-                <div>
-                    <h1 className="font-serif text-3xl font-bold text-ink">Catálogo de Produtos</h1>
-                    <p className="text-ink2">Edite preços, nomes e disponibilidade.</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={handleSeed}
-                        className="flex items-center gap-2 rounded-lg border border-ink/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-white"
-                    >
-                        <RefreshCw size={14} /> Sincronizar Padrão
-                    </button>
-                    <button
-                        onClick={() => setEditing({
-                            id: `new-${Date.now()}`,
-                            name: "",
-                            priceCents: 0,
-                            active: true,
-                            updatedAt: new Date().toISOString()
-                        })}
-                        className="flex items-center gap-2 rounded-lg bg-olive px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-olive/90"
-                    >
-                        <Plus size={14} /> Novo Produto
-                    </button>
-                </div>
+            <div className="mb-8">
+                <h1 className="font-serif text-3xl font-bold text-ink">Produtos & Preços</h1>
+                <p className="text-ink2">Gerencie preços e disponibilidade das garrafas.</p>
             </div>
 
             {loading ? (
-                <div className="py-20 flex justify-center text-olive">
-                    <Loader2 className="animate-spin" size={40} />
-                </div>
+                <div className="flex justify-center py-20 text-olive"><Loader2 className="animate-spin" size={40} /></div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {products.map(p => (
-                        <div key={p.id} className={`group relative flex gap-4 rounded-xl border p-4 transition-all ${p.active ? "border-ink/10 bg-white" : "border-ink/5 bg-gray-50 opacity-75"}`}>
-                            <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-paper2 p-2">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                {p.imageSrc ? <img src={p.imageSrc} alt="" className="h-full w-full object-contain" /> : <div className="h-full w-full bg-gray-200" />}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {products.map(product => (
+                        <div key={product.id} className={`rounded-xl border p-6 shadow-sm transition-all ${product.active ? 'bg-white border-ink/10' : 'bg-gray-50 border-gray-200 opacity-75'}`}>
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded bg-paper2 p-1">
+                                        <img src={product.imageSrc} className="h-full w-full object-contain" alt="" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-ink">{product.name}</h3>
+                                        <p className="text-xs text-ink/60">{product.active ? 'Ativo' : 'Inativo'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={product.active}
+                                            onChange={(e) => handleUpdate(product, { active: e.target.checked })}
+                                        />
+                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-olive"></div>
+                                    </label>
+                                </div>
                             </div>
 
-                            <div className="flex-1">
-                                <div className="flex justify-between">
-                                    <h3 className="font-bold text-ink">{p.name || "(Sem Nome)"}</h3>
-                                    <button onClick={() => handleToggle(p)} className="text-ink/40 hover:text-ink">
-                                        {p.active ? <Eye size={16} /> : <EyeOff size={16} />}
-                                    </button>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between border-b border-ink/5 pb-2">
+                                    <span className="text-sm font-bold text-ink/60">300ml</span>
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-ink/40">R$</span>
+                                        <input
+                                            type="number"
+                                            className="w-16 rounded bg-gray-50 px-2 py-1 text-right font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-olive/50"
+                                            value={product.variants?.find(v => v.size === '300ml')?.price || 12}
+                                            onChange={e => updateVariantPrice(product, '300ml', parseFloat(e.target.value))}
+                                        />
+                                    </div>
                                 </div>
-                                <p className="text-xs text-ink/60 line-clamp-1">{p.shortDesc}</p>
-                                <div className="mt-2 flex items-baseline gap-2">
-                                    <span className="font-mono text-lg font-bold text-olive">
-                                        R$ {(p.priceCents / 100).toFixed(2).replace('.', ',')}
-                                    </span>
-                                    {p.size && <span className="text-xs font-bold text-ink/40 uppercase bg-gray-100 px-1 rounded">{p.size}</span>}
+                                <div className="flex items-center justify-between border-b border-ink/5 pb-2">
+                                    <span className="text-sm font-bold text-ink/60">500ml</span>
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xs text-ink/40">R$</span>
+                                        <input
+                                            type="number"
+                                            className="w-16 rounded bg-gray-50 px-2 py-1 text-right font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-olive/50"
+                                            value={product.variants?.find(v => v.size === '500ml')?.price || 15}
+                                            onChange={e => updateVariantPrice(product, '500ml', parseFloat(e.target.value))}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => setEditing(p)}
-                                className="absolute bottom-4 right-4 rounded-full bg-white p-2 text-ink shadow-sm ring-1 ring-black/5 hover:bg-paper2"
-                            >
-                                <Edit size={16} />
-                            </button>
+                            {saving === product.id && (
+                                <div className="mt-2 text-xs text-olive animate-pulse flex items-center justify-end gap-1">
+                                    <Save size={10} /> Salvando...
+                                </div>
+                            )}
                         </div>
                     ))}
-                </div>
-            )}
-
-            {/* Edit Modal */}
-            {editing && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-                    <form onSubmit={handleSave} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 space-y-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-bold text-xl text-ink">Editar Produto</h3>
-                            <button type="button" onClick={() => setEditing(null)}><Plus size={24} className="rotate-45 text-ink/50" /></button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2">
-                                <label className="text-xs font-bold uppercase text-ink/50">Nome</label>
-                                <input className="w-full rounded border p-2 font-bold" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} required />
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold uppercase text-ink/50">Preço (Centavos)</label>
-                                <input type="number" className="w-full rounded border p-2" value={editing.priceCents} onChange={e => setEditing({ ...editing, priceCents: parseInt(e.target.value) })} required />
-                                <div className="text-xs text-right text-ink/40 mt-1">R$ {(editing.priceCents / 100).toFixed(2)}</div>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold uppercase text-ink/50">Volume/Tamanho</label>
-                                <input className="w-full rounded border p-2" value={editing.size || ""} onChange={e => setEditing({ ...editing, size: e.target.value })} />
-                            </div>
-
-                            <div className="col-span-2">
-                                <label className="text-xs font-bold uppercase text-ink/50">Descrição Curta</label>
-                                <input className="w-full rounded border p-2" value={editing.shortDesc || ""} onChange={e => setEditing({ ...editing, shortDesc: e.target.value })} />
-                            </div>
-
-                            <div className="col-span-2">
-                                <label className="text-xs font-bold uppercase text-ink/50">URL da Imagem</label>
-                                <input className="w-full rounded border p-2 text-xs font-mono" value={editing.imageSrc || ""} onChange={e => setEditing({ ...editing, imageSrc: e.target.value })} />
-                            </div>
-
-                            <div className="col-span-2">
-                                <label className="text-xs font-bold uppercase text-ink/50">ID (Slug)</label>
-                                <input className="w-full rounded border p-2 text-xs font-mono bg-gray-50" value={editing.id} onChange={e => setEditing({ ...editing, id: e.target.value })} />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-4">
-                            <button type="button" onClick={() => setEditing(null)} className="flex-1 rounded-lg border py-3 font-bold hover:bg-gray-50">Cancelar</button>
-                            <button type="submit" className="flex-1 rounded-lg bg-olive py-3 font-bold text-white shadow-lg hover:bg-olive/90">Salvar Alterações</button>
-                        </div>
-                    </form>
                 </div>
             )}
         </AdminLayout>

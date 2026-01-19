@@ -28,6 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentUser);
 
             if (currentUser) {
+                // Hardcoded Super Admin
+                if (currentUser.email === 'admin@kombucha.com') {
+                    setIsAdmin(true);
+                    setLoading(false);
+                    return;
+                }
+
                 // Here we will eventually check custom claims or a user document
                 // For now, assume false or check a hardcoded email
                 try {

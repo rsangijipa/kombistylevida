@@ -1,13 +1,15 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
-import { Product } from "@/types/firestore";
-import { PRODUCTS } from "@/data/catalog";
+import { Product, Combo } from "@/types/firestore";
+import { PRODUCTS, BUNDLES } from "@/data/catalog";
 
 const COLLECTION = "products";
 
-export async function getAllProducts(): Promise<Product[]> {
-    const snap = await getDocs(collection(db, COLLECTION));
-    return snap.docs.map(d => d.data() as Product);
+// Client-side fetch via API Proxy to avoid permission/DB-ID issues
+export async function getCatalog(): Promise<{ products: Product[]; combos: Combo[] }> {
+    const res = await fetch('/api/catalog');
+    if (!res.ok) throw new Error("Failed to fetch catalog");
+    return res.json();
 }
 
 export async function saveProduct(product: Product) {
@@ -29,12 +31,12 @@ export async function toggleProductActive(productId: string, active: boolean) {
  */
 export async function seedCatalog() {
     const promises = PRODUCTS.map(p => {
-        const productData: Product = {
+        const productData = {
             ...p,
-            priceCents: p.priceCents || 0, // Ensure required
+            priceCents: p.priceCents || 0,
             active: true,
             updatedAt: new Date().toISOString()
-        };
+        } as Product;
         return setDoc(doc(db, COLLECTION, p.id), productData, { merge: true });
     });
     await Promise.all(promises);

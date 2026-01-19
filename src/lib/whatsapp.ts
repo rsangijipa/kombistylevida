@@ -2,6 +2,7 @@ import { CartItem } from "@/store/cartStore";
 import { CustomerState } from "@/store/customerStore";
 import { CATALOG_MAP } from "@/data/catalog";
 import { DELIVERY_SLOTS } from "@/data/deliverySlots";
+import { Product, Combo } from "@/types/firestore";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "556981123681";
 
@@ -16,7 +17,13 @@ interface BuildMessageParams {
     giftFrom?: string;
     giftTo?: string;
     giftMessage?: string;
+    catalog?: {
+        products: Product[];
+        combos: Combo[];
+    };
 }
+
+// ...
 
 /**
  * Validates if the order is ready to be sent.
@@ -51,10 +58,21 @@ export function buildOrderMessage({
     isGift,
     giftFrom,
     giftTo,
-    giftMessage
+    giftMessage,
+    catalog
 }: BuildMessageParams): string {
     let message = `🍃 *PEDIDO NOVO - KOMBUCHA ARIKÊ* 🍃\n`;
     message += `───────────────────────\n`;
+
+    // Helpers to find items
+    const findProduct = (id: string) => {
+        if (catalog) return catalog.products.find(p => p.id === id);
+        return CATALOG_MAP[id];
+    };
+    const findCombo = (id: string) => {
+        if (catalog) return catalog.combos.find(c => c.id === id);
+        return undefined; // Static catalog doesn't have new combos structure fully mirrored here easily yet
+    };
 
     // GIFT BLOCK
     if (isGift) {
@@ -83,17 +101,47 @@ export function buildOrderMessage({
             });
 
             Object.entries(flavorSummary).forEach(([pid, qty]) => {
-                const p = CATALOG_MAP[pid];
+                const p = findProduct(pid);
                 if (p) message += `   ├ ${qty}x ${p.name}\n`;
             });
             message += `\n`;
 
+        } else if (item.type === 'BUNDLE') {
+            const combo = findCombo(item.bundleId);
+            if (combo) {
+                totalCents += (combo.priceCents || 0) * item.qty;
+                message += `🛍️ *${combo.name}* (${item.qty}x)\n`;
+                // List items in combo
+                combo.items.forEach(sub => {
+                    const p = findProduct(sub.productId);
+                    message += `   ├ ${sub.qty}x ${p?.name || 'Item'}\n`;
+                });
+                message += `\n`;
+            } else {
+                message += `🛍️ *Combo (ID: ${item.bundleId})* (${item.qty}x)\n`;
+            }
+
         } else if (item.type === 'PRODUCT') {
-            const product = CATALOG_MAP[item.productId];
+            let productId = item.productId;
+            // Check for composite ID (e.g., "ginger-lemon::300")
+            let sizeDisplay = "";
+            if (item.productId.includes("::")) {
+                const parts = item.productId.split("::");
+                productId = parts[0];
+                sizeDisplay = parts[1];
+            }
+
+            const product = findProduct(productId);
             if (product) {
-                const itemTotal = (product.priceCents || 0) * item.qty;
-                totalCents += itemTotal;
-                const sizeStr = product.size ? `(${product.size})` : "";
+                let itemPrice = product.priceCents || 0;
+                // Variant Price Logic
+                if (sizeDisplay && product.variants) {
+                    const variant = product.variants.find(v => v.size.includes(sizeDisplay));
+                    if (variant) itemPrice = variant.price * 100;
+                }
+
+                totalCents += itemPrice * item.qty;
+                const sizeStr = sizeDisplay ? `(${sizeDisplay}ml)` : (product.size ? `(${product.size})` : "");
                 message += `▪️ *${item.qty}x* ${product.name} ${sizeStr}\n`;
             }
         }
@@ -126,12 +174,19 @@ export function buildOrderMessage({
         if (selectedDate && selectedSlotId) {
             const dateObj = new Date(selectedDate);
             const dateFmt = dateObj.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' });
-            const slot = DELIVERY_SLOTS.find(s => s.id === selectedSlotId);
-            const slotLabel = slot ? slot.label : selectedSlotId;
 
-            message += `📅 *Agendamento:* ${dateFmt} - ${slotLabel}\n`;
+            let period = "";
+            if (selectedSlotId.includes("MORNING")) period = "Manhã";
+            else if (selectedSlotId.includes("AFTERNOON")) period = "Tarde";
+            else if (selectedSlotId.includes("EVENING")) period = "Noite";
+            else {
+                const slot = DELIVERY_SLOTS.find(s => s.id === selectedSlotId);
+                period = slot ? slot.label : selectedSlotId;
+            }
+
+            message += `📅 *Entrega:* ${dateFmt} (${period})\n`;
         } else {
-            message += `📅 *Agendamento:* A combinar\n`;
+            message += `📅 *Entrega:* A combinar (ASAP)\n`;
         }
     } else {
         // Pickup Logic

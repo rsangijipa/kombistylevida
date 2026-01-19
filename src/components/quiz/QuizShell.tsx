@@ -4,27 +4,35 @@ import { SiteShell } from "@/components/SiteShell";
 export function QuizShell({ children }: { children: React.ReactNode }) {
     return (
         <SiteShell>
-            <div className="min-h-screen bg-[#FDFBF7] pb-20">
-                {/* Top Compliance Bar */}
-                <div className="bg-ink/5 py-2 text-center border-b border-ink/10">
-                    <p className="text-[10px] uppercase tracking-widest text-ink/60 font-bold">
-                        Conteúdo Educativo • Não substitui orientação médica
-                    </p>
-                </div>
-
-                <div className="max-w-3xl mx-auto px-4 pt-8 md:pt-12">
-                    {/* Paper Container */}
-                    <div className="relative bg-paper2 shadow-[0_4px_24px_rgba(0,0,0,0.06)] rounded-xl border border-ink/5 overflow-hidden min-h-[600px] flex flex-col">
-                        {/* Decorative Top Line */}
-                        <div className="h-2 w-full bg-gradient-to-r from-amber-200 via-olive-300 to-amber-200 opacity-60" />
-
-                        <div className="p-6 md:p-12 flex-1 flex flex-col">
-                            {children}
-                        </div>
-
-                        {/* Texture */}
-                        <div className="absolute inset-0 bg-paper opacity-30 mix-blend-multiply pointer-events-none z-0" />
+            <div className="min-h-screen bg-paper text-ink">
+                {/* Header */}
+                <header className="py-16 px-6 text-center relative overflow-hidden -mx-4 md:-mx-12 rounded-t-[32px] md:rounded-t-[48px]">
+                    {/* Custom Background Image */}
+                    <div className="absolute inset-0 z-0 bg-stone-200">
+                        <img
+                            src="/images/quiz/header-bg.jpg"
+                            alt="Background"
+                            className="w-full h-full object-cover opacity-60"
+                        />
                     </div>
+
+                    {/* Bottom fade */}
+                    <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-paper to-transparent pointer-events-none z-10" />
+
+                    <div className="relative z-20 max-w-4xl mx-auto">
+                        <span className="text-olive/80 font-bold uppercase tracking-[0.2em] text-sm mb-4 block drop-shadow-sm">Kombucha Arikê</span>
+                        <h1 className="font-serif text-5xl md:text-7xl font-bold text-olive mb-6 leading-tight drop-shadow-sm">
+                            Descubra seu <br /> <span className="italic text-ink/80">Sabor Ideal</span>
+                        </h1>
+                        <p className="max-w-xl mx-auto text-ink/80 text-lg md:text-xl leading-relaxed font-serif font-medium drop-shadow-sm">
+                            Responda algumas perguntas rápidas e encontre a combinação perfeita para o seu paladar e bem-estar.
+                        </p>
+                    </div>
+                </header>
+
+                {/* Content */}
+                <div className="max-w-3xl mx-auto px-4 pb-20 relative z-10">
+                    {children}
                 </div>
             </div>
         </SiteShell>

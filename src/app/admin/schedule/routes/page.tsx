@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { getDailyRoutes } from "@/services/adminService";
+// import { getDailyRoutes } from "@/services/adminService";
 import { Order } from "@/types/firestore";
 import { Printer, Copy, MapPin, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -15,10 +15,22 @@ export default function DeliveryRoutesPage() {
     const [printMode, setPrintMode] = useState(false);
 
     useEffect(() => {
-        setLoading(true);
-        getDailyRoutes(date)
-            .then(setOrders)
-            .finally(() => setLoading(false));
+        const load = async () => {
+            setLoading(true);
+            try {
+                // const data = await getDailyRoutes(date);
+                const res = await fetch(`/api/admin/routes?date=${date}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrders(data);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
     }, [date]);
 
     // Group by Neighborhood

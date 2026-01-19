@@ -12,26 +12,26 @@ function calculateReadingTime(text: string): number {
 
 // --- POSTS ---
 
-export async function getAllPosts(status?: 'PUBLISHED' | 'DRAFT'): Promise<Post[]> {
-    const postsCol = collection(db, "posts");
-    let q = query(postsCol, orderBy("updatedAt", "desc"));
+// export async function getAllPosts(status?: 'PUBLISHED' | 'DRAFT'): Promise<Post[]> {
+//     const postsCol = collection(db, "posts");
+//     let q = query(postsCol, orderBy("updatedAt", "desc"));
+// 
+//     if (status === 'PUBLISHED') {
+//         q = query(postsCol, where("status", "==", "PUBLISHED"), orderBy("publishedAt", "desc"));
+//     } else if (status === 'DRAFT') {
+//         q = query(postsCol, where("status", "==", "DRAFT"), orderBy("updatedAt", "desc"));
+//     }
+// 
+//     const snap = await getDocs(q);
+//     return snap.docs.map(d => d.data() as Post);
+// }
 
-    if (status === 'PUBLISHED') {
-        q = query(postsCol, where("status", "==", "PUBLISHED"), orderBy("publishedAt", "desc"));
-    } else if (status === 'DRAFT') {
-        q = query(postsCol, where("status", "==", "DRAFT"), orderBy("updatedAt", "desc"));
-    }
-
-    const snap = await getDocs(q);
-    return snap.docs.map(d => d.data() as Post);
-}
-
-export async function getPostBySlug(slug: string): Promise<Post | null> {
-    const docRef = doc(db, "posts", slug);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) return null;
-    return snap.data() as Post;
-}
+// export async function getPostBySlug(slug: string): Promise<Post | null> {
+//     const docRef = doc(db, "posts", slug);
+//     const snap = await getDoc(docRef);
+//     if (!snap.exists()) return null;
+//     return snap.data() as Post;
+// }
 
 export async function savePost(post: Post, actorUid: string) {
     const ref = doc(db, "posts", post.slug);
@@ -69,69 +69,7 @@ export async function deletePost(slug: string, actorUid: string) {
 
 // --- TESTIMONIALS ---
 
-export async function getAllTestimonials(status?: 'APPROVED' | 'PENDING' | 'REJECTED'): Promise<Testimonial[]> {
-    const col = collection(db, "testimonials");
-    let q = query(col, orderBy("createdAt", "desc"));
-
-    if (status) {
-        q = query(col, where("status", "==", status), orderBy("createdAt", "desc"));
-    }
-
-    const snap = await getDocs(q);
-    return snap.docs.map(d => d.data() as Testimonial);
-}
-
-export async function saveTestimonial(testimonial: Testimonial, actorUid: string) {
-    const ref = doc(db, "testimonials", testimonial.id);
-    testimonial.updatedAt = new Date().toISOString();
-
-    await setDoc(ref, testimonial, { merge: true });
-
-    await logAction({
-        actorUid,
-        actorRole: 'contentOrSystem',
-        action: 'TESTIMONIAL_SAVE',
-        entity: 'testimonials',
-        entityId: testimonial.id
-    });
-}
-
-export async function updateTestimonialStatus(id: string, status: 'APPROVED' | 'REJECTED', actorUid: string, reason?: string) {
-    const ref = doc(db, "testimonials", id);
-    const update: Partial<Testimonial> = {
-        status,
-        updatedAt: new Date().toISOString()
-    };
-
-    if (status === 'APPROVED') {
-        update.approvedBy = { uid: actorUid };
-        update.approvedAt = new Date().toISOString();
-    } else if (status === 'REJECTED') {
-        update.rejectedReason = reason;
-    }
-
-    await setDoc(ref, update, { merge: true });
-
-    await logAction({
-        actorUid,
-        actorRole: 'content',
-        action: `TESTIMONIAL_${status}`,
-        entity: 'testimonials',
-        entityId: id,
-        reason
-    });
-}
-
-export async function deleteTestimonial(id: string, actorUid: string) {
-    await deleteDoc(doc(db, "testimonials", id));
-    await logAction({
-        actorUid,
-        actorRole: 'content',
-        action: 'TESTIMONIAL_DELETE',
-        entity: 'testimonials',
-        entityId: id
-    });
-}
+// Testimonials migrated to /api/admin/testimonials
 
 // --- AUDIT ---
 

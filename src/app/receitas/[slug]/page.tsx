@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+// import { db } from "@/lib/firebase";
+// import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Recipe } from "@/types/firestore";
 import Link from "next/link";
 import { ArrowLeft, Share2, Clock, ChefHat, Users, CheckCircle2, AlertCircle, MessageCircle, Heart } from "lucide-react";
@@ -26,20 +26,25 @@ export default function RecipeDetailPage() {
         async function fetchRecipe() {
             setLoading(true);
             try {
-                // Find by slug
-                const q = query(
-                    collection(db, "recipes"),
-                    where("slug", "==", slug),
-                    limit(1)
-                );
-                const snapshot = await getDocs(q);
-                if (!snapshot.empty) {
-                    setRecipe(snapshot.docs[0].data() as Recipe);
+                const res = await fetch(`/api/recipes?slug=${slug}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        setRecipe(data);
+                    } else {
+                        // Try fallback
+                        const staticRecipe = RECIPES_DATA.find(r => r.slug === slug);
+                        if (staticRecipe) {
+                            console.log("Recipe not found in DB, using static fallback.");
+                            setRecipe(staticRecipe);
+                        } else {
+                            setRecipe(null);
+                        }
+                    }
                 } else {
-                    // Fallback to static data
+                    // Try fallback on 404/500
                     const staticRecipe = RECIPES_DATA.find(r => r.slug === slug);
                     if (staticRecipe) {
-                        console.log("Recipe not found in DB, using static fallback.");
                         setRecipe(staticRecipe);
                     } else {
                         setRecipe(null);
@@ -50,6 +55,7 @@ export default function RecipeDetailPage() {
                 // Try fallback on error too
                 const staticRecipe = RECIPES_DATA.find(r => r.slug === slug);
                 if (staticRecipe) setRecipe(staticRecipe);
+                else setRecipe(null);
             } finally {
                 setLoading(false);
             }

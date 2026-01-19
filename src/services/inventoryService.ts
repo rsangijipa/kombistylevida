@@ -6,44 +6,7 @@ import { InventoryMovement } from "@/types/firestore";
  * Adjusts stock level for a product.
  * Used by Admin to manually add/remove stock or correct numbers.
  */
-export async function adjustStock(productId: string, quantity: number, reason: string, type: 'IN' | 'OUT' | 'ADJUST') {
-    const inventoryRef = doc(db, "inventory", productId);
-    const movementRef = collection(db, "stockMovements");
-
-    await runTransaction(db, async (transaction) => {
-        const sfDoc = await transaction.get(inventoryRef);
-        let currentStock = 0;
-        let reservedStock = 0;
-
-        if (sfDoc.exists()) {
-            currentStock = sfDoc.data().currentStock || 0;
-            reservedStock = sfDoc.data().reservedStock || 0;
-        }
-
-        let newStock = currentStock;
-        if (type === 'IN') newStock += quantity;
-        if (type === 'OUT') newStock -= quantity;
-        if (type === 'ADJUST') newStock = quantity; // Absolute set
-
-        // Update Inventory Doc
-        transaction.set(inventoryRef, {
-            productId,
-            currentStock: newStock,
-            reservedStock,
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
-
-        // Log Movement
-        const movement: Omit<InventoryMovement, 'id'> = {
-            productId,
-            type,
-            quantity: type === 'ADJUST' ? quantity : Math.abs(quantity),
-            reason,
-            createdAt: new Date().toISOString()
-        };
-        transaction.set(doc(movementRef), movement);
-    });
-}
+// adjustStock migrated to /api/admin/inventory
 
 /**
  * Reserves stock for an order.

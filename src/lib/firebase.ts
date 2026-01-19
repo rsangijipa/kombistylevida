@@ -14,6 +14,6 @@ const firebaseConfig = {
 // Singleton pattern for Next.js (avoids re-initialization on hot reload)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getFirestore(app, "kombuchaarike");
 
 export { app, auth, db };

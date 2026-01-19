@@ -3,10 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { collection, query, orderBy, onSnapshot, limit, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Order } from "@/types/firestore";
 import { Search, Loader2 } from "lucide-react";
+import { Order } from "@/types/firestore";
 
 export default function OrdersPage() {
     return (
@@ -21,24 +19,24 @@ function OrdersList() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
-        // Real-time listener for orders
-        const q = query(
-            collection(db, "orders"),
-            orderBy("createdAt", "desc"),
-            limit(50)
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
-            setOrders(data);
-            setLoading(false);
-        }, (error) => {
+    const fetchOrders = async () => {
+        try {
+            const res = await fetch('/api/admin/orders');
+            if (res.ok) {
+                const data = await res.json();
+                setOrders(data);
+            }
+        } catch (error) {
             console.error("Error fetching orders:", error);
+        } finally {
             setLoading(false);
-        });
+        }
+    };
 
-        return () => unsubscribe();
+    useEffect(() => {
+        fetchOrders(); // Initial fetch
+        const interval = setInterval(fetchOrders, 30000); // Poll every 30s
+        return () => clearInterval(interval);
     }, []);
 
     const filteredOrders = orders.filter(o =>
@@ -48,20 +46,20 @@ function OrdersList() {
 
     return (
         <AdminLayout>
-            <div className="mb-8 flex items-end justify-between">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                     <h1 className="font-serif text-3xl font-bold text-ink">Pedidos</h1>
                     <p className="text-ink2">Acompanhe os pedidos em tempo real.</p>
                 </div>
 
-                <div className="relative">
+                <div className="relative w-full md:w-auto">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" size={18} />
                     <input
                         type="text"
-                        placeholder="Buscar por nome ou ID..."
+                        placeholder="Buscar cliente ou ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="rounded-lg border border-ink/10 bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-olive w-64"
+                        className="w-full rounded-xl border border-ink/10 bg-white pl-10 pr-4 py-3 text-sm outline-none focus:border-olive focus:ring-1 focus:ring-olive/30 shadow-sm md:w-72 transition-all"
                     />
                 </div>
             </div>
@@ -71,75 +69,129 @@ function OrdersList() {
                     <Loader2 className="animate-spin" size={40} />
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-paper2/50 text-xs font-bold uppercase tracking-wider text-ink/50">
-                            <tr>
-                                <th className="px-6 py-4">ID / Data</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Cliente</th>
-                                <th className="px-6 py-4">Entrega</th>
-                                <th className="px-6 py-4">Total</th>
-                                <th className="px-6 py-4">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-ink/5">
-                            {filteredOrders.length === 0 ? (
+                <>
+                    {/* PC Table View */}
+                    <div className="hidden md:block overflow-hidden rounded-xl border border-ink/10 bg-white shadow-sm">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-paper2/50 text-xs font-bold uppercase tracking-wider text-ink/50">
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-ink2 italic">
-                                        Nenhum pedido encontrado.
-                                    </td>
+                                    <th className="px-6 py-4">ID / Data</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4">Cliente</th>
+                                    <th className="px-6 py-4">Entrega</th>
+                                    <th className="px-6 py-4">Total</th>
+                                    <th className="px-6 py-4">Ações</th>
                                 </tr>
-                            ) : (
-                                filteredOrders.map((order) => (
-                                    <tr key={order.id} className="hover:bg-paper2/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold font-mono text-ink">#{order.shortId}</div>
-                                            <div className="text-xs text-ink2">
-                                                {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                                                {' '}
-                                                {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={order.status} />
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-ink">{order.customer.name}</div>
-                                            <div className="text-xs text-ink/60">{order.customer.phone}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {order.customer.deliveryMethod === 'delivery' ? (
-                                                <div>
-                                                    <span className="inline-flex items-center rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 mb-1">
-                                                        Entrega
-                                                    </span>
-                                                    <div className="text-xs text-ink truncate max-w-[150px]">
-                                                        {order.schedule.date ? new Date(order.schedule.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'S/ Data'}
-                                                        {' - '}
-                                                        {order.schedule.slotLabel || '?'}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase text-orange-700">
-                                                    Retirada
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 font-bold text-olive">
-                                            R$ {(order.totalCents / 100).toFixed(2).replace(".", ",")}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button className="text-xs font-bold text-olive hover:underline">
-                                                Ver Detalhes
-                                            </button>
+                            </thead>
+                            <tbody className="divide-y divide-ink/5">
+                                {filteredOrders.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-10 text-center text-ink2 italic">
+                                            Nenhum pedido encontrado.
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ) : (
+                                    filteredOrders.map((order) => (
+                                        <tr key={order.id} className="hover:bg-paper2/30 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold font-mono text-ink">#{order.shortId}</div>
+                                                <div className="text-xs text-ink2">
+                                                    {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                                                    {' '}
+                                                    {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={order.status} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-ink">{order.customer.name}</div>
+                                                <div className="text-xs text-ink/60">{order.customer.phone}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {order.customer.deliveryMethod === 'delivery' ? (
+                                                    <div>
+                                                        <span className="inline-flex items-center rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 mb-1">
+                                                            Entrega
+                                                        </span>
+                                                        <div className="text-xs text-ink truncate max-w-[150px]">
+                                                            {order.schedule.date ? new Date(order.schedule.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'S/ Data'}
+                                                            {' - '}
+                                                            {order.schedule.slotLabel || '?'}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded bg-orange-50 px-2 py-0.5 text-[10px] font-bold uppercase text-orange-700">
+                                                        Retirada
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-olive">
+                                                R$ {(order.totalCents / 100).toFixed(2).replace(".", ",")}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button className="text-xs font-bold text-olive hover:underline">
+                                                    Ver Detalhes
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-4">
+                        {filteredOrders.length === 0 ? (
+                            <div className="py-10 text-center text-ink2 italic bg-white rounded-xl border border-ink/5">
+                                Nenhum pedido encontrado.
+                            </div>
+                        ) : (
+                            filteredOrders.map((order) => (
+                                <div key={order.id} className="bg-white rounded-xl p-4 border border-ink/5 shadow-sm active:scale-[0.99] transition-transform">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono font-bold text-ink">#{order.shortId}</span>
+                                                <StatusBadge status={order.status} />
+                                            </div>
+                                            <div className="text-xs text-ink2 mt-1">
+                                                {new Date(order.createdAt).toLocaleDateString('pt-BR')} às {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        </div>
+                                        <div className="font-bold text-olive text-lg">
+                                            R$ {(order.totalCents / 100).toFixed(2).replace(".", ",")}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 mb-4 p-3 bg-paper2/50 rounded-lg">
+                                        <div className="h-8 w-8 rounded-full bg-olive text-white flex items-center justify-center font-bold text-xs uppercase">
+                                            {order.customer.name[0]}
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <div className="font-bold text-sm text-ink truncate">{order.customer.name}</div>
+                                            <div className="text-xs text-ink/60 truncate flex items-center gap-1">
+                                                {order.customer.deliveryMethod === 'delivery' ? '🚗 Entrega' : '🏪 Retirada'}
+                                                <span>•</span>
+                                                {order.schedule.date ? new Date(order.schedule.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'S/ Data'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button className="rounded-lg border border-ink/10 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-paper2">
+                                            Detalhes
+                                        </button>
+                                        <button className="rounded-lg bg-olive py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-olive/90">
+                                            Avançar Status
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </>
             )}
         </AdminLayout>
     );

@@ -14,15 +14,25 @@ export type CartPackItem = {
     id: string;
     size: 6 | 12;
     items: { productId: string; qty: number }[];
-    displayName: string;
+    displayName: string; // e.g. "Pack 6 (Personalizado)"
     qty: number; // usually 1, but user might want 2 of the same custom pack
 };
 
-export type CartItem = CartProductItem | CartPackItem;
+export type CartBundleItem = {
+    type: 'BUNDLE';
+    bundleId: string;
+    qty: number;
+};
+
+export type CartItem = CartProductItem | CartPackItem | CartBundleItem;
 
 interface CartState {
     items: CartItem[];
     isOpen: boolean;
+
+    // Server-Side Sync
+    orderId: string | null;
+    isSyncing: boolean;
 
     // Schedule State (Ephemeral)
     selectedDate: string | null;
@@ -38,12 +48,15 @@ interface CartState {
 
     // Actions
     addItem: (productId: string, qty?: number) => void;
-    addPack: (pack: Omit<CartPackItem, 'type' | 'qty' | 'id'>) => void;
-    removeItem: (itemId: string) => void; // productId for PRODUCT, id for PACK
-    updateQty: (itemId: string, qty: number) => void;
+    addPack: (pack: Omit<CartPackItem, 'type' | 'id' | 'qty'>) => void;
     addBundle: (bundleId: string) => void;
+    removeItem: (itemId: string) => void; // productId for PRODUCT, id for PACK, bundleId for BUNDLE
+    updateQty: (itemId: string, qty: number) => void;
     clearCart: () => void;
     toggleCart: (open?: boolean) => void;
+
+    // Server Sync
+    initCart: () => Promise<void>;
 
     setSchedule: (date: string | null, slotId: string | null) => void;
     setNotes: (notes: string) => void;
@@ -57,6 +70,8 @@ export const useCartStore = create<CartState>()(
         (set, get) => ({
             items: [],
             isOpen: false,
+            orderId: null,
+            isSyncing: false,
             selectedDate: null,
             selectedSlotId: null,
             notes: "",
@@ -104,27 +119,29 @@ export const useCartStore = create<CartState>()(
             },
 
             addBundle: (bundleId) => {
-                const bundle = BUNDLES.find(b => b.id === bundleId);
-                if (!bundle) return;
+                // Modified: Now adds as BUNDLE type instead of unpacking
+                // Check if bundle exists in catalog (used for validation, though we might not strict check here if we trust ID)
+                // const bundle = BUNDLES.find(b => b.id === bundleId); 
+                // We rely on UI to provide valid ID.
 
                 set((state) => {
-                    const newItems = [...state.items];
-                    // Bundles add individual products
-                    bundle.items.forEach(bItem => {
-                        const existingIdx = newItems.findIndex(
-                            i => i.type === 'PRODUCT' && i.productId === bItem.productId
-                        );
+                    const existingIdx = state.items.findIndex(
+                        (i) => i.type === 'BUNDLE' && i.bundleId === bundleId
+                    );
 
-                        if (existingIdx >= 0) {
-                            newItems[existingIdx] = {
-                                ...newItems[existingIdx],
-                                qty: newItems[existingIdx].qty + bItem.qty
-                            };
-                        } else {
-                            newItems.push({ type: 'PRODUCT', productId: bItem.productId, qty: bItem.qty });
-                        }
-                    });
-                    return { items: newItems, isOpen: true };
+                    if (existingIdx >= 0) {
+                        const newItems = [...state.items];
+                        newItems[existingIdx] = {
+                            ...newItems[existingIdx],
+                            qty: newItems[existingIdx].qty + 1
+                        };
+                        return { items: newItems, isOpen: true };
+                    }
+
+                    return {
+                        items: [...state.items, { type: 'BUNDLE', bundleId, qty: 1 }],
+                        isOpen: true
+                    };
                 });
             },
 
@@ -133,6 +150,7 @@ export const useCartStore = create<CartState>()(
                     items: state.items.filter((i) => {
                         if (i.type === 'PRODUCT') return i.productId !== itemId;
                         if (i.type === 'PACK') return i.id !== itemId;
+                        if (i.type === 'BUNDLE') return i.bundleId !== itemId;
                         return true;
                     }),
                 }));
@@ -145,6 +163,7 @@ export const useCartStore = create<CartState>()(
                             items: state.items.filter((i) => {
                                 if (i.type === 'PRODUCT') return i.productId !== itemId;
                                 if (i.type === 'PACK') return i.id !== itemId;
+                                if (i.type === 'BUNDLE') return i.bundleId !== itemId;
                                 return true;
                             }),
                         };
@@ -156,6 +175,9 @@ export const useCartStore = create<CartState>()(
                                 return { ...i, qty };
                             }
                             if (i.type === 'PACK' && i.id === itemId) {
+                                return { ...i, qty };
+                            }
+                            if (i.type === 'BUNDLE' && i.bundleId === itemId) {
                                 return { ...i, qty };
                             }
                             return i;
@@ -177,6 +199,34 @@ export const useCartStore = create<CartState>()(
             }),
 
             toggleCart: (open) => set((state) => ({ isOpen: open ?? !state.isOpen })),
+
+            initCart: async () => {
+                const state = get();
+                if (state.isSyncing) return;
+
+                set({ isSyncing: true });
+                try {
+                    const res = await fetch('/api/cart/init', { method: 'POST' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        set({ orderId: data.orderId });
+                        // Optionally sync remote items back to local if we want full sync
+                        // For MVP: We just ensure we have an Order ID and Cookie
+
+                        // If order has schedule, sync it to local state
+                        if (data.order?.deliveryReservation?.slotId) {
+                            set({
+                                selectedSlotId: data.order.deliveryReservation.slotId,
+                                selectedDate: data.order.delivery.date
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error("Cart init failed", e);
+                } finally {
+                    set({ isSyncing: false });
+                }
+            },
 
             setSchedule: (date, slotId) => set({ selectedDate: date, selectedSlotId: slotId }),
             setNotes: (notes) => set({ notes }),

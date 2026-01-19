@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default function SubscriptionPage() {
     const handleJoin = () => {
-        const text = "Olá! Tenho interesse em ser Membro VIP do Clube Kombistyle Vida 🌱. Como funciona?";
+        const text = "Olá! Tenho interesse em ser Membro VIP do Clube Arikê 🌱. Como funciona?";
         const url = `https://wa.me/5599999999999?text=${encodeURIComponent(text)}`;
         window.open(url, "_blank");
     };
@@ -21,7 +21,7 @@ export default function SubscriptionPage() {
                         Lançamento Exclusivo
                     </span>
                     <h1 className="font-serif text-[44px] leading-tight text-ink font-bold md:text-[64px] tracking-tight mb-6">
-                        Clube Kombistyle Vida
+                        Clube Arikê
                     </h1>
                     <p className="max-w-xl mx-auto text-ink2 text-lg font-serif italic leading-relaxed">
                         Garanta sua saúde em dia sem se preocupar em pedir toda semana. <br />

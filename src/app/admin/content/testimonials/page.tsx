@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Testimonial } from "@/types/firestore";
-import { getAllTestimonials, saveTestimonial, updateTestimonialStatus, deleteTestimonial } from "@/services/contentService";
+// import { getAllTestimonials, saveTestimonial, updateTestimonialStatus, deleteTestimonial } from "@/services/contentService";
 import { Loader2, Plus, Trash2, CheckCircle, XCircle, Star, MessageSquare, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -33,17 +33,39 @@ function TestimonialManager() {
 
     async function loadData() {
         setLoading(true);
-        const data = await getAllTestimonials(tab); // Service supports filtering
-        setTestimonials(data);
-        setLoading(false);
+        try {
+            const res = await fetch(`/api/admin/testimonials?status=${tab}`);
+            if (res.ok) {
+                const data = await res.json();
+                setTestimonials(data);
+            }
+        } catch (e) {
+            console.error("Failed to load testimonials", e);
+        } finally {
+            setLoading(false);
+        }
     }
 
     // Actions
     async function handleApprove(id: string) {
         if (!confirm("Aprovar este depoimento para exibição pública?")) return;
         if (!user?.uid) return;
-        await updateTestimonialStatus(id, 'APPROVED', user.uid);
-        loadData();
+
+        try {
+            await fetch('/api/admin/testimonials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'UPDATE_STATUS',
+                    id,
+                    status: 'APPROVED',
+                    adminUid: user.uid
+                })
+            });
+            loadData();
+        } catch (e) {
+            alert("Erro ao aprovar.");
+        }
     }
 
     async function handleReject(id: string) {
@@ -56,9 +78,23 @@ function TestimonialManager() {
         if (!rejectId || !user?.uid) return;
         if (!rejectReason.trim()) return alert("Informe o motivo da rejeição.");
 
-        await updateTestimonialStatus(rejectId, 'REJECTED', user.uid, rejectReason);
-        setRejectId(null);
-        loadData();
+        try {
+            await fetch('/api/admin/testimonials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'UPDATE_STATUS',
+                    id: rejectId,
+                    status: 'REJECTED',
+                    adminUid: user.uid,
+                    reason: rejectReason
+                })
+            });
+            setRejectId(null);
+            loadData();
+        } catch (e) {
+            alert("Erro ao rejeitar.");
+        }
     }
 
     async function handleManualSave(newItem: Partial<Testimonial>) {
@@ -79,11 +115,22 @@ function TestimonialManager() {
             approvedAt: new Date().toISOString()
         };
 
-        await saveTestimonial(t, user.uid);
-        setIsFormOpen(false);
-        // If we added manual, it goes to APPROVED, so if we are on PENDING we won't see it immediately unless we switch
-        if (tab !== 'APPROVED') setTab('APPROVED');
-        else loadData();
+        try {
+            await fetch('/api/admin/testimonials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'SAVE',
+                    testimonial: t,
+                    adminUid: user.uid
+                })
+            });
+            setIsFormOpen(false);
+            if (tab !== 'APPROVED') setTab('APPROVED');
+            else loadData();
+        } catch (e) {
+            alert("Erro ao salvar.");
+        }
     }
 
     return (

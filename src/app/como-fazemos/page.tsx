@@ -13,7 +13,7 @@ export default function ComoFazemosPage() {
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                     <Image
-                        src="/images/process/header_bg.jpg"
+                        src="/images/process/header-bg.jpg"
                         alt="Background Texture"
                         fill
                         className="object-cover opacity-90"

@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getAllPosts } from "@/services/contentService";
+// import { getAllPosts } from "@/services/contentService";
 import { Post } from "@/types/firestore";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -18,19 +18,37 @@ export default function NoticiasIndexPage() {
     useEffect(() => {
         async function load() {
             setLoading(true);
-            const data = await getAllPosts('PUBLISHED');
-            setPosts(data);
-            setLoading(false);
+            try {
+                const res = await fetch('/api/posts');
+                if (res.ok) {
+                    const data = await res.json();
+                    // Deduplicate by slug
+                    const uniquePosts = Array.from(new Map(data.map((p: any) => [p.slug, p])).values()) as Post[];
+                    setPosts(uniquePosts);
+                }
+            } catch (e) {
+                console.error("Failed to load posts", e);
+            } finally {
+                setLoading(false);
+            }
         }
         load();
     }, []);
 
-    // Featured Logic (Top 3)
-    const featured = posts.filter(p => p.featuredRank).sort((a, b) => (a.featuredRank! - b.featuredRank!));
-    const list = posts.filter(p => !p.featuredRank);
+    //     // Featured Logic (Top 3)
+    //     const featured = posts.filter(p => p.featuredRank).sort((a, b) => (a.featuredRank! - b.featuredRank!));
+    //     const list = posts.filter(p => !p.featuredRank);
 
     // Helpers
-    const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const formatDate = (iso: string) => {
+        if (!mounted) return ""; // Avoid hydration mismatch
+        return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
 
     if (loading) {
         return (
@@ -44,112 +62,81 @@ export default function NoticiasIndexPage() {
 
     return (
         <SiteShell>
-            <div className="pb-20">
-                {/* Hero Section - Editorial Style */}
-                <div className="mb-16 text-center md:mb-24">
-                    <p className="font-sans font-bold text-xs uppercase tracking-[0.2em] text-olive mb-4">Journal</p>
-                    <h1 className="font-serif text-[40px] leading-tight text-ink font-bold md:text-[56px] tracking-tight">
-                        Notícias & Histórias
-                    </h1>
-                    <div className="mx-auto mt-6 h-[1px] w-20 bg-ink/30" />
-                    <p className="mx-auto mt-6 max-w-2xl text-ink2 text-lg font-serif italic leading-relaxed">
-                        Explore o universo do Kombucha, vida saudável e bastidores da nossa produção artesanal.
-                    </p>
-                </div>
+            <div className="min-h-screen bg-paper text-ink">
+                {/* Header */}
+                <header className="py-16 px-6 text-center relative overflow-hidden -mx-4 md:-mx-12 rounded-t-[32px] md:rounded-t-[48px]">
+                    {/* Custom Background Image - Placeholder path until generation works */}
+                    <div className="absolute inset-0 z-0 bg-stone-200">
+                        <img
+                            src="/images/news/header-bg.jpg"
+                            alt="Background"
+                            className="w-full h-full object-cover opacity-60"
+                        />
+                    </div>
 
-                <div className="max-w-6xl mx-auto">
-                    {/* Featured Section */}
-                    {featured.length > 0 && (
-                        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
-                            {/* Main Featured */}
-                            <Link href={`/noticias/${featured[0].slug}`} className="group relative aspect-[4/3] lg:aspect-auto lg:h-[500px] block overflow-hidden bg-paper2 shadow-paper transition-all hover:shadow-lg">
-                                {/* Vintage Border Frame */}
-                                <div className="absolute inset-0 border-[12px] border-paper z-10 pointer-events-none" />
-                                <div className="absolute inset-[12px] border border-ink/10 z-10 pointer-events-none" />
+                    {/* Bottom fade */}
+                    <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-paper to-transparent pointer-events-none z-10" />
 
-                                {featured[0].coverImage && (
-                                    <Image
-                                        src={featured[0].coverImage.src}
-                                        alt={featured[0].coverImage.alt}
-                                        fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-1000"
-                                    />
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-10 flex flex-col justify-end text-paper z-20">
-                                    <div className="text-xs font-bold uppercase tracking-wider mb-3 text-amber-300">Destaque</div>
-                                    <h2 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-4 group-hover:underline decoration-1 underline-offset-4">{featured[0].title}</h2>
-                                    <p className="text-white/80 line-clamp-2 md:line-clamp-3 mb-6 max-w-lg text-sm md:text-base font-serif leading-relaxed">{featured[0].excerpt}</p>
-                                    <div className="flex items-center gap-2 text-xs font-bold opacity-80 uppercase tracking-widest">
-                                        <span>{formatDate(featured[0].publishedAt || "")}</span>
-                                        <span>• {featured[0].readingTimeMinutes} min</span>
-                                    </div>
-                                </div>
-                            </Link>
+                    <div className="relative z-20 max-w-4xl mx-auto">
+                        <span className="text-olive/80 font-bold uppercase tracking-[0.2em] text-sm mb-4 block drop-shadow-sm">Kombucha Arikê</span>
+                        <h1 className="font-serif text-5xl md:text-7xl font-bold text-olive mb-6 leading-tight drop-shadow-sm">
+                            Notícias & <br /> <span className="italic text-ink/80">Histórias</span>
+                        </h1>
+                        <p className="max-w-xl mx-auto text-ink/80 text-lg md:text-xl leading-relaxed font-serif font-medium drop-shadow-sm">
+                            Mergulhe no universo da fermentação, saúde intestinal e estilo de vida consciente.
+                        </p>
+                    </div>
+                </header>
 
-                            {/* Secondary Featured List */}
-                            <div className="flex flex-col gap-8 justify-center">
-                                {featured.slice(1).map(post => (
-                                    <Link href={`/noticias/${post.slug}`} key={post.id} className="group flex flex-col sm:flex-row gap-6 items-center">
-                                        <div className="relative w-full sm:w-[200px] aspect-[4/3] flex-shrink-0 bg-paper2 shadow-sm border border-ink/10 overflow-hidden">
-                                            {post.coverImage && (
-                                                <Image src={post.coverImage.src} alt={post.coverImage.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-[10px] font-bold uppercase tracking-wider text-olive mb-2">{post.tags?.[0]}</div>
-                                            <h3 className="font-serif text-xl font-bold text-ink mb-3 leading-tight group-hover:text-olive transition-colors">{post.title}</h3>
-                                            <p className="text-ink/60 text-sm line-clamp-2 mb-3 font-serif italic">{post.excerpt}</p>
-                                            <div className="text-xs text-ink/40 font-medium">{formatDate(post.publishedAt || "")}</div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                <div className="max-w-7xl mx-auto px-4 relative z-10">
 
-                    <div className="border-t border-ink/10 mb-16 max-w-xs mx-auto" />
-
-                    {/* Grid Section - Vintage Cards */}
-                    <section>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-                            {list.length === 0 && featured.length === 0 ? (
-                                <div className="col-span-full">
-                                    <NewsEmptyState />
-                                </div>
-                            ) : list.map(post => (
-                                <Link href={`/noticias/${post.slug}`} key={post.id} className="group flex flex-col h-full bg-paper2 transition-all hover:-translate-y-1 hover:shadow-md">
-                                    <div className="relative aspect-[3/2] overflow-hidden border-b border-ink/5">
+                    {/* Grid of Small Cards */}
+                    {posts.length === 0 ? (
+                        <NewsEmptyState />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {posts.map(post => (
+                                <div key={post.slug} className="group flex flex-col bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                                    {/* Image */}
+                                    <div className="relative aspect-[4/3] overflow-hidden">
                                         {post.coverImage ? (
-                                            <Image src={post.coverImage.src} alt={post.coverImage.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                                            <Image
+                                                src={typeof post.coverImage === 'string' ? post.coverImage : post.coverImage.src}
+                                                alt={typeof post.coverImage === 'string' ? post.title : post.coverImage.alt || post.title}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-ink/10 font-serif text-4xl bg-ink/5">K</div>
+                                            <div className="w-full h-full flex items-center justify-center bg-stone-200 text-stone-400 font-serif text-4xl">K</div>
                                         )}
-                                        {/* Texture Overlay */}
-                                        <div className="absolute inset-0 bg-paper opacity-10 mix-blend-multiply pointer-events-none" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                     </div>
 
-                                    <div className="flex-1 p-6 flex flex-col">
-                                        <div className="flex gap-2 text-[10px] font-bold uppercase tracking-widest text-olive mb-3">
-                                            <span>{formatDate(post.publishedAt || "")}</span>
+                                    {/* Content */}
+                                    <div className="p-6 flex flex-col flex-1">
+                                        <div className="text-[10px] font-bold uppercase tracking-wider text-olive mb-3 opacity-80">
+                                            {formatDate(post.publishedAt || "")}
                                         </div>
-                                        <h3 className="font-serif text-2xl font-bold text-ink mb-3 group-hover:text-olive transition-colors leading-tight">
+
+                                        <h3 className="font-serif text-xl font-bold text-ink mb-3 leading-tight group-hover:text-olive transition-colors line-clamp-2">
                                             {post.title}
                                         </h3>
-                                        <p className="text-ink/60 line-clamp-3 text-sm leading-relaxed mb-6 font-serif">
+
+                                        <p className="text-ink/60 text-sm leading-relaxed mb-6 font-serif line-clamp-5 flex-1">
                                             {post.excerpt}
                                         </p>
 
-                                        <div className="mt-auto pt-4 border-t border-ink/5 text-xs font-bold text-ink uppercase tracking-widest group-hover:text-olive transition-colors">
-                                            Ler artigo
-                                        </div>
+                                        <Link
+                                            href={`/noticias/${post.slug}`}
+                                            className="inline-flex items-center justify-center w-full py-3 border border-olive/20 rounded-xl text-xs font-bold uppercase tracking-widest text-olive hover:bg-olive hover:text-white transition-all"
+                                        >
+                                            Leia Mais
+                                        </Link>
                                     </div>
-
-                                    {/* Vintage Outline */}
-                                    <div className="absolute inset-0 border border-ink/10 pointer-events-none" />
-                                </Link>
+                                </div>
                             ))}
                         </div>
-                    </section>
+                    )}
                 </div>
             </div>
         </SiteShell>

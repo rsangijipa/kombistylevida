@@ -1,4 +1,4 @@
-import { getAdminDb } from "@/server/firebaseAdmin";
+import { adminDb } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const adminDb = await getAdminDb();
     if (!adminDb) {
       console.warn("[rss] AdminDB not initialized. Returning empty feed.");
       throw new Error("AdminDB missing");
@@ -34,9 +33,9 @@ export async function GET() {
     const rss = `<?xml version="1.0" encoding="UTF-8" ?>
         <rss version="2.0">
         <channel>
-        <title>Kombistyle Vida - Notícias</title>
+        <title>Kombucha Arikê - Blog & Novidades</title>
         <link>${baseUrl}</link>
-        <description>Vida saudável, kombucha e bem-estar.</description>
+        <description>Acompanhe as novidades da Kombucha Arikê, fermentada naturalmente em Rondônia.</description>
         ${posts.map(post => `
         <item>
             <title><![CDATA[${post.title}]]></title>

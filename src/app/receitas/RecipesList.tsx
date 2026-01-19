@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+// import { db } from "@/lib/firebase";
+// import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import Link from "next/link";
 import { Recipe, RecipeCategory } from "@/types/firestore";
 import { ArrowRight, Clock, ChefHat, Users, ArrowLeft } from "lucide-react";
@@ -27,17 +27,14 @@ export default function RecipesList() {
         async function fetchRecipes() {
             setLoading(true);
             try {
-                // In a real app we might want to index this properly or filter client side for small datasets
-                const q = query(
-                    collection(db, "recipes"),
-                    where("status", "==", "PUBLISHED")
-                );
-                const snapshot = await getDocs(q);
+                const res = await fetch('/api/recipes');
 
                 let data: Recipe[] = [];
-                if (!snapshot.empty) {
-                    data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }) as Recipe);
-                } else {
+                if (res.ok) {
+                    data = await res.json();
+                }
+
+                if (data.length === 0) {
                     // Fallback to static data if DB is empty (Architecture Decision for Stability)
                     console.log("No recipes found in DB, using static fallback.");
                     data = RECIPES_DATA.filter(r => r.status === "PUBLISHED");
@@ -88,23 +85,12 @@ export default function RecipesList() {
                         />
                     </div>
 
-                    {/* Back to Home Button */}
-                    <div className="absolute top-6 left-6 z-30">
-                        <Link
-                            href="/"
-                            className="flex items-center justify-center w-10 h-10 md:w-auto md:h-auto md:bg-white/90 md:backdrop-blur md:px-4 md:py-2 rounded-full text-olive font-bold uppercase tracking-widest text-xs shadow-sm hover:shadow-md transition-all hover:bg-white"
-                            title="Voltar para Início"
-                        >
-                            <ArrowLeft size={20} className="md:mr-2" />
-                            <span className="hidden md:inline">Início</span>
-                        </Link>
-                    </div>
 
                     {/* Bottom fade only - keeps top clear */}
                     <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-paper to-transparent pointer-events-none z-10" />
 
                     <div className="relative z-20 max-w-4xl mx-auto">
-                        <span className="text-olive/80 font-bold uppercase tracking-[0.2em] text-sm mb-4 block drop-shadow-sm">KombiStyle Vida</span>
+                        <span className="text-olive/80 font-bold uppercase tracking-[0.2em] text-sm mb-4 block drop-shadow-sm">Kombucha Arikê</span>
                         <h1 className="font-serif text-5xl md:text-7xl font-bold text-olive mb-6 leading-tight drop-shadow-sm">
                             Alquimia & <br /> <span className="italic text-ink/80">Sabores Vivos</span>
                         </h1>

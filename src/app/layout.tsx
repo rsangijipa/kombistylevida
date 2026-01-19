@@ -18,11 +18,11 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
-    title: "Kombistyle Vida | Kombucha Artesanal",
+    title: "Kombucha Arikê | Artesanal de Verdade",
     description: "Kombucha fermentada naturalmente em Ariquemes - RO, feita com ingredientes reais e carinho. Descubra o equilíbrio entre saúde e sabor.",
     keywords: ["kombucha", "fermentação natural", "probióticos", "saúde", "bem-estar", "bebida artesanal", "chá fermentado", "Ariquemes", "Rondônia"],
     openGraph: {
-        title: "Kombistyle Vida | Estilo e sabor em cada gole",
+        title: "Kombucha Arikê | Estilo e sabor em cada gole",
         description: "Kombucha artesanal de verdade. Fermentação lenta, ingredientes naturais e muita vida. Feito em Ariquemes - RO.",
         type: "website",
         locale: "pt_BR",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "Kombistyle Vida",
+        title: "Kombucha Arikê",
         description: "Kombucha artesanal fermentada naturalmente.",
     },
 };
@@ -43,7 +43,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="pt-BR" className="scroll-smooth">
+        <html lang="pt-BR" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
             <body
                 className={cn(
                     serif.variable,

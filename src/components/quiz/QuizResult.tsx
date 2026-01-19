@@ -16,8 +16,8 @@ export function QuizResult({ result }: QuizResultProps) {
     const isSafety = result.id === 'safety';
     const whatsappLink = buildWhatsAppShareLink(result);
 
-    // Get flavor details if not safety override
-    const recommendedFlavors = isSafety ? [] : FLAVORS.filter(f => result.flavors.includes(f.id));
+    // Get flavor details if not safety override, ensure uniqueness
+    const recommendedFlavors = isSafety ? [] : Array.from(new Set(FLAVORS.filter(f => result.flavors.includes(f.id))));
 
     return (
         <div className="animate-fade-in-up text-center h-full flex flex-col items-center">
@@ -75,7 +75,12 @@ export function QuizResult({ result }: QuizResultProps) {
                         {recommendedFlavors.map(flavor => (
                             <div key={flavor.id} className="flex items-center gap-3 bg-paper p-2 pr-4 rounded-full border border-ink/10 shadow-sm">
                                 <div className="relative w-10 h-10 bg-paper2 rounded-full overflow-hidden">
-                                    <Image src={flavor.imageSrc} alt={flavor.title} fill className="object-cover p-1" />
+                                    <Image
+                                        src={flavor.imageSrc || '/images/flavors/placeholder.png'}
+                                        alt={flavor.title}
+                                        fill
+                                        className="object-cover p-1"
+                                    />
                                 </div>
                                 <span className="font-serif font-bold text-ink text-sm">{flavor.title.replace("\n", " ")}</span>
                             </div>

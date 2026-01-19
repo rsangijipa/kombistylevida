@@ -3,15 +3,16 @@
 import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { getDashboardStats, DashboardStats } from "@/services/adminService";
-import { Package, RotateCcw, TrendingUp } from "lucide-react";
+import { DashboardStats } from "@/services/adminService";
+import { Package, RotateCcw, TrendingUp, Loader2 } from "lucide-react";
 
 export default function AdminPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getDashboardStats()
+        fetch('/api/admin/stats')
+            .then(res => res.json())
             .then(setStats)
             .finally(() => setLoading(false));
     }, []);
@@ -28,20 +29,24 @@ export default function AdminPage() {
                     {/* Pedidos Hoje */}
                     <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">Pedidos (Hoje)</h3>
-                        <p className="mt-2 text-3xl font-bold text-olive">
-                            {loading ? "..." : stats?.ordersToday}
-                        </p>
+                        <div className="mt-2 min-h-[36px]">
+                            {loading ? <Loader2 className="animate-spin text-olive" size={24} /> : (
+                                <p className="text-3xl font-bold text-olive">{stats?.ordersToday}</p>
+                            )}
+                        </div>
                         <p className="text-xs text-ink2 mt-1">
-                            R$ {loading ? "..." : ((stats?.revenueToday || 0) / 100).toFixed(2).replace(".", ",")}
+                            {loading ? "..." : `R$ ${((stats?.revenueToday || 0) / 100).toFixed(2).replace(".", ",")}`}
                         </p>
                     </div>
 
                     {/* A Entregar */}
                     <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">A Entregar</h3>
-                        <p className="mt-2 text-3xl font-bold text-amber">
-                            {loading ? "..." : stats?.pendingDelivery}
-                        </p>
+                        <div className="mt-2 min-h-[36px]">
+                            {loading ? <Loader2 className="animate-spin text-amber" size={24} /> : (
+                                <p className="text-3xl font-bold text-amber">{stats?.pendingDelivery}</p>
+                            )}
+                        </div>
                         <p className="text-xs text-ink2 mt-1">Pedidos ativos</p>
                     </div>
 
@@ -51,9 +56,11 @@ export default function AdminPage() {
                             <Package size={48} />
                         </div>
                         <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Packs (Hoje)</h3>
-                        <p className="mt-2 text-3xl font-bold text-purple-600 relative z-10">
-                            {loading ? "..." : stats?.packsSold}
-                        </p>
+                        <div className="mt-2 min-h-[36px] relative z-10">
+                            {loading ? <Loader2 className="animate-spin text-purple-600" size={24} /> : (
+                                <p className="text-3xl font-bold text-purple-600">{stats?.packsSold}</p>
+                            )}
+                        </div>
                         <p className="text-xs text-ink2 mt-1 relative z-10">Unidades vendidas</p>
                     </div>
 
@@ -63,18 +70,22 @@ export default function AdminPage() {
                             <RotateCcw size={48} />
                         </div>
                         <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Retornos (Pend.)</h3>
-                        <p className="mt-2 text-3xl font-bold text-green-600 relative z-10">
-                            {loading ? "..." : stats?.returnsPending}
-                        </p>
+                        <div className="mt-2 min-h-[36px] relative z-10">
+                            {loading ? <Loader2 className="animate-spin text-green-600" size={24} /> : (
+                                <p className="text-3xl font-bold text-green-600">{stats?.returnsPending}</p>
+                            )}
+                        </div>
                         <p className="text-xs text-ink2 mt-1 relative z-10">Garrafas a recolher</p>
                     </div>
 
                     {/* Estoque Crítico */}
                     <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm md:col-span-2 lg:col-span-1">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">Estoque Crítico</h3>
-                        <p className="mt-2 text-3xl font-bold text-red-600">
-                            {loading ? "..." : stats?.lowStockCount}
-                        </p>
+                        <div className="mt-2 min-h-[36px]">
+                            {loading ? <Loader2 className="animate-spin text-red-600" size={24} /> : (
+                                <p className="text-3xl font-bold text-red-600">{stats?.lowStockCount}</p>
+                            )}
+                        </div>
                         <p className="text-xs text-ink2 mt-1">Sabores abaixo de 10 un.</p>
                     </div>
                 </div>
@@ -92,7 +103,9 @@ export default function AdminPage() {
                         <div className="flex h-48 items-end justify-between gap-2 overflow-hidden text-xs text-ink/60 relative">
                             {/* Y-Axis Grid Lines? Keep simple for MVP: just bars */}
                             {loading ? (
-                                <div className="flex h-full w-full items-center justify-center text-ink/20">Carregando...</div>
+                                <div className="flex h-full w-full items-center justify-center text-ink/20">
+                                    <Loader2 className="animate-spin" />
+                                </div>
                             ) : (
                                 stats?.salesHistory.map((day, i) => {
                                     // Calculate relative height. Max value?
@@ -120,7 +133,9 @@ export default function AdminPage() {
                         <h3 className="mb-6 text-xs font-bold uppercase tracking-wider text-ink/40">Sabores Mais Vendidos</h3>
                         <div className="space-y-4">
                             {loading ? (
-                                <div className="text-sm text-ink/40">Carregando...</div>
+                                <div className="flex h-32 items-center justify-center text-sm text-ink/40">
+                                    <Loader2 className="animate-spin" />
+                                </div>
                             ) : (
                                 stats?.topFlavors.map((flavor, i) => {
                                     const maxQty = stats?.topFlavors[0]?.qty || 1;

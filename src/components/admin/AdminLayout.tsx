@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginScreen } from "@/components/admin/LoginScreen";
-import { LayoutDashboard, ShoppingCart, Calendar, Users, Package, Settings, LogOut, Truck, FileText, MessageSquare } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Calendar, Users, Package, Settings, LogOut, Truck, FileText, MessageSquare, Tag, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -11,9 +11,12 @@ import { cn } from "@/lib/cn";
 const NAV_ITEMS = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Pedidos", href: "/admin/orders", icon: ShoppingCart },
-    { label: "Agenda", href: "/admin/schedule", icon: Calendar },
+    { label: "Agenda", href: "/admin/agenda", icon: Calendar },
     { label: "Clientes", href: "/admin/customers", icon: Users },
+    { label: "Logística", href: "/admin/delivery", icon: Truck },
     { label: "Estoque", href: "/admin/inventory", icon: Package },
+    { label: "Produtos", href: "/admin/products", icon: Tag },
+    { label: "Combos", href: "/admin/combos", icon: ShoppingBag },
     { label: "Blog & Conteúdo", href: "/admin/content/posts", icon: FileText },
     { label: "Depoimentos", href: "/admin/content/testimonials", icon: MessageSquare },
     { label: "Configs", href: "/admin/settings", icon: Settings },
@@ -39,8 +42,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             if (!user) return;
 
             // Strategy: 
-            // 1. If has Admin Claim (via script) -> Role = 'admin'. Skip Firestore.
-            // 2. Else -> Fetch Firestore for granular roles (staff, content).
+            // 1. If Super Admin (Hardcoded) -> Role = 'admin'
+            // 2. If has Admin Claim (via script) -> Role = 'admin'. Skip Firestore.
+            // 3. Else -> Fetch Firestore for granular roles (staff, content).
+
+            if (user.email === 'admin@kombucha.com') {
+                setRole('admin');
+                setRoleLoading(false);
+                return;
+            }
 
             if (isAdmin) {
                 setRole('admin');
@@ -106,22 +116,28 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         if (role === 'staff') {
             // Staff sees everything EXCEPT content management (maybe? user request said "content" role exists, implies separation)
             // Or Staff can see Orders, Schedule, Customers, Inventory.
-            return ['/admin', '/admin/orders', '/admin/schedule', '/admin/customers', '/admin/inventory'].includes(item.href);
+            return ['/admin', '/admin/orders', '/admin/delivery', '/admin/schedule', '/admin/customers', '/admin/inventory'].includes(item.href);
         }
 
         return false;
     });
 
     return (
-        <div className="flex min-h-screen bg-paper2/50 text-ink">
-            {/* Sidebar */}
-            <aside className="fixed left-0 top-0 h-full w-64 border-r border-ink/10 bg-paper hidden md:flex flex-col">
-                <div className="p-6 border-b border-ink/5">
-                    <h1 className="font-serif text-xl font-bold text-olive">Arikê Ops</h1>
-                    <p className="text-xs text-ink/50 mt-1">v1.1.0 (Rebranding)</p>
+        <div className="flex min-h-screen bg-paper text-ink selection:bg-olive/20">
+            {/* Background Texture (Shared with SiteShell) */}
+            <div className="fixed inset-0 z-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('/images/paper-texture.png')] bg-repeat" />
+
+            {/* Sidebar (Desktop) */}
+            <aside className="fixed left-0 top-0 h-full w-64 border-r border-ink/10 bg-paper/80 backdrop-blur-sm hidden md:flex flex-col z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
+                <div className="p-8 border-b border-ink/5">
+                    <div className="relative h-12 w-full mb-4 opacity-90">
+                        {/* Use logo image or text */}
+                        <div className="font-serif text-3xl font-bold text-ink hover:text-olive transition-colors cursor-default tracking-tight">Kombucha Arikê</div>
+                        <div className="text-[10px] font-sans font-bold uppercase tracking-[0.3em] text-olive pl-1">Admin Panel</div>
+                    </div>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
                     {filteredNav.map((item) => {
                         const isActive = pathname === item.href;
                         return (
@@ -129,50 +145,85 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                                    "group flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300",
                                     isActive
-                                        ? "bg-olive/10 text-olive"
-                                        : "text-ink/60 hover:bg-black/5 hover:text-ink"
+                                        ? "bg-olive text-white shadow-lg shadow-olive/20 translate-x-1"
+                                        : "text-ink/60 hover:bg-paper2 hover:text-ink hover:translate-x-1"
                                 )}
                             >
-                                <item.icon size={18} />
-                                {item.label}
+                                <item.icon size={18} className={cn("transition-transform group-hover:scale-110", isActive ? "text-white" : "text-olive/70")} />
+                                <span className={cn("font-sans tracking-wide", isActive ? "font-bold" : "")}>{item.label}</span>
                             </Link>
                         );
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-ink/5">
-                    <div className="mb-3 flex items-center gap-3 px-2">
-                        <div className="h-8 w-8 rounded-full bg-olive text-paper flex items-center justify-center font-bold text-xs">
+                <div className="p-6 border-t border-ink/5 bg-paper2/50">
+                    <div className="flex items-center gap-3 mb-4 p-2 rounded-lg bg-white/50 border border-ink/5 shadow-sm">
+                        <div className="h-10 w-10 rounded-full bg-olive text-white flex items-center justify-center font-serif font-bold text-lg shadow-inner">
                             {user.email?.[0].toUpperCase()}
                         </div>
                         <div className="overflow-hidden">
-                            <p className="truncate text-xs font-bold text-ink">{user.email}</p>
-                            <p className="text-[10px] text-ink/50">Admin</p>
+                            <p className="truncate text-xs font-bold text-ink uppercase tracking-wider">Admin</p>
+                            <p className="truncate text-[10px] text-ink/50 font-mono">{user.email}</p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => logout()}
-                        className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-600 hover:bg-red-50"
-                    >
-                        <LogOut size={14} />
-                        Sair
-                    </button>
-                    <Link
-                        href="/"
-                        className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink/50 hover:text-olive hover:bg-olive/5 mt-2 transition-colors"
-                    >
-                        <Truck size={14} />
-                        Voltar para o Site
-                    </Link>
+
+                    <div className="space-y-2">
+                        <Link
+                            href="/"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-olive border border-olive/20 hover:bg-olive hover:text-white transition-all duration-300"
+                        >
+                            <Truck size={14} />
+                            Ver Loja
+                        </Link>
+                        <button
+                            onClick={() => logout()}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-500/70 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut size={14} />
+                            Sair
+                        </button>
+                    </div>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="ml-0 md:ml-64 flex-1 p-8">
-                {children}
+            {/* Mobile Header */}
+            <header className="fixed top-0 left-0 right-0 h-16 bg-paper/90 backdrop-blur-md border-b border-ink/5 flex items-center justify-between px-6 md:hidden z-30 shadow-sm">
+                <span className="font-serif text-xl font-bold text-ink">Kombucha Arikê <span className="text-olive text-sm uppercase tracking-wider ml-1">Ops</span></span>
+                <button onClick={() => logout()} className="p-2 text-ink/40 hover:text-red-500 active:scale-95 transition-transform">
+                    <LogOut size={20} />
+                </button>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="ml-0 md:ml-64 flex-1 p-4 pt-20 md:p-10 md:pt-10 pb-24 md:pb-10 relative z-0">
+                <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    {children}
+                </div>
             </main>
+
+            {/* Mobile Bottom Nav */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-paper/95 backdrop-blur-lg border-t border-ink/5 flex justify-around p-3 md:hidden z-30 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+                {filteredNav.slice(0, 5).map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95",
+                                isActive
+                                    ? "text-olive bg-olive/10 translate-y-[-2px]"
+                                    : "text-ink/40 active:text-ink"
+                            )}
+                        >
+                            <item.icon size={20} className={isActive ? "fill-current" : ""} />
+                            <span className="text-[9px] font-bold uppercase tracking-wider">{item.label}</span>
+                        </Link>
+                    )
+                })}
+            </nav>
         </div>
     );
 }

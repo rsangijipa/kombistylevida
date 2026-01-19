@@ -55,7 +55,7 @@ export function SiteShell({ children }: SiteShellProps) {
                                 Para pedidos, dúvidas ou parcerias. Bebida artesanal feita com tempo e carinho.
                             </p>
                             <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
-                                <a href="https://instagram.com/kombistylevida" target="_blank" rel="noreferrer" className="flex h-[48px] items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors touch-target px-4 border border-transparent md:border-none rounded-full md:rounded-none bg-paper2 md:bg-transparent w-full md:w-auto justify-center">
+                                <a href="https://instagram.com/kombuchaarike" target="_blank" rel="noreferrer" className="flex h-[48px] items-center gap-2 font-bold uppercase tracking-widest text-[11px] text-ink hover:text-amber transition-colors touch-target px-4 border border-transparent md:border-none rounded-full md:rounded-none bg-paper2 md:bg-transparent w-full md:w-auto justify-center">
                                     Instagram
                                 </a>
                                 <span className="hidden md:block text-ink/20">|</span>

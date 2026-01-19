@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { User, Lock, UserPlus } from "lucide-react";
+import { User, Lock, Home } from "lucide-react";
+import Link from "next/link";
 
 export function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -52,14 +53,23 @@ export function LoginScreen() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div className="flex min-h-screen items-center justify-center bg-paper relative">
+            {/* Home Button */}
+            <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 text-ink/60 hover:text-olive transition-colors">
+                <Home size={20} />
+                <span className="text-sm font-bold uppercase tracking-wider">Voltar para Home</span>
+            </Link>
+
             <div className="w-full max-w-md rounded-2xl border border-ink/10 bg-white p-8 shadow-xl">
                 <div className="mb-8 text-center">
                     <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-olive/10 text-olive">
                         <Lock size={32} />
                     </div>
-                    <h1 className="font-serif text-2xl font-bold text-ink">Kombistyle Admin</h1>
-                    <p className="text-sm text-ink2">Área restrita para operação</p>
+                    {/* Logo / Branding */}
+                    <div className="mb-2">
+                        <span className="font-serif text-3xl font-bold text-ink">Kombucha Arikê</span>
+                    </div>
+                    <p className="text-sm text-ink2 font-medium bg-paper2 inline-block px-3 py-1 rounded-full">Painel Administrativo</p>
                 </div>
 
                 {error && (
@@ -77,7 +87,7 @@ export function LoginScreen() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full rounded-lg border border-ink/20 bg-paper2 p-3 text-ink focus:border-olive focus:outline-none"
-                            placeholder="batman@kombistyle.com"
+                            placeholder="admin@kombucha.com"
                         />
                     </div>
                     <div>

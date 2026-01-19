@@ -6,7 +6,7 @@ import { useCartStore } from "@/store/cartStore";
 import { useCustomerStore } from "@/store/customerStore";
 import { cn } from "@/lib/cn";
 import { QuantityStepper } from "./QuantityStepper";
-import { DeliveryScheduler } from "@/components/schedule/DeliveryScheduler";
+import { DeliveryScheduler } from "@/components/cart/DeliveryScheduler";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { createOrder } from "@/services/orderService";
 import { upsertCustomer } from "@/services/customerService";
@@ -16,7 +16,7 @@ import { useCatalog } from "@/context/CatalogContext"; // New Import
 export function CartDrawer() {
     const { items, isOpen, removeItem, updateQty, toggleCart, selectedDate, selectedSlotId, notes, setNotes, clearCart, bottlesToReturn, setBottlesToReturn } = useCartStore();
     const customer = useCustomerStore(); // contains .reset()
-    const { getProduct } = useCatalog(); // Dynamic Catalog
+    const { getProduct, getCombo, products, combos } = useCatalog(); // Dynamic Catalog
 
     const [validationError, setValidationError] = useState<string | null>(null);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -68,7 +68,8 @@ export function CartDrawer() {
             isGift: useCartStore.getState().isGift,
             giftFrom: useCartStore.getState().giftFrom,
             giftTo: useCartStore.getState().giftTo,
-            giftMessage: useCartStore.getState().giftMessage
+            giftMessage: useCartStore.getState().giftMessage,
+            catalog: { products, combos }
         });
         const link = buildWhatsAppLink(message);
 
@@ -79,6 +80,10 @@ export function CartDrawer() {
                 if (item.type === 'PACK') {
                     const price = item.size === 6 ? 8990 : 16990;
                     return acc + (price * item.qty);
+                }
+                if (item.type === 'BUNDLE') {
+                    const combo = getCombo(item.bundleId);
+                    return acc + ((combo?.priceCents || 0) * item.qty);
                 }
                 const prod = getProduct(item.productId); // Dynamic
                 return acc + (prod?.priceCents || 0) * item.qty;
@@ -119,6 +124,11 @@ export function CartDrawer() {
         if (item.type === 'PACK') {
             const priceCents = item.size === 6 ? 8990 : 16990;
             return acc + (priceCents * item.qty);
+        }
+
+        if (item.type === 'BUNDLE') {
+            const combo = getCombo(item.bundleId);
+            return acc + ((combo?.priceCents || 0) * item.qty);
         }
 
         // Handle Composite IDs for Price
@@ -246,67 +256,120 @@ export function CartDrawer() {
                                     );
                                 }
 
-                                // 2. HANDLE STANDARD PRODUCTS (With Variants Support)
-                                let productId = item.productId;
-                                let sizeDisplay = "";
-                                let finalPrice = 0;
+                                // 2. HANDLE BUNDLES (New)
+                                if (item.type === 'BUNDLE') {
+                                    const combo = getCombo(item.bundleId);
+                                    if (!combo) return null; // Should we show loading or error?
 
-                                // Check for composite ID (e.g., "ginger-lemon::300")
-                                if (item.productId.includes("::")) {
-                                    const parts = item.productId.split("::");
-                                    productId = parts[0];
-                                    const sizeCode = parts[1]; // "300"
-                                    sizeDisplay = `${sizeCode}ml`;
-                                }
+                                    const priceCents = combo.priceCents;
 
-                                const product = getProduct(productId); // Dynamic Catalog
-                                if (!product) return null;
+                                    return (
+                                        <div key={item.bundleId} className="flex gap-4 items-start bg-paper p-4 rounded-xl border border-purple-100 shadow-sm">
+                                            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-purple-100 bg-purple-50 flex flex-col items-center justify-center gap-1 text-purple-700">
+                                                <ShoppingBag size={24} />
+                                                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-500">Combo</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-serif font-bold text-ink text-base">
+                                                    {combo.name}
+                                                </h4>
+                                                <div className="mt-1 text-sm text-ink2 font-medium">
+                                                    R$ {(priceCents / 100).toFixed(2).replace(".", ",")}
+                                                </div>
 
-                                // Determine Price: Variant or Base
-                                if (sizeDisplay) {
-                                    // Try to find specific variant price
-                                    const variant = product.variants?.find(v => v.size.includes(sizeDisplay));
-                                    finalPrice = variant ? (variant.price * 100) : (product.priceCents || 0);
-                                } else {
-                                    finalPrice = product.priceCents || 0;
-                                }
-
-                                return (
-                                    <div key={item.productId} className="flex gap-4 items-center bg-paper p-3 rounded-xl border border-transparent hover:border-ink/5 transition-colors">
-                                        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/5 bg-paper2">
-                                            {item.productId.includes('pack') ? (
-                                                <div className="h-full w-full flex items-center justify-center bg-olive/10 text-xs">Pack</div>
-                                            ) : (
-                                                product.imageSrc ? (
-                                                    <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
-                                                ) : (
-                                                    <div className="h-full w-full bg-gray-100" />
-                                                )
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-serif font-bold text-ink text-sm leading-tight">{product.name}</h4>
-
-                                            {/* Size Badge */}
-                                            {sizeDisplay && (
-                                                <span className="inline-block mt-1 mr-2 px-1.5 py-0.5 rounded bg-ink/5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
-                                                    {sizeDisplay}
-                                                </span>
-                                            )}
-
-                                            <div className="mt-1 text-xs text-ink2 font-medium">
-                                                R$ {(finalPrice / 100).toFixed(2).replace(".", ",")}
+                                                {/* Combo Items */}
+                                                <div className="mt-3 flex flex-wrap gap-1">
+                                                    {combo.items.map((subItem, idx) => {
+                                                        const p = getProduct(subItem.productId);
+                                                        return (
+                                                            <span key={idx} className="inline-flex items-center rounded-sm bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-700">
+                                                                {subItem.qty}x {p?.name.split(' ')[0] || 'Item'}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <QuantityStepper
+                                                    qty={item.qty}
+                                                    onUpdate={(val) => updateQty(item.bundleId, val)}
+                                                    size="sm"
+                                                />
+                                                <button
+                                                    onClick={() => removeItem(item.bundleId)}
+                                                    className="text-ink/30 hover:text-red-500 p-2 transition-colors mt-2"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <QuantityStepper
-                                                qty={item.qty}
-                                                onUpdate={(val) => updateQty(item.productId, val)}
-                                                size="sm"
-                                            />
+                                    );
+                                }
+
+                                // 3. HANDLE STANDARD PRODUCTS
+                                if (item.type === 'PRODUCT') {
+                                    let productId = item.productId;
+                                    let sizeDisplay = "";
+                                    let finalPrice = 0;
+
+                                    // Check for composite ID (e.g., "ginger-lemon::300")
+                                    if (item.productId.includes("::")) {
+                                        const parts = item.productId.split("::");
+                                        productId = parts[0];
+                                        const sizeCode = parts[1]; // "300"
+                                        sizeDisplay = `${sizeCode}ml`;
+                                    }
+
+                                    const product = getProduct(productId); // Dynamic Catalog
+                                    if (!product) return null;
+
+                                    // Determine Price: Variant or Base
+                                    if (sizeDisplay) {
+                                        // Try to find specific variant price
+                                        const variant = product.variants?.find(v => v.size.includes(sizeDisplay));
+                                        finalPrice = variant ? (variant.price * 100) : (product.priceCents || 0);
+                                    } else {
+                                        finalPrice = product.priceCents || 0;
+                                    }
+
+                                    return (
+                                        <div key={item.productId} className="flex gap-4 items-center bg-paper p-3 rounded-xl border border-transparent hover:border-ink/5 transition-colors">
+                                            <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-ink/5 bg-paper2">
+                                                {item.productId.includes('pack') ? (
+                                                    <div className="h-full w-full flex items-center justify-center bg-olive/10 text-xs">Pack</div>
+                                                ) : (
+                                                    product.imageSrc ? (
+                                                        <img src={product.imageSrc} alt={product.name} className="h-full w-full object-contain p-1" />
+                                                    ) : (
+                                                        <div className="h-full w-full bg-gray-100" />
+                                                    )
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-serif font-bold text-ink text-sm leading-tight">{product.name}</h4>
+
+                                                {/* Size Badge */}
+                                                {sizeDisplay && (
+                                                    <span className="inline-block mt-1 mr-2 px-1.5 py-0.5 rounded bg-ink/5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
+                                                        {sizeDisplay}
+                                                    </span>
+                                                )}
+
+                                                <div className="mt-1 text-xs text-ink2 font-medium">
+                                                    R$ {(finalPrice / 100).toFixed(2).replace(".", ",")}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <QuantityStepper
+                                                    qty={item.qty}
+                                                    onUpdate={(val) => updateQty(item.productId, val)}
+                                                    size="sm"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                );
+                                    );
+                                }
+                                return null;
                             })
                         )}
                     </div>

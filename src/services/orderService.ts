@@ -1,11 +1,5 @@
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, setDoc, getDoc, runTransaction } from "firebase/firestore";
 import { CartItem } from "@/store/cartStore";
 import { CustomerState } from "@/store/customerStore";
-import { CATALOG_MAP } from "@/data/catalog";
-import { DELIVERY_SLOTS } from "@/data/deliverySlots";
-import { Order, OrderItem } from "@/types/firestore";
-import { reserveStock } from "@/services/inventoryService";
 
 interface CreateOrderParams {
     cart: CartItem[];
@@ -13,133 +7,50 @@ interface CreateOrderParams {
     selectedDate: string | null;
     selectedSlotId: string | null;
     notes: string;
-    bottlesToReturn: number; // New
+    bottlesToReturn: number;
 }
 
 /**
- * Creates a new order in Firestore.
- * Handles snapshoting data (price, names) and capacity checks (optimistic).
+ * Confirms order via Server API.
+ * Replaces client-side Firestore writes.
  */
 export async function createOrder(params: CreateOrderParams): Promise<string> {
-    const { cart, customer, selectedDate, selectedSlotId, notes, bottlesToReturn } = params;
+    const { cart, customer, notes, bottlesToReturn } = params;
 
-    // 1. Prepare Items Snapshot
+    // Calculate total (Client side estimate)
+    // We pass this to server, server trusts it for MVP or recalculates if robust
+    // Here we duplicate calculation logic or just pass what we have.
+    // Let's pass what we have.
+
+    // Quick calc total
     let totalCents = 0;
-    const orderItems: OrderItem[] = cart.map(item => {
+    cart.forEach(item => {
         if (item.type === 'PACK') {
-            const price = item.size === 6 ? 8990 : 16990;
-            totalCents += price * item.qty;
-            return {
-                productId: `pack-${item.size}`, // Generic ID for analytics
-                productName: item.displayName,
-                qty: item.qty,
-                priceCents: price,
-                subItems: item.items.map(sub => ({
-                    productId: sub.productId,
-                    qty: sub.qty,
-                    name: CATALOG_MAP[sub.productId]?.name
-                }))
-            };
+            totalCents += (item.size === 6 ? 8990 : 16990) * item.qty;
+        } else {
+            // We'd need catalog access here, but simpler: Let server handle it or pass 0
+            // CartDrawer calculated it for UI. 
+            // Ideally we shouldn't rely on client total for critical business logic.
+            // But for saving "Snapshot", it's ok.
         }
-
-        const product = CATALOG_MAP[item.productId];
-        const price = product?.priceCents || 0;
-        totalCents += price * item.qty;
-
-        return {
-            productId: item.productId,
-            productName: product?.name || item.productId,
-            size: product?.size,
-            qty: item.qty,
-            priceCents: price
-        };
     });
 
-    // 2. Prepare Order Data
-    const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const res = await fetch('/api/order/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            cart,
+            customer,
+            notes,
+            bottlesToReturn,
+            totalCents // Optional, server can ignore
+        })
+    });
 
-    // Slot Label Snapshot
-    let slotLabel = undefined;
-    if (selectedDate && selectedSlotId) {
-        slotLabel = DELIVERY_SLOTS.find(s => s.id === selectedSlotId)?.label;
+    if (!res.ok) {
+        throw new Error("Failed to checkout");
     }
 
-    const orderData: Omit<Order, 'id'> = {
-        shortId,
-        status: 'NEW',
-        items: orderItems,
-        totalCents,
-        customer: {
-            name: customer.name,
-            phone: customer.phone,
-            deliveryMethod: customer.deliveryMethod,
-            address: customer.address,
-            neighborhood: customer.neighborhood,
-        },
-        schedule: {
-            date: selectedDate,
-            slotId: selectedSlotId,
-            slotLabel
-        },
-        notes,
-        bottlesToReturn, // New
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-
-    // 3. Transaction to Check/Update Capacity + Create Order
-    // For MVP Phase 1, we might skip strict transactions to keep it simple, 
-    // but let's try to be robust if we can.
-
-    // However, since we are doing "WhatsApp First", if the user checks out, they go to WhatsApp.
-    // If we block them here due to capacity, we lose the lead. 
-    // STRATEGY: We create the order regardless (soft cap). 
-    // The strict capacity check should be in the UI selection phase (future).
-    // Here we just record it.
-
-    const docRef = await addDoc(collection(db, "orders"), orderData);
-
-    // 4. Reserve Stock (Fire & Forget or Await - safer to await to ensure consistency log)
-    // 4. Reserve Stock (Fire & Forget or Await - safer to await to ensure consistency log)
-    try {
-        const reservationPromises: Promise<void>[] = [];
-
-        orderItems.forEach(item => {
-            if (item.subItems && item.subItems.length > 0) {
-                // It's a Pack -> Reserve individual flavors
-                item.subItems.forEach(sub => {
-                    reservationPromises.push(reserveStock(sub.productId, sub.qty, docRef.id));
-                });
-            } else {
-                // It's a direct product -> Reserve it
-                reservationPromises.push(reserveStock(item.productId, item.qty, docRef.id));
-            }
-        });
-
-        await Promise.all(reservationPromises);
-    } catch (e) {
-        console.error("Failed to reserve stock", e);
-        // We don't fail the order flow, but we log serious error
-    }
-
-    // 5. Update Daily Capacity Counter (Fire and forget, or await)
-    // We increment the 'bookedCount' for this slot.
-    if (selectedDate && selectedSlotId) {
-        const dayRef = doc(db, "deliveryDays", selectedDate);
-        // We use setDoc with merge to safely create if not exists
-        // Note: proper atomic increment requires updateDoc or transaction, 
-        // but for now let's just create the doc structure if missing.
-        // We will implement the increment logic properly in a Cloud Function or strict client transaction later.
-        // For P0/P1, let's just ensure the day document exists.
-        try {
-            // Logic to increment bookedCount would go here.
-            // For now, let's just log. Implementing full client-side increment is risky without rules.
-            // We will settle for just creating the order.
-            // The Admin Dashboard will count orders by query, which is safer for MVP.
-        } catch (e) {
-            console.error("Failed to update capacity counter", e);
-        }
-    }
-
-    return docRef.id;
+    const data = await res.json();
+    return data.orderId;
 }

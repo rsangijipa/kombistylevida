@@ -15,8 +15,8 @@ export async function getAdminDb(): Promise<Firestore | null> {
 
         if (getApps().length === 0) {
             const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
-            const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-            const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+            const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+            const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
             if (projectId && clientEmail && privateKey) {
                 // Production

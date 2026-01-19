@@ -42,7 +42,7 @@ export default function Page() {
                     <div className="relative mb-8 h-[160px] w-[300px] md:h-[400px] md:w-[860px] transition-all duration-700 ease-out animate-in fade-in zoom-in-95">
                         <Image
                             src="/images/logo.png"
-                            alt="Kombistyle Vida"
+                            alt="Kombucha Arikê"
                             fill
                             className="object-contain drop-shadow-lg"
                             priority

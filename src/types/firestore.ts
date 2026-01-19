@@ -1,108 +1,47 @@
-export type OrderStatus = 'NEW' | 'CONFIRMED' | 'IN_PRODUCTION' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
+export type BottleSize = '300ml' | '500ml';
 
 export type OrderItem = {
     productId: string;
     productName: string; // Snapshot
     qty: number;
     priceCents: number; // Snapshot
-    size?: string; // Snapshot
+    size?: BottleSize; // Snapshot
     subItems?: { productId: string; qty: number; name?: string }[]; // For packs
 };
 
-export type OrderCustomerSnapshot = {
-    name: string;
-    phone: string;
-    deliveryMethod: 'delivery' | 'pickup';
-    address?: string;
-    neighborhood?: string;
-};
+// ...
 
-export type OrderScheduleSnapshot = {
-    date: string | null; // YYYY-MM-DD
-    slotId: string | null;
-    slotLabel?: string;
-};
-
-export interface Order {
-    id: string; // Firestore ID
-    shortId: string; // 6-char simpler ID for humans
-    status: OrderStatus;
-
-    items: OrderItem[];
-    totalCents: number;
-
-    customer: OrderCustomerSnapshot;
-    schedule: OrderScheduleSnapshot;
-    notes: string;
-    bottlesToReturn?: number; // New field
-
-    createdAt: string; // ISO
-    updatedAt: string; // ISO
-}
-
-// Collection: customers/{phone}
-export interface Customer {
-    phone: string; // ID
-    name: string;
-    neighborhood?: string;
-    address?: string;
-
-    firstOrderAt: string;
-    lastOrderAt: string;
-    orderCount: number;
-    lifetimeValueCents: number;
-
-    ecoPoints: number; // Current balance
-    bottlesReturned: number; // Total bottles returned history
-
-    isSubscriber?: boolean; // P4: Manual VIP
-    subscriptionNotes?: string;
-
-    consentToSave: boolean; // LGPD
-    updatedAt: string;
-}
-
-// Collection: deliveryDays/{date}
-export interface DeliveryDayCapacity {
-    date: string; // ID: YYYY-MM-DD
-    slots: {
-        [slotId: string]: {
-            capacityOverride?: number; // If set, overrides global settings
-            bookedCount: number;
-        }
-    };
-    closed?: boolean;
-}
-// Collection: inventory/{productId}
-export interface InventoryItem {
-    productId: string; // ID
-    currentStock: number;
-    reservedStock: number; // For active orders not yet delivered
-    updatedAt: string;
-}
-
-// Collection: stockMovements/{id}
-export interface InventoryMovement {
-    id: string;
-    productId: string;
-    type: 'IN' | 'OUT' | 'ADJUST' | 'RESERVE' | 'RELEASE';
-    quantity: number;
-    reason?: string;
-    orderId?: string;
-    createdAt: string;
-}
-
-// Collection: products/{id}
 export interface Product {
     id: string;
     name: string;
     shortDesc?: string;
     imageSrc?: string;
     priceCents: number;
-    size?: string;
-    variants?: { size: string; price: number }[];
+    size?: BottleSize;
+    variants?: { size: BottleSize; price: number }[];
     active: boolean; // New: to hide products without deleting
     updatedAt: string;
+}
+
+// Collection: combos/{id}
+export interface Combo {
+    id: string;
+    name: string;
+    description?: string;
+    badge?: string;
+    items: { productId: string; qty: number }[];
+    priceCents: number;
+    active: boolean;
+    updatedAt: string;
+    size?: BottleSize; // '300ml' | '500ml'
+    discountPercent?: number; // 0-100
+    quantity?: number; // Target quantity for this combo
+}
+
+export interface InventoryItem {
+    currentStock: number;
+    reservedStock: number;
+    updatedAt?: string;
 }
 // --- CONFIGURATION ---
 

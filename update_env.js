@@ -1,0 +1,52 @@
+const fs = require('fs');
+
+const privateKey = `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCi8xEu5aoh6u4o
+p9x3YsX7PIWyVPX+Mx3WMrZs9jYzw0bSqDMvJVprHEFA75wofyAXYYfrA+XhKAgD
+tn4EA+gDrL8hcvpOV8raEKIkcuxM1YupP+GMn+dwABhOg+FzScUZ2XQdfUK3I/cC
+ubxm8QwLc6hEbtklFU1xKOIT4xXpVLf7wmqjPUCq8MdluQ53eSqeRzKmb0hzmsh6
+hahLymbhE5hBHdMZUZhOvKEaEGUay8c/aEpAEJLkmkRsTDs7BOsIYb6BSWqTlm17
+yupRAimgstNb/IlDwh2u6Wo0FRhZXjQDw28eaBwhW3LvCgda8OWaQcNAaLF1N70B
+Orc6vR1RAgMBAAECggEAAohCuXmj9io5mIE6+RInF7y0wAUCPCNaTg55x4cgJ+0w
+/pvSzM4jVzQIPxHiLukX1sktxK0UiiuA4WGOrdxg2LLF7HIGGggoUhEisJc7x8S5
+9S/AacV/4h2RmHcZSTJ+/m7Nd0UFBQXT7ujI7jQbhETgO0JaO/Frw6EMz13kGf0a
+yg17fuAI15rsdj4mf4kxK7tzrGOxWxHdZ+gEcROJ3xzFu0J807xMzLx/Lctgsipg
+gx68XbvsIAhxxhnRXHFYeiYUnXxze8I9/XAiJG6N7ctKzR1X424c3vWN5QCx2pmR
+Ujj+oA7FYZKRT0QmCct5pCFDrwNa1IphKFvD+LcsSQKBgQC2nEB9l9Gk5BxGUXsRa0U0pZJrUqUcwNt9
+Rii2/9Z8cXlv8NOcEaH9k4qDE+rApZLL1+l0fA2NxImiGgzMuYgWBOyxl+MCP+fQ
+RTk8hyJ4h2fY+WEdxOeZDtZLmUIcIA+KeTu6fLwljkaYS3viyoav5rsuPYyj8Nl4
+JbUv3pueyQKBgQCjcrMyyqhmtTTXZrNkCHTfBEAyw+aUsD/SKjOUS25qEIF/AL31
+TxALbAb/YgjV+kDIen3/A82yLO0JC+TRxRFbDbmvpCCT0pGaZ+AmR9DBojDngyPh
+ATULJ1d0JZF5kKVnnnnWZ7s82CF4BF0iytUa1ctr1yvuW5v7WDkilccMYQKBgH83
+ofIdR29Bf7U5ZKyA9+iyhKwCGodKkF7Y9tpup6VwhHKI61MqMZlwJSomQQBPGVKr
+q7d8CRE/38avsUUa6AS3D5K1xu+1R7Ef2L0jQ8+GPcG6En9jwxktbfui3JytdUY6
+KXNFHOppESNeSwN3ppd6/eI7/PPlggui8XRU+EOJAoGBAKcX4+5xp/+FIqEJsS7L
+ngtjYXelO1eiaHpRq0UeBAz33rs37iQ6H/3ExJrZU5zvH1EgXLMq63nPVNbJBISb
+3RgaL3dL9fDNF5LV22j5FaKTROR0Yp0+OOoLdW3PLbxMFoFrmC8awRS9uWNwc5/S
+yOWF95djK2j/h++4r3tAdpcr
+-----END PRIVATE KEY-----`;
+
+const base64Key = Buffer.from(privateKey).toString('base64');
+
+const envContent = `NEXT_PUBLIC_WHATSAPP_NUMBER=556981123681
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCt0HudxrbW6RN_3FMLxXdwbOOdd7mE01o
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=elosusgrupos.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=elosusgrupos
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=elosusgrupos.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=257423216168
+NEXT_PUBLIC_FIREBASE_APP_ID=1:257423216168:web:0c3aa00530b95943f86f1d
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-642SV2QH68
+
+# Firebase Admin SDK (Server-Side)
+FIREBASE_ADMIN_PROJECT_ID=planar-outlook-480318-c3
+FIREBASE_ADMIN_CLIENT_EMAIL=498245203714-compute@developer.gserviceaccount.com
+# Base64 Encoded Private Key to avoid newline/quote issues
+FIREBASE_ADMIN_PRIVATE_KEY_BASE64=${base64Key}
+
+ORDER_TOKEN_PEPPER=kombi-secret-pepper-84392
+`;
+
+fs.writeFileSync('.env.local', envContent);
+console.log('Updated .env.local with Base64 Private Key');

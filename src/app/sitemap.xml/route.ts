@@ -1,4 +1,4 @@
-import { getAdminDb } from "@/server/firebaseAdmin";
+import { adminDb } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const adminDb = await getAdminDb();
     if (!adminDb) {
       console.warn("[sitemap] AdminDB not initialized (missing creds). Returning empty sitemap.");
       throw new Error("AdminDB missing");

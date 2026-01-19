@@ -38,7 +38,7 @@ export default function DepoimentosPage() {
                         Quem Prova, Ama
                     </h1>
                     <p className="mt-4 text-lg text-ink2 font-serif italic max-w-xl mx-auto">
-                        Histórias reais de quem transformou seus hábitos com Kombistyle.
+                        Histórias reais de quem transformou seus hábitos com Kombucha Arikê.
                     </p>
                 </header>
 

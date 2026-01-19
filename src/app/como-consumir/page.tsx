@@ -11,7 +11,7 @@ export default function ComoConsumirPage() {
                         Guia de Consumo
                     </h1>
                     <p className="mt-4 text-lg text-ink2 font-serif italic max-w-xl mx-auto">
-                        Dicas para aproveitar o melhor da sua Kombistyle Vida.
+                        Dicas para aproveitar o melhor da sua Kombucha Arikê.
                     </p>
                 </header>
 
