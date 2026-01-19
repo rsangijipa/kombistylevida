@@ -127,7 +127,7 @@ function OrdersList() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 font-bold text-olive">
-                                                R$ {(order.totalCents / 100).toFixed(2).replace(".", ",")}
+                                                R$ {((order.totalCents || order.pricing?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button className="text-xs font-bold text-olive hover:underline">
@@ -161,7 +161,7 @@ function OrdersList() {
                                             </div>
                                         </div>
                                         <div className="font-bold text-olive text-lg">
-                                            R$ {(order.totalCents / 100).toFixed(2).replace(".", ",")}
+                                            R$ {((order.totalCents || order.pricing?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}
                                         </div>
                                     </div>
 

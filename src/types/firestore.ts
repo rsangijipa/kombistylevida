@@ -66,9 +66,18 @@ export interface Order {
         method: string;
         totalCents: number;
         status: string;
+        paidAt?: string; // Add this too as used in Mark Paid
     };
 
-    totalCents: number;
+    // Unified Pricing Model
+    pricing?: {
+        subtotalCents: number;
+        shippingCents: number;
+        discountCents: number;
+        totalCents: number;
+    };
+
+    totalCents: number; // Top-level copy for querying
     subtotalCents?: number;
     deliveryFeeCents?: number;
     discountCents?: number;
