@@ -51,5 +51,10 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
     }
 
     const data = await res.json();
+
+    if (!data.success || !data.orderId) {
+        throw new Error(data.error || "Persistence failed");
+    }
+
     return data.orderId;
 }

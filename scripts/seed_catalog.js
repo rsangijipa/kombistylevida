@@ -11,8 +11,8 @@ const PRODUCTS = [
         id: "ginger-lemon",
         name: "Gengibre & Limão",
         variants: {
-            "300ml": { priceCents: 1200, volumeMl: 300, active: true },
-            "500ml": { priceCents: 1500, volumeMl: 500, active: true }
+            "300ml": { priceCents: 1200, volumeMl: 300, active: true, stockQty: 100 },
+            "500ml": { priceCents: 1500, volumeMl: 500, active: true, stockQty: 100 }
         },
         active: true,
         tags: ["fresh", "citrus"]
@@ -21,8 +21,8 @@ const PRODUCTS = [
         id: "red-berries",
         name: "Frutas Vermelhas",
         variants: {
-            "300ml": { priceCents: 1200, volumeMl: 300, active: true },
-            "500ml": { priceCents: 1500, volumeMl: 500, active: true }
+            "300ml": { priceCents: 1200, volumeMl: 300, active: true, stockQty: 100 },
+            "500ml": { priceCents: 1500, volumeMl: 500, active: true, stockQty: 100 }
         },
         active: true,
         tags: ["sweet", " berries"]
@@ -31,8 +31,8 @@ const PRODUCTS = [
         id: "purple-grape",
         name: "Uva Roxa",
         variants: {
-            "300ml": { priceCents: 1200, volumeMl: 300, active: true },
-            "500ml": { priceCents: 1500, volumeMl: 500, active: true }
+            "300ml": { priceCents: 1200, volumeMl: 300, active: true, stockQty: 100 },
+            "500ml": { priceCents: 1500, volumeMl: 500, active: true, stockQty: 100 }
         },
         active: true,
         tags: ["intense", "grape"]
@@ -41,8 +41,8 @@ const PRODUCTS = [
         id: "passionfruit",
         name: "Maracujá",
         variants: {
-            "300ml": { priceCents: 1200, volumeMl: 300, active: true },
-            "500ml": { priceCents: 1500, volumeMl: 500, active: true }
+            "300ml": { priceCents: 1200, volumeMl: 300, active: true, stockQty: 100 },
+            "500ml": { priceCents: 1500, volumeMl: 500, active: true, stockQty: 100 }
         },
         active: true,
         tags: ["tropical", "relaxed"]

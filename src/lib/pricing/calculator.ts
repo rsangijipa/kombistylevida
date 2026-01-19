@@ -8,7 +8,7 @@ export type CartItemInput = {
 export type CatalogProduct = {
     id: string;
     name: string;
-    variants: Record<string, { priceCents: number; active: boolean; volumeMl: number }>;
+    variants: Record<string, { priceCents: number; active: boolean; volumeMl: number; stockQty?: number }>;
     active: boolean;
 };
 

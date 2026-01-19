@@ -11,9 +11,20 @@ export type OrderItem = {
 
 export interface Customer {
     id?: string;
-    phone: string;
+    phone: string; // E.164 or digits
     name: string;
     email?: string;
+
+    // Address Management
+    addresses: {
+        label?: string; // "Casa", "Trabalho"
+        street: string;
+        number: string;
+        district: string;
+        city: string;
+        notes?: string;
+        updatedAt: string;
+    }[];
 
     // Stats / Loyalty
     ecoPoints: number;
@@ -21,16 +32,8 @@ export interface Customer {
     lifetimeValueCents: number;
     isSubscriber: boolean;
 
-    // Profile
-    neighborhood?: string;
-    address?: string; // stored string or object
-    consentToSave?: boolean;
-
     // Activity
-    firstOrderAt?: string;
     lastOrderAt?: string;
-    bottlesReturned?: number;
-
     createdAt?: string;
     updatedAt?: string;
 }

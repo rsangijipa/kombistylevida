@@ -63,21 +63,20 @@ export async function GET() {
             }
         });
 
-        // 3. Low Stock
-        // Try Inventory collection first
-        const invSnap = await adminDb.collection('inventory').get();
+        // 3. Low Stock (Scanning Catalog Variants)
+        const catalogSnap = await adminDb.collection('catalog').where('active', '==', true).get();
         let lowStockCount = 0;
 
-        if (!invSnap.empty) {
-            invSnap.forEach(doc => {
-                const data = doc.data();
-                if ((data.currentStock || 0) < 10) lowStockCount++;
-            });
-        } else {
-            // Fallback: Check Catalog (if we track stock there, currently we don't, so just 0)
-            // Or maybe we say 0 to avoid false alarms.
-            lowStockCount = 0;
-        }
+        catalogSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.variants) {
+                Object.values(data.variants).forEach((v: any) => {
+                    if (v.active && (v.stockQty !== undefined && v.stockQty < 20)) {
+                        lowStockCount++;
+                    }
+                });
+            }
+        });
 
         // 4. Sales History
         const sevenDaysAgo = new Date();
