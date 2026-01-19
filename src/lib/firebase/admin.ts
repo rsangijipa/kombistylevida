@@ -23,10 +23,16 @@ function getAdminConfig(): ServiceAccount | string | null {
         : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
     if (privateKey) {
+        // Handle "double quote wrapper" from some copy-pastes
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
             privateKey = privateKey.slice(1, -1);
         }
-        privateKey = privateKey.replace(/\\n/g, "\n");
+        // Robust replacement: Handle literal "\n" (two chars) -> real newline
+        // but preserve real newlines if they already exist
+        // And don't break if it's already correct.
+        if (privateKey.includes("\\n")) {
+            privateKey = privateKey.replace(/\\n/g, "\n");
+        }
     }
 
     if (projectId && clientEmail && privateKey) {
