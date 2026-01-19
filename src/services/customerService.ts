@@ -7,6 +7,10 @@ import { CustomerState } from "@/store/customerStore";
  * Updates or Creates a customer record in Firestore.
  * Used during checkout if consent is given.
  */
+/**
+ * Updates or Creates a customer record in Firestore.
+ * Used during checkout if consent is given.
+ */
 export async function upsertCustomer(state: CustomerState, totalOrderCents: number) {
     if (!state.consentToSave || !state.phone) return;
 
@@ -19,12 +23,26 @@ export async function upsertCustomer(state: CustomerState, totalOrderCents: numb
     try {
         const snap = await getDoc(docRef);
 
+        const newAddressEntry = state.address ? {
+            street: state.address,
+            number: "S/N",
+            district: state.neighborhood || "",
+            city: "Porto Velho",
+            updatedAt: new Date().toISOString()
+        } : null;
+
         if (snap.exists()) {
+            const existingCtx = snap.data() as Customer;
+            const updatedAddresses = existingCtx.addresses || [];
+            if (newAddressEntry) {
+                // Determine if we should add or update. For MVP, just unshift (add to top)
+                updatedAddresses.unshift(newAddressEntry);
+            }
+
             // Update
             await updateDoc(docRef, {
                 name: state.name,
-                neighborhood: state.neighborhood || snap.data().neighborhood,
-                address: state.address || snap.data().address, // Update address only if provided
+                addresses: updatedAddresses,
                 lastOrderAt: new Date().toISOString(),
                 orderCount: increment(1),
                 lifetimeValueCents: increment(totalOrderCents),
@@ -35,15 +53,11 @@ export async function upsertCustomer(state: CustomerState, totalOrderCents: numb
             const newCustomer: Customer = {
                 phone: phoneId,
                 name: state.name,
-                neighborhood: state.neighborhood,
-                address: state.address,
-                consentToSave: true,
-                firstOrderAt: new Date().toISOString(),
+                addresses: newAddressEntry ? [newAddressEntry] : [],
                 lastOrderAt: new Date().toISOString(),
                 orderCount: 1,
                 lifetimeValueCents: totalOrderCents,
                 ecoPoints: 0,
-                bottlesReturned: 0,
                 isSubscriber: false,
                 updatedAt: new Date().toISOString()
             };
