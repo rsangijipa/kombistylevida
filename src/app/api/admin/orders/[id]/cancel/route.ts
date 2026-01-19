@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-import { Order, CatalogProduct, InventoryMovement } from "@/types/firestore";
+import { Order, InventoryMovement } from "@/types/firestore";
+import { CatalogProduct } from "@/lib/pricing/calculator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export async function PATCH(
                         const currentStock = prod.variants?.[variantKey]?.stockQty || 0;
 
                         t.update(adminDb.collection("catalog").doc(item.productId), {
-                            [`variants.${variantKey}.stockQty`]: currentStock + item.quantity
+                            [`variants.${variantKey}.stockQty`]: currentStock + item.qty
                         });
 
                         // 3. Log Movement
@@ -54,7 +55,7 @@ export async function PATCH(
                             id: moveRef.id,
                             productId: item.productId,
                             type: 'ADJUST', // IN/ADJUST
-                            quantity: item.quantity,
+                            quantity: item.qty,
                             reason: `Order ${orderId} CANCELED (Restock)`,
                             orderId: orderId,
                             createdAt: new Date().toISOString()

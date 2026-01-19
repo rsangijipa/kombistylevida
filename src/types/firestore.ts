@@ -6,6 +6,7 @@ export type OrderItem = {
     qty: number;
     priceCents: number; // Snapshot
     size?: BottleSize; // Snapshot
+    variantKey?: string; // Snapshot
     subItems?: { productId: string; qty: number; name?: string }[]; // For packs
 };
 
@@ -40,8 +41,8 @@ export interface Customer {
 
 export interface Order {
     id: string;
-    shortId: string;
-    status: 'NEW' | 'CONFIRMED' | 'IN_PRODUCTION' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
+    shortId?: string; // Optional if legacy
+    status: 'NEW' | 'PENDING' | 'CONFIRMED' | 'PAID' | 'IN_PRODUCTION' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
 
     customer: {
         id?: string;
