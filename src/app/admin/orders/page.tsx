@@ -41,7 +41,7 @@ function OrdersList() {
 
     const filteredOrders = orders.filter(o =>
         o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.shortId.toLowerCase().includes(searchTerm.toLowerCase())
+        (o.shortId || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -94,7 +94,7 @@ function OrdersList() {
                                     filteredOrders.map((order) => (
                                         <tr key={order.id} className="hover:bg-paper2/30 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-bold font-mono text-ink">#{order.shortId}</div>
+                                                <div className="font-bold font-mono text-ink">#{order.shortId || order.id.slice(0, 8)}</div>
                                                 <div className="text-xs text-ink2">
                                                     {new Date(order.createdAt).toLocaleDateString('pt-BR')}
                                                     {' '}
@@ -153,7 +153,7 @@ function OrdersList() {
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="font-mono font-bold text-ink">#{order.shortId}</span>
+                                                <span className="font-mono font-bold text-ink">#{order.shortId || order.id.slice(0, 8)}</span>
                                                 <StatusBadge status={order.status} />
                                             </div>
                                             <div className="text-xs text-ink2 mt-1">
