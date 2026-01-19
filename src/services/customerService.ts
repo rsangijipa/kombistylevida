@@ -44,6 +44,7 @@ export async function upsertCustomer(state: CustomerState, totalOrderCents: numb
                 lifetimeValueCents: totalOrderCents,
                 ecoPoints: 0,
                 bottlesReturned: 0,
+                isSubscriber: false,
                 updatedAt: new Date().toISOString()
             };
             await setDoc(docRef, newCustomer);

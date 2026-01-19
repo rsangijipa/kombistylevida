@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             },
             schedule: {
                 date: null,
-                slotId: null
+                // slotId: undefined 
             },
             notes: "",
             publicAccess: {

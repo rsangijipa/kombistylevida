@@ -45,7 +45,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     // Fetch Data (Server Component)
     const post = await fetchPost(slug);
 
-    if (!post || (post.status !== 'PUBLISHED' && post.status !== 'published')) {
+    if (!post || post.status !== 'PUBLISHED') {
         // In production, we should probably allow preview if special param/cookie, but for public route logic:
         notFound();
     }

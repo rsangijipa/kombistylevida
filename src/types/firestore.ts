@@ -9,6 +9,107 @@ export type OrderItem = {
     subItems?: { productId: string; qty: number; name?: string }[]; // For packs
 };
 
+export interface Customer {
+    id?: string;
+    phone: string;
+    name: string;
+    email?: string;
+
+    // Stats / Loyalty
+    ecoPoints: number;
+    orderCount: number;
+    lifetimeValueCents: number;
+    isSubscriber: boolean;
+
+    // Profile
+    neighborhood?: string;
+    address?: string; // stored string or object
+    consentToSave?: boolean;
+
+    // Activity
+    firstOrderAt?: string;
+    lastOrderAt?: string;
+    bottlesReturned?: number;
+
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface Order {
+    id: string;
+    shortId: string;
+    status: 'NEW' | 'CONFIRMED' | 'IN_PRODUCTION' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
+
+    customer: {
+        id?: string;
+        name: string;
+        phone: string;
+        deliveryMethod: 'delivery' | 'pickup';
+        neighborhood?: string;
+        address?: string;
+        zipCode?: string;
+    };
+
+    items: OrderItem[];
+
+    schedule: {
+        date: string | null; // YYYY-MM-DD
+        slotId?: string;
+        slotLabel?: string;
+    };
+
+    payment?: {
+        method: string;
+        totalCents: number;
+        status: string;
+    };
+
+    totalCents: number;
+    subtotalCents?: number;
+    deliveryFeeCents?: number;
+    discountCents?: number;
+
+    notes?: string;
+    bottlesToReturn?: number;
+
+    // Security / Guest Access
+    publicAccess?: {
+        tokenHash: string;
+        revoked: boolean;
+        tokenLast4?: string;
+    };
+
+    // New Delivery Structure (Unified)
+    delivery?: {
+        type: string; // 'ASAP', 'SCHEDULED'
+        date: string | null;
+        window: string | null;
+        feeCents: number;
+    };
+
+    deliveryReservation?: {
+        slotId: string | null;
+        reservedAt: string | null;
+        status: 'RESERVED' | 'RELEASED' | 'CONFIRMED' | 'HELD' | 'EXPIRED';
+        expiresAt?: string;
+    };
+
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface DeliverySlot {
+    id: string; // YYYY-MM-DD_window
+    date: string;
+    window: string;
+    reserved: number;
+    confirmed?: number;
+    capacity: number;
+    locked?: boolean;
+    isOpen: boolean;
+    updatedAt?: string;
+}
+
 // ...
 
 export interface Product {
@@ -42,6 +143,17 @@ export interface InventoryItem {
     currentStock: number;
     reservedStock: number;
     updatedAt?: string;
+}
+
+export interface InventoryMovement {
+    id: string;
+    productId: string;
+    type: 'IN' | 'OUT' | 'RESERVE' | 'RELEASE' | 'ADJUST' | 'SALE';
+    quantity: number;
+    reason?: string;
+    orderId?: string;
+    adminUid?: string;
+    createdAt: string;
 }
 // --- CONFIGURATION ---
 

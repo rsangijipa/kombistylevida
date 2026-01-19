@@ -69,7 +69,18 @@ export async function deletePost(slug: string, actorUid: string) {
 
 // --- TESTIMONIALS ---
 
-// Testimonials migrated to /api/admin/testimonials
+// Testimonials migrated to /api/admin/testimonials but client still uses direct fetch for now
+export async function getAllTestimonials(status?: 'PENDING' | 'APPROVED' | 'REJECTED'): Promise<Testimonial[]> {
+    const colRef = collection(db, "testimonials");
+    let q = query(colRef, orderBy("createdAt", "desc"));
+
+    if (status) {
+        q = query(colRef, where("status", "==", status), orderBy("createdAt", "desc"));
+    }
+
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Testimonial));
+}
 
 // --- AUDIT ---
 
