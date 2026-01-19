@@ -14,7 +14,7 @@ interface CreateOrderParams {
  * Confirms order via Server API.
  * Replaces client-side Firestore writes.
  */
-export async function createOrder(params: CreateOrderParams): Promise<string> {
+export async function createOrder(params: CreateOrderParams): Promise<{ orderId: string; whatsappMessage: string }> {
     const { cart, customer, notes, bottlesToReturn } = params;
 
     // Calculate total (Client side estimate)
@@ -56,5 +56,5 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
         throw new Error(data.error || "Persistence failed");
     }
 
-    return data.orderId;
+    return { orderId: data.orderId, whatsappMessage: data.whatsappMessage };
 }

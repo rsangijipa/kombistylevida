@@ -180,9 +180,10 @@ export async function POST(request: Request) {
             }
 
             // D. WRITE: Order
+            // D. WRITE: Order
             const orderData = {
                 id: orderId,
-                status: 'CONFIRMED',
+                status: 'PENDING', // Start as PENDING (Unpaid)
                 items: calculation.items,
                 pricing: calculation.pricing,
                 integrity: {
@@ -197,33 +198,14 @@ export async function POST(request: Request) {
                 bottlesToReturn: payload.bottlesToReturn || 0,
                 createdAt: existingOrder?.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                paymentStatus: 'pending' // WhatsApp default
+                paymentStatus: 'UNPAID',
+                logistics: {
+                    status: 'TO_PREPARE',
+                    notes: ''
+                }
             };
             t.set(orderRef, orderData, { merge: true });
 
-            // E. WRITE: Stock Decrement & Logic
-            for (const item of calculation.items) {
-                // 1. Decrement in Catalog
-                const prodRef = adminDb.collection('catalog').doc(item.productId);
-                const currentStock = stockMap[item.productId].variants[item.variantKey].stockQty || 0;
-                // Firestore dot notation for nested update
-                t.update(prodRef, {
-                    [`variants.${item.variantKey}.stockQty`]: currentStock - item.quantity
-                });
-
-                // 2. Log Movement
-                const moveRef = adminDb.collection("stockMovements").doc();
-                const movement: InventoryMovement = {
-                    id: moveRef.id,
-                    productId: item.productId,
-                    type: 'SALE',
-                    quantity: item.quantity, // Positive for sale out? Type SALE implies out
-                    reason: `Order ${orderId}`,
-                    orderId: orderId,
-                    createdAt: new Date().toISOString()
-                };
-                t.set(moveRef, movement);
-            }
 
             // F. WRITE: Delivery Agenda (Capacity)
             if (existingOrder && existingOrder.deliveryReservation?.slotId) {
@@ -234,10 +216,47 @@ export async function POST(request: Request) {
             }
         });
 
+        // 4. Generate WhatsApp Message (Server Side)
+        const lines = [];
+        lines.push(`🍃 *KOMBISTYLE VIDA — NOVO PEDIDO* 🍃`);
+        lines.push(`Pedido: #${orderId.slice(0, 8)}`);
+        lines.push(`Cliente: ${payload.customer.name}`);
+        lines.push(`───────────────────────`);
+
+        calculation.items.forEach(item => {
+            const totalFmt = (item.subtotalCents / 100).toFixed(2).replace('.', ',');
+            const unitFmt = (item.unitPriceCents / 100).toFixed(2).replace('.', ',');
+            lines.push(`${item.quantity}x ${item.productName} (${item.variantKey}) — R$ ${unitFmt} = R$ ${totalFmt}`);
+        });
+
+        lines.push(``);
+        lines.push(`*Subtotal:* R$ ${(calculation.pricing.subtotalCents / 100).toFixed(2).replace('.', ',')}`);
+        // If shipping...
+        if (calculation.pricing.shippingCents > 0) {
+            lines.push(`*Entrega:* R$ ${(calculation.pricing.shippingCents / 100).toFixed(2).replace('.', ',')}`);
+        }
+        lines.push(`*Total:* R$ ${(calculation.pricing.totalCents / 100).toFixed(2).replace('.', ',')}`);
+
+        lines.push(`───────────────────────`);
+        if (payload.customer.address) {
+            lines.push(`📍 *Entrega:* ${payload.customer.address} - ${payload.customer.neighborhood || ''}`);
+        } else {
+            lines.push(`🏃 *Retirada*`);
+        }
+
+        if (payload.notes) lines.push(`📝 Obs: ${payload.notes}`);
+
+        lines.push(``);
+        lines.push(`*Status:* Aguardando Pagamento (Pix/Cartão)`);
+        lines.push(`Envie o comprovante por aqui para confirmarmos! 🙌`);
+
+        const whatsappMessage = lines.join('\n');
+
         return NextResponse.json({
             success: true,
-            orderId: orderId, // Return the ID we used/generated
-            totals: calculation.pricing
+            orderId: orderId,
+            totals: calculation.pricing,
+            whatsappMessage: whatsappMessage
         });
 
     } catch (error: any) {

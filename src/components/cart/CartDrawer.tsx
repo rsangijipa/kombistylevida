@@ -57,57 +57,34 @@ export function CartDrawer() {
 
         setIsCheckingOut(true);
 
-        // 1. WhatsApp Logic (Always prepared)
-        const message = buildOrderMessage({
-            cart: items,
-            customer,
-            selectedDate,
-            selectedSlotId,
-            notes,
-            bottlesToReturn,
-            isGift: useCartStore.getState().isGift,
-            giftFrom: useCartStore.getState().giftFrom,
-            giftTo: useCartStore.getState().giftTo,
-            giftMessage: useCartStore.getState().giftMessage,
-            catalog: { products, combos }
-        });
-        const link = buildWhatsAppLink(message);
-
-        // 2. Firestore Logic (Try best effort)
         try {
-            // Calculate total for CRM
-            const totalCents = items.reduce((acc, item) => {
-                if (item.type === 'PACK') {
-                    const price = item.size === 6 ? 8990 : 16990;
-                    return acc + (price * item.qty);
-                }
-                if (item.type === 'BUNDLE') {
-                    const combo = getCombo(item.bundleId);
-                    return acc + ((combo?.priceCents || 0) * item.qty);
-                }
-                const prod = getProduct(item.productId); // Dynamic
-                return acc + (prod?.priceCents || 0) * item.qty;
-            }, 0);
+            // 1. Create Order on Server (Source of Truth)
+            // Server validates stock, prices, upserts customer, and generates WhatsApp text.
+            const { whatsappMessage } = await createOrder({
+                cart: items,
+                customer,
+                selectedDate,
+                selectedSlotId,
+                notes,
+                bottlesToReturn
+            });
 
-            await Promise.all([
-                createOrder({
-                    cart: items,
-                    customer,
-                    selectedDate,
-                    selectedSlotId,
-                    notes,
-                    bottlesToReturn
-                }),
-                upsertCustomer(customer, totalCents)
-            ]);
+            // 2. Clear Cart & State
+            clearCart();
+            setNotes("");
+            setBottlesToReturn(0);
+            toggleCart(false);
 
-        } catch (e) {
-            console.error("Failed to save order/customer to Firestore", e);
+            // 3. Open WhatsApp
+            const link = `https://wa.me/556981123681?text=${encodeURIComponent(whatsappMessage)}`;
+            window.open(link, "_blank");
+
+        } catch (e: any) {
+            console.error("Failed to checkout", e);
+            setValidationError(e.message || "Erro ao criar pedido. Tente novamente.");
+        } finally {
+            setIsCheckingOut(false);
         }
-
-        // 3. Redirect
-        window.open(link, "_blank");
-        setIsCheckingOut(false);
     };
 
     const handleClearData = () => {
