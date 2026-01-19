@@ -77,7 +77,12 @@ export async function POST(request: Request) {
             }
         };
 
-        await AdminService.createOrder(orderId, newOrder);
+        // REMOVED: Writing to Firestore here causes "Ghost Orders" pollution.
+        // We only generate the ID/Token for session security. 
+        // The actual Order document will be created at Checkout.
+        // await AdminService.createOrder(orderId, newOrder); 
+
+        // Return the payload so frontend knows the ID, but it's ephemeral until Checkout.
 
         // 4. Set HttpOnly Cookie
         const cookieValue = `${orderId}.${token}`;

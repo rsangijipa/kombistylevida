@@ -44,9 +44,37 @@ function OrdersList() {
         (o.shortId || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleMarkPaid = async (orderId: string) => {
+        if (!confirm("Confirmar pagamento e baixar estoque?")) return;
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}/mark-paid`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ method: "PIX" })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            fetchOrders();
+        } catch (e: any) {
+            alert("Erro: " + e.message);
+        }
+    };
+
+    const handleCancel = async (orderId: string) => {
+        if (!confirm("Cancelar pedido? Se já pago, o estoque será estornado.")) return;
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}/cancel`, { method: "PATCH" });
+            if (!res.ok) throw new Error(await res.text());
+            fetchOrders();
+        } catch (e: any) {
+            alert("Erro: " + e.message);
+        }
+    };
+
     return (
         <AdminLayout>
+            {/* ... header ... */}
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                {/* ... title and search ... */}
                 <div>
                     <h1 className="font-serif text-3xl font-bold text-ink">Pedidos</h1>
                     <p className="text-ink2">Acompanhe os pedidos em tempo real.</p>
@@ -129,10 +157,21 @@ function OrdersList() {
                                             <td className="px-6 py-4 font-bold text-olive">
                                                 R$ {((order.totalCents || order.pricing?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <button className="text-xs font-bold text-olive hover:underline">
-                                                    Ver Detalhes
-                                                </button>
+                                            <td className="px-6 py-4 flex flex-col gap-1">
+                                                {order.status !== 'PAID' && order.status !== 'CANCELED' && (
+                                                    <button
+                                                        onClick={() => handleMarkPaid(order.id)}
+                                                        className="text-xs font-bold text-green-700 hover:underline text-left">
+                                                        Marcar Pago
+                                                    </button>
+                                                )}
+                                                {order.status !== 'CANCELED' && (
+                                                    <button
+                                                        onClick={() => handleCancel(order.id)}
+                                                        className="text-xs font-bold text-red-600 hover:underline text-left">
+                                                        Cancelar
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
@@ -180,12 +219,20 @@ function OrdersList() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">
-                                        <button className="rounded-lg border border-ink/10 py-2.5 text-xs font-bold uppercase tracking-wider text-ink hover:bg-paper2">
-                                            Detalhes
-                                        </button>
-                                        <button className="rounded-lg bg-olive py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-olive/90">
-                                            Avançar Status
-                                        </button>
+                                        {order.status !== 'CANCELED' && (
+                                            <button
+                                                onClick={() => handleCancel(order.id)}
+                                                className="rounded-lg border border-red-200 text-red-700 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-red-50">
+                                                Cancelar
+                                            </button>
+                                        )}
+                                        {order.status !== 'PAID' && order.status !== 'CANCELED' && (
+                                            <button
+                                                onClick={() => handleMarkPaid(order.id)}
+                                                className="rounded-lg bg-olive py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-olive/90">
+                                                Marcar Pago
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))
