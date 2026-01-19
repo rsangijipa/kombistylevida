@@ -1,101 +1,99 @@
 import "server-only";
 
-import { initializeApp, getApps, getApp, App, cert } from "firebase-admin/app";
+import { initializeApp, getApps, getApp, App, cert, ServiceAccount } from "firebase-admin/app";
 import { getAuth, Auth } from "firebase-admin/auth";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import fs from 'fs';
+import path from 'path';
 
-// --- Configuration ---
-const FIREBASE_ADMIN_PROJECT_ID = process.env.FIREBASE_ADMIN_PROJECT_ID;
-const FIREBASE_ADMIN_CLIENT_EMAIL = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-// Decode Base64 Private Key
-let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64
-    ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64, 'base64').toString('utf8')
-    : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+/**
+ * FIREBASE ADMIN SDK INITIALIZATION (Lazy & Build-Safe)
+ * 
+ * This file is designed to be imported anywhere without crashing the build.
+ * Initialization happens only on the first access to adminDb or adminAuth.
+ */
 
-// Fallback: Handle legacy newline normalization if not base64
-if (privateKey) {
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-        privateKey = privateKey.slice(1, -1);
+function getAdminConfig(): ServiceAccount | string | null {
+    // 1. Check for Environment Variables
+    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+
+    let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64
+        ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64, 'base64').toString('utf8')
+        : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+    if (privateKey) {
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+            privateKey = privateKey.slice(1, -1);
+        }
+        privateKey = privateKey.replace(/\\n/g, "\n");
     }
-    privateKey = privateKey.replace(/\\n/g, "\n");
-}
-const FIREBASE_ADMIN_PRIVATE_KEY = privateKey;
 
-
-
-if (!FIREBASE_ADMIN_PROJECT_ID || !FIREBASE_ADMIN_CLIENT_EMAIL || !FIREBASE_ADMIN_PRIVATE_KEY) {
-    if (process.env.NODE_ENV === "production") {
-        throw new Error("Missing Firebase Admin Environment Variables in Production!");
-    } else {
-        console.warn("⚠️ Missing Admin Env Vars. Admin SDK functionality will fail.");
+    if (projectId && clientEmail && privateKey) {
+        return {
+            projectId,
+            clientEmail,
+            privateKey
+        };
     }
-}
-// The service account is now loaded from a JSON file, so these environment variables are no longer needed.
-// const FIREBASE_ADMIN_PROJECT_ID = process.env.FIREBASE_ADMIN_PROJECT_ID;
-// const FIREBASE_ADMIN_CLIENT_EMAIL = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-// // Decode Base64 Private Key
-// let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64
-//     ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64, 'base64').toString('utf8')
-//     : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-// // Fallback: Handle legacy newline normalization if not base64
-// if (privateKey) {
-//     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-//         privateKey = privateKey.slice(1, -1);
-//     }
-//     privateKey = privateKey.replace(/\\n/g, "\n");
-// }
-// const FIREBASE_ADMIN_PRIVATE_KEY = privateKey;
-
-
-
-if (!FIREBASE_ADMIN_PROJECT_ID || !FIREBASE_ADMIN_CLIENT_EMAIL || !FIREBASE_ADMIN_PRIVATE_KEY) {
-    if (process.env.NODE_ENV === "production") {
-        throw new Error("Missing Firebase Admin Environment Variables in Production!");
-    } else {
-        console.warn("⚠️ Missing Admin Env Vars. Admin SDK functionality will fail.");
+    // 2. Check for JSON file fallback (mostly local)
+    const jsonPath = path.join(process.cwd(), 'planar-outlook-final-creds.json');
+    if (fs.existsSync(jsonPath)) {
+        return jsonPath;
     }
+
+    return null;
 }
 
-// --- Singleton Initialization ---
-let adminApp: App;
+function initAdmin(): App {
+    if (getApps().length > 0) return getApp();
 
-if (getApps().length === 0) {
-    const serviceAccountPath = process.cwd() + '/planar-outlook-final-creds.json';
+    const config = getAdminConfig();
 
-    // DEBUG: Log Credential Details
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const fs = require('fs');
-        const creds = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-        console.log("----------------------------------------------------------------");
-        console.log("🔥 FIREBASE ADMIN INIT");
-        console.log(`🔹 Project ID:   ${creds.project_id}`);
-        console.log(`🔹 Client Email: ${creds.client_email}`);
-        console.log(`🔹 Creds File:   ${serviceAccountPath}`);
-        console.log(`🔹 Database ID:  kombuchaarike (Explicit)`);
-        console.log("----------------------------------------------------------------");
-    } catch (err) {
-        console.warn("⚠️ Failed to read creds file for debug logging:", err);
+    if (!config && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== 'phase-production-build') {
+        console.error("❌ Firebase Admin Configuration Missing! Database operations will fail.");
     }
 
     try {
-        adminApp = initializeApp({
-            credential: cert(serviceAccountPath)
+        return initializeApp({
+            credential: config ? cert(config) : undefined,
         });
     } catch (error: any) {
         if (error.code === 'app/already-exists') {
-            adminApp = getApp();
-        } else {
-            console.error("FATAL: Firebase Admin Init Failed", error);
-            throw error;
+            return getApp();
         }
+        console.error("FATAL: Firebase Admin Init Failed", error);
+        throw error;
     }
-} else {
-    adminApp = getApp();
 }
 
-// Initialize specific database
-export const adminDb: Firestore = getFirestore(adminApp, "kombuchaarike");
-export const adminAuth: Auth = getAuth(adminApp);
-export { adminApp };
+// Proxied exports to avoid top-level execution crashes during build
+// These will only trigger initAdmin() when a property is accessed.
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export const adminDb: Firestore = new Proxy({} as Firestore, {
+    get(target, prop, receiver) {
+        const app = initAdmin();
+        const db = getFirestore(app, "kombuchaarike");
+        const value = (db as any)[prop];
+        return typeof value === 'function' ? value.bind(db) : value;
+    }
+});
+
+export const adminAuth: Auth = new Proxy({} as Auth, {
+    get(target, prop, receiver) {
+        const app = initAdmin();
+        const auth = getAuth(app);
+        const value = (auth as any)[prop];
+        return typeof value === 'function' ? value.bind(auth) : value;
+    }
+});
+
+export const adminApp = new Proxy({} as App, {
+    get(target, prop, receiver) {
+        const app = initAdmin();
+        return (app as any)[prop];
+    }
+});
+/* eslint-enable @typescript-eslint/no-explicit-any */
