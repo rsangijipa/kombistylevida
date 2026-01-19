@@ -42,8 +42,7 @@ export async function createOrder(params: CreateOrderParams): Promise<string> {
             cart,
             customer,
             notes,
-            bottlesToReturn,
-            totalCents // Optional, server can ignore
+            bottlesToReturn
         })
     });
 

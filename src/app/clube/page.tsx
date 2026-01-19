@@ -76,29 +76,73 @@ export default function SubscriptionPage() {
                     </div>
                 </div>
 
-                {/* CTA Section */}
-                <div className="bg-ink rounded-[32px] p-8 md:p-16 text-center shadow-2xl relative overflow-hidden">
-                    {/* Decorative Blobs */}
-                    <div className="absolute top-0 left-0 w-64 h-64 bg-olive/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-                    <div className="absolute bottom-0 right-0 w-64 h-64 bg-amber/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-
-                    <div className="relative z-10">
-                        <h2 className="font-serif text-3xl md:text-4xl font-bold text-paper mb-6">
-                            Faça parte da nossa comunidade
+                {/* Subscription Form Section */}
+                <div id="subscribe-form" className="bg-paper2 border-t-4 border-olive rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden">
+                    <div className="max-w-2xl mx-auto">
+                        <h2 className="font-serif text-3xl md:text-4xl font-bold text-ink mb-2 text-center">
+                            Monte sua Assinatura
                         </h2>
-                        <p className="text-white/60 text-lg mb-10 max-w-xl mx-auto">
-                            Assinatura simplificada: sem taxas de adesão, sem cancelamento complicado. Apenas o melhor da Kombucha na sua porta.
+                        <p className="text-center text-ink2 mb-12">
+                            Receba saúde em casa com a frequência que preferir.
                         </p>
-                        <button
-                            onClick={handleJoin}
-                            className="inline-flex items-center gap-3 bg-olive hover:bg-olive/90 text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-olive/20"
-                        >
-                            Quero ser Membro VIP
-                            <Star size={18} fill="currentColor" />
-                        </button>
-                        <p className="mt-6 text-white/30 text-xs uppercase tracking-widest">
-                            Vagas limitadas para garantir a qualidade artesanal
-                        </p>
+
+                        <form onSubmit={(e) => { e.preventDefault(); alert("Funcionalidade em desenvolvimento! Em breve você poderá assinar diretamente por aqui."); handleJoin(); }} className="space-y-8">
+
+                            {/* 1. Frequência */}
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-ink/40 mb-4">1. Escolha a Frequência</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <label className="cursor-pointer">
+                                        <input type="radio" name="freq" value="weekly" className="peer sr-only" />
+                                        <div className="border border-ink/10 rounded-xl p-4 text-center hover:bg-white peer-checked:bg-olive peer-checked:text-white peer-checked:border-olive transition-all">
+                                            <span className="block font-bold">Semanal</span>
+                                            <span className="text-xs opacity-80">4 entregas/mês</span>
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input type="radio" name="freq" value="biweekly" className="peer sr-only" defaultChecked />
+                                        <div className="border border-ink/10 rounded-xl p-4 text-center hover:bg-white peer-checked:bg-olive peer-checked:text-white peer-checked:border-olive transition-all">
+                                            <span className="block font-bold">Quinzenal</span>
+                                            <span className="text-xs opacity-80">2 entregas/mês</span>
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input type="radio" name="freq" value="monthly" className="peer sr-only" />
+                                        <div className="border border-ink/10 rounded-xl p-4 text-center hover:bg-white peer-checked:bg-olive peer-checked:text-white peer-checked:border-olive transition-all">
+                                            <span className="block font-bold">Mensal</span>
+                                            <span className="text-xs opacity-80">1 entrega/mês</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* 2. Quantidade */}
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-ink/40 mb-4">2. Tamanho do Pack</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="border border-ink/10 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:border-olive/30 transition-colors">
+                                        <span className="text-2xl font-bold text-ink">Pack 6</span>
+                                        <span className="text-sm text-ink2">300ml ou 500ml</span>
+                                    </div>
+                                    <div className="border border-ink/10 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:border-olive/30 transition-colors">
+                                        <span className="text-2xl font-bold text-ink">Pack 12</span>
+                                        <span className="text-sm text-ink2">Melhor Custo-Benefício</span>
+                                        <span className="bg-amber text-[10px] font-bold px-2 py-0.5 rounded text-ink uppercase">Recomendado</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="w-full bg-olive text-white h-14 rounded-full font-bold uppercase tracking-widest hover:bg-olive/90 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
+                            >
+                                Continuar para Seleção de Sabores
+                            </button>
+
+                            <p className="text-center text-xs text-ink/40">
+                                * Você será redirecionado para finalizar o cadastro.
+                            </p>
+                        </form>
                     </div>
                 </div>
             </div>
