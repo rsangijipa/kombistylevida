@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc, getDocs, query, orderBy, deleteDoc } from "firebase/firestore";
+// import { db } from "@/lib/firebase"; // Removed
+// import { collection, addDoc, doc, updateDoc, getDocs, query, orderBy, deleteDoc } from "firebase/firestore"; // Removed
 import { Recipe, RecipeCategory } from "@/types/firestore";
 import { Plus, Save, Edit, Trash2, ChevronLeft, ChevronDown, ListPlus, X, Copy } from "lucide-react";
 import Link from "next/link";
@@ -64,10 +64,11 @@ export default function AdminRecipesPage() {
     const fetchRecipes = async () => {
         setLoading(true);
         try {
-            const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"));
-            const snapshot = await getDocs(q);
-            const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Recipe));
-            setRecipes(data);
+            const res = await fetch('/api/admin/recipes');
+            if (res.ok) {
+                const data = await res.json();
+                setRecipes(data);
+            }
         } catch (e) {
             console.error("Failed to fetch recipes", e);
         } finally {
@@ -97,7 +98,11 @@ export default function AdminRecipesPage() {
             createdAt: new Date().toISOString()
         };
         try {
-            await addDoc(collection(db, "recipes"), newRecipe);
+            await fetch('/api/admin/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRecipe)
+            });
             fetchRecipes();
         } catch (e) {
             console.error("Error duplicating", e);
@@ -107,7 +112,7 @@ export default function AdminRecipesPage() {
     const handleDelete = async (id: string) => {
         if (!confirm("Tem certeza que deseja excluir esta receita?")) return;
         try {
-            await deleteDoc(doc(db, "recipes", id));
+            await fetch(`/api/admin/recipes?id=${id}`, { method: 'DELETE' });
             fetchRecipes();
         } catch (e) {
             console.error(e);
@@ -127,20 +132,27 @@ export default function AdminRecipesPage() {
                 updatedAt: new Date().toISOString()
             };
 
-            if (formData.id) {
-                const ref = doc(db, "recipes", formData.id);
-                const { id, ...data } = recipeData as any;
-                await updateDoc(ref, data);
-            } else {
-                const newRecipe = {
-                    ...recipeData,
-                    createdAt: new Date().toISOString(),
-                };
-                await addDoc(collection(db, "recipes"), newRecipe);
+            // If ID exists, it's an update. If not, create.
+            // But we need to handle "New" case where ID is undefined.
+            // API expects POST with body { id?, ...data }
+
+            if (!formData.id) {
+                // New
+                (recipeData as any).createdAt = new Date().toISOString();
             }
 
-            setIsEditing(false);
-            fetchRecipes();
+            const res = await fetch('/api/admin/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(recipeData)
+            });
+
+            if (res.ok) {
+                setIsEditing(false);
+                fetchRecipes();
+            } else {
+                alert("Erro ao salvar.");
+            }
         } catch (e) {
             console.error("Error saving recipe", e);
             alert("Erro ao salvar.");

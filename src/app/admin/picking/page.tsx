@@ -32,8 +32,7 @@ function PickingView() {
             const q = query(
                 collection(db, "orders"),
                 where("schedule.date", "==", date),
-                where("schedule.deliveryMethod", "==", mode.toLowerCase()), // data model uses lowercase 'delivery'/'pickup' in customerSnapshot/schedule?
-                // Wait, OrderScheduleSnapshot defines 'date', 'slotId'. Mode is in customer.deliveryMethod
+                where("customer.deliveryMethod", "==", mode.toLowerCase()), // Correct field path
             );
 
             // Note: Compound query might be needed for status check, doing client side filter for MVP simplicity
