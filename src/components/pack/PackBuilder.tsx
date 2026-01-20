@@ -54,9 +54,9 @@ export function PackBuilder() {
             }
         });
 
-        const flavors = Object.entries(flavorCounts).map(([id, qty]) => ({
+        const flavors = Object.entries(flavorCounts).map(([id, count]) => ({
             productId: id,
-            qty: qty
+            quantity: count
         }));
 
         addPack({

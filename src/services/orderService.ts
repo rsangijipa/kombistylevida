@@ -26,7 +26,7 @@ export async function createOrder(params: CreateOrderParams): Promise<{ orderId:
     let totalCents = 0;
     cart.forEach(item => {
         if (item.type === 'PACK') {
-            totalCents += (item.size === 6 ? 8990 : 16990) * item.qty;
+            totalCents += (item.size === 6 ? 8990 : 16990) * item.quantity;
         } else {
             // We'd need catalog access here, but simpler: Let server handle it or pass 0
             // CartDrawer calculated it for UI. 

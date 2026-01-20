@@ -149,7 +149,7 @@ function CombosManager() {
                                         {combo.size || '300ml'}
                                     </span>
                                     <span className="text-xs font-mono bg-ink/5 px-2 py-1 rounded">
-                                        {(combo.items || []).reduce((acc, i) => acc + i.qty, 0)} itens
+                                        {(combo.items || []).reduce((acc, i) => acc + i.quantity, 0)} itens
                                     </span>
                                 </div>
 
@@ -247,10 +247,10 @@ function CombosManager() {
                                                 type="number"
                                                 min="1"
                                                 className="w-16 border rounded p-1 text-center font-bold text-sm"
-                                                value={item.qty}
+                                                value={item.quantity}
                                                 onChange={e => {
                                                     const newItems = [...(editingCombo.items || [])];
-                                                    newItems[idx].qty = parseInt(e.target.value) || 1;
+                                                    newItems[idx].quantity = parseInt(e.target.value) || 1;
                                                     setEditingCombo(p => ({ ...p!, items: newItems }));
                                                 }}
                                             />
@@ -283,7 +283,7 @@ function CombosManager() {
 
                                             setEditingCombo(p => ({
                                                 ...p!,
-                                                items: [...(p!.items || []), { productId: pid, qty: 1 }]
+                                                items: [...(p!.items || []), { productId: pid, quantity: 1 }]
                                             }));
                                         }}
                                         className="bg-ink text-white px-3 py-1 rounded text-xs font-bold hover:bg-ink/80"

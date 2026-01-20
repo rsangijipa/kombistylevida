@@ -17,11 +17,11 @@ export default function MenuPage() {
     // For simplicity in MVP Menu, we just count direct product items.
     const getQty = (pid: string) => {
         const item = items.find(i => i.type === 'PRODUCT' && i.productId === pid);
-        return item ? item.qty : 0;
+        return item ? item.quantity : 0;
     };
 
     // Calculate total count for sticky footer
-    const totalCount = items.reduce((acc, el) => acc + el.qty, 0);
+    const totalCount = items.reduce((acc, el) => acc + el.quantity, 0);
 
     return (
         <SiteShell>

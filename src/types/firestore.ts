@@ -3,11 +3,11 @@ export type BottleSize = '300ml' | '500ml';
 export type OrderItem = {
     productId: string;
     productName: string; // Snapshot
-    qty: number;
+    quantity: number;
     priceCents: number; // Snapshot
     size?: BottleSize; // Snapshot
     variantKey?: string; // Snapshot
-    subItems?: { productId: string; qty: number; name?: string }[]; // For packs
+    subItems?: { productId: string; quantity: number; name?: string }[]; // For packs
 };
 
 export interface Customer {
@@ -132,7 +132,7 @@ export interface Product {
     imageSrc?: string;
     priceCents: number;
     size?: BottleSize;
-    variants?: { size: BottleSize; price: number }[];
+    variants?: { size: BottleSize; price: number; stockQty?: number; active?: boolean }[];
     active: boolean; // New: to hide products without deleting
     updatedAt: string;
 }
@@ -143,7 +143,7 @@ export interface Combo {
     name: string;
     description?: string;
     badge?: string;
-    items: { productId: string; qty: number }[];
+    items: { productId: string; quantity: number }[];
     priceCents: number;
     active: boolean;
     updatedAt: string;

@@ -65,8 +65,8 @@ function initAdmin(): App {
         return initializeApp({
             credential: config ? cert(config) : undefined,
         });
-    } catch (error: any) {
-        if (error.code === 'app/already-exists') {
+    } catch (error) {
+        if ((error as any).code === 'app/already-exists') {
             return getApp();
         }
         console.error("FATAL: Firebase Admin Init Failed", error);

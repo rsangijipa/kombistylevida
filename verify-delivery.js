@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const https = require('http');
 
 // Simple verification script to run in Node

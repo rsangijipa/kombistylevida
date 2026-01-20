@@ -129,7 +129,7 @@ function PostsManager() {
                         posts.map(post => (
                             <div key={post.id} className="group bg-white rounded-xl border border-ink/10 overflow-hidden hover:shadow-md transition-shadow">
                                 <div className="h-40 bg-paper2 relative overflow-hidden">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    { }
                                     {post.imageSrc ? (
                                         <img src={post.imageSrc} alt="" className="w-full h-full object-cover" />
                                     ) : (

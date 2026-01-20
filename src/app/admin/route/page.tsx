@@ -108,7 +108,7 @@ function RouteView() {
                                         </div>
                                     </div>
                                     <div className="text-xs text-ink/50 bg-paper2 p-2 rounded">
-                                        {order.items.map(i => `${i.qty}x ${i.productName}`).join(", ")}
+                                        {order.items.map(i => `${i.quantity}x ${i.productName}`).join(", ")}
                                     </div>
                                     {order.notes && <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-1 rounded font-bold">Obs: {order.notes}</div>}
                                 </div>

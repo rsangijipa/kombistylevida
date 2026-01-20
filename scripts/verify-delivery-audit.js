@@ -1,4 +1,5 @@
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const axios = require('axios');
 const fs = require('fs');
 

@@ -5,7 +5,7 @@ import { BUNDLES } from "@/data/catalog";
 export type CartProductItem = {
     type: 'PRODUCT';
     productId: string;
-    qty: number;
+    quantity: number;
 };
 
 export type CartPackItem = {
@@ -13,15 +13,15 @@ export type CartPackItem = {
     // Unique ID for the pack instance in cart (since multiple custom packs can exist)
     id: string;
     size: 6 | 12;
-    items: { productId: string; qty: number }[];
+    items: { productId: string; quantity: number }[];
     displayName: string; // e.g. "Pack 6 (Personalizado)"
-    qty: number; // usually 1, but user might want 2 of the same custom pack
+    quantity: number; // usually 1, but user might want 2 of the same custom pack
 };
 
 export type CartBundleItem = {
     type: 'BUNDLE';
     bundleId: string;
-    qty: number;
+    quantity: number;
 };
 
 export type CartItem = CartProductItem | CartPackItem | CartBundleItem;
@@ -47,11 +47,11 @@ interface CartState {
     giftMessage: string;
 
     // Actions
-    addItem: (productId: string, qty?: number) => void;
-    addPack: (pack: Omit<CartPackItem, 'type' | 'id' | 'qty'>) => void;
+    addItem: (productId: string, quantity?: number) => void;
+    addPack: (pack: Omit<CartPackItem, 'type' | 'id' | 'quantity'>) => void;
     addBundle: (bundleId: string) => void;
     removeItem: (itemId: string) => void; // productId for PRODUCT, id for PACK, bundleId for BUNDLE
-    updateQty: (itemId: string, qty: number) => void;
+    updateQuantity: (itemId: string, quantity: number) => void;
     clearCart: () => void;
     toggleCart: (open?: boolean) => void;
 
@@ -60,7 +60,7 @@ interface CartState {
 
     setSchedule: (date: string | null, slotId: string | null) => void;
     setNotes: (notes: string) => void;
-    setBottlesToReturn: (qty: number) => void;
+    setBottlesToReturn: (quantity: number) => void;
 
     setGiftOptions: (options: { isGift: boolean; from?: string; to?: string; message?: string }) => void;
 }
@@ -81,7 +81,7 @@ export const useCartStore = create<CartState>()(
             giftTo: "",
             giftMessage: "",
 
-            addItem: (productId, qty = 1) => {
+            addItem: (productId, quantity = 1) => {
                 set((state) => {
                     const existingIdx = state.items.findIndex(
                         (i) => i.type === 'PRODUCT' && i.productId === productId
@@ -89,15 +89,16 @@ export const useCartStore = create<CartState>()(
 
                     if (existingIdx >= 0) {
                         const newItems = [...state.items];
+                        const current = newItems[existingIdx] as CartProductItem;
                         newItems[existingIdx] = {
-                            ...newItems[existingIdx],
-                            qty: newItems[existingIdx].qty + qty
+                            ...current,
+                            quantity: current.quantity + quantity
                         };
                         return { items: newItems, isOpen: true };
                     }
 
                     return {
-                        items: [...state.items, { type: 'PRODUCT', productId, qty }],
+                        items: [...state.items, { type: 'PRODUCT', productId, quantity }],
                         isOpen: true
                     };
                 });
@@ -108,7 +109,7 @@ export const useCartStore = create<CartState>()(
                 const newPack: CartPackItem = {
                     type: 'PACK',
                     id: uniqueId,
-                    qty: 1,
+                    quantity: 1,
                     ...packData
                 };
 
@@ -131,15 +132,16 @@ export const useCartStore = create<CartState>()(
 
                     if (existingIdx >= 0) {
                         const newItems = [...state.items];
+                        const current = newItems[existingIdx] as CartBundleItem;
                         newItems[existingIdx] = {
-                            ...newItems[existingIdx],
-                            qty: newItems[existingIdx].qty + 1
+                            ...current,
+                            quantity: current.quantity + 1
                         };
                         return { items: newItems, isOpen: true };
                     }
 
                     return {
-                        items: [...state.items, { type: 'BUNDLE', bundleId, qty: 1 }],
+                        items: [...state.items, { type: 'BUNDLE', bundleId, quantity: 1 }],
                         isOpen: true
                     };
                 });
@@ -156,9 +158,9 @@ export const useCartStore = create<CartState>()(
                 }));
             },
 
-            updateQty: (itemId, qty) => {
+            updateQuantity: (itemId, quantity) => {
                 set((state) => {
-                    if (qty <= 0) {
+                    if (quantity <= 0) {
                         return {
                             items: state.items.filter((i) => {
                                 if (i.type === 'PRODUCT') return i.productId !== itemId;
@@ -172,13 +174,13 @@ export const useCartStore = create<CartState>()(
                     return {
                         items: state.items.map((i) => {
                             if (i.type === 'PRODUCT' && i.productId === itemId) {
-                                return { ...i, qty };
+                                return { ...i, quantity };
                             }
                             if (i.type === 'PACK' && i.id === itemId) {
-                                return { ...i, qty };
+                                return { ...i, quantity };
                             }
                             if (i.type === 'BUNDLE' && i.bundleId === itemId) {
-                                return { ...i, qty };
+                                return { ...i, quantity };
                             }
                             return i;
                         }),
@@ -230,7 +232,7 @@ export const useCartStore = create<CartState>()(
 
             setSchedule: (date, slotId) => set({ selectedDate: date, selectedSlotId: slotId }),
             setNotes: (notes) => set({ notes }),
-            setBottlesToReturn: (qty) => set({ bottlesToReturn: qty }),
+            setBottlesToReturn: (quantity) => set({ bottlesToReturn: quantity }),
 
             setGiftOptions: (options) => set((state) => ({
                 isGift: options.isGift,

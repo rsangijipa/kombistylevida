@@ -33,10 +33,16 @@ function AgendaManager() {
         return d;
     });
 
-    const fetchSlots = async () => {
+    const fetchSlots = React.useCallback(async () => {
         setLoading(true);
-        const startStr = weekDays[0].toISOString().split('T')[0];
-        const endStr = weekDays[6].toISOString().split('T')[0];
+        // Recalculate weekDays inside to avoid dependency on derived state
+        const days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(weekStart);
+            d.setDate(d.getDate() + i);
+            return d;
+        });
+        const startStr = days[0].toISOString().split('T')[0];
+        const endStr = days[6].toISOString().split('T')[0];
         try {
             const res = await fetch(`/api/admin/delivery/slots?start=${startStr}&end=${endStr}`);
             if (res.ok) {
@@ -48,11 +54,11 @@ function AgendaManager() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [weekStart]);
 
     useEffect(() => {
         fetchSlots();
-    }, [weekStart]);
+    }, [fetchSlots]);
 
     const handleNextWeek = () => {
         const next = new Date(weekStart);
@@ -293,7 +299,7 @@ function AgendaManager() {
 
 function getMonday(d: Date) {
     d = new Date(d);
-    var day = d.getDay(),
+    const day = d.getDay(),
         diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
     return new Date(d.setDate(diff));
 }

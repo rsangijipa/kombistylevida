@@ -138,14 +138,14 @@ export default function AdminPage() {
                                 </div>
                             ) : (
                                 stats?.topFlavors.map((flavor, i) => {
-                                    const maxQty = stats?.topFlavors[0]?.qty || 1;
-                                    const percent = Math.round((flavor.qty / maxQty) * 100);
+                                    const maxQty = stats?.topFlavors[0]?.quantity || 1;
+                                    const percent = Math.round((flavor.quantity / maxQty) * 100);
 
                                     return (
                                         <div key={i}>
                                             <div className="mb-1 flex items-center justify-between text-sm">
                                                 <span className="font-medium text-ink truncate max-w-[200px]">{flavor.name}</span>
-                                                <span className="text-ink/60 text-xs">{flavor.qty} un.</span>
+                                                <span className="text-ink/60 text-xs">{flavor.quantity} un.</span>
                                             </div>
                                             <div className="h-2 w-full overflow-hidden rounded-full bg-ink/5">
                                                 <div

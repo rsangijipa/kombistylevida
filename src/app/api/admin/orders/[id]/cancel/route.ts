@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { Order, InventoryMovement } from "@/types/firestore";
 import { CatalogProduct } from "@/lib/pricing/calculator";
+import { Transaction } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export async function PATCH(
     if (!orderId) return NextResponse.json({ error: "Order ID required" }, { status: 400 });
 
     try {
-        await adminDb.runTransaction(async (t) => {
+        await adminDb.runTransaction(async (t: Transaction) => {
             const orderRef = adminDb.collection("orders").doc(orderId);
             const orderDoc = await t.get(orderRef);
 
@@ -46,7 +47,7 @@ export async function PATCH(
                         const currentStock = prod.variants?.[variantKey]?.stockQty || 0;
 
                         t.update(adminDb.collection("catalog").doc(item.productId), {
-                            [`variants.${variantKey}.stockQty`]: currentStock + item.qty
+                            [`variants.${variantKey}.stockQty`]: currentStock + (item.quantity || (item as any).qty || 1)
                         });
 
                         // 3. Log Movement
@@ -55,7 +56,7 @@ export async function PATCH(
                             id: moveRef.id,
                             productId: item.productId,
                             type: 'ADJUST', // IN/ADJUST
-                            quantity: item.qty,
+                            quantity: item.quantity || (item as any).qty || 1,
                             reason: `Order ${orderId} CANCELED (Restock)`,
                             orderId: orderId,
                             createdAt: new Date().toISOString()
@@ -79,19 +80,13 @@ export async function PATCH(
                 const agendaRef = adminDb.collection("agenda").doc(date).collection("items").doc(orderId);
                 t.set(agendaRef, { status: "CANCELED" }, { merge: true });
             }
-
-            // Release Delivery Slot Capacity?
-            // If we confirmed a slot, we should ideally decrement the booked count on `deliveryDays` or `delivery_slots`.
-            // My previous implementation in `checkout` updated `deliveryDays`.
-            // To reverse that properly, I would need to find the `deliveryDays` doc and decrement `booked`.
-            // For MVP, I'll skip this complexity unless explicitly asked, but "Clean up" implies it.
-            // But the prompt focused on "Estorno se pago" (stock). I'll stick to stock for now.
         });
 
         return NextResponse.json({ success: true });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Cancel API Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

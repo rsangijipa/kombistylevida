@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { BUNDLES as SEED_BUNDLES } from '@/data/catalog';
+import { Combo } from '@/types/firestore';
 
 export async function GET(request: Request) {
     try {
@@ -31,9 +32,10 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json(combos);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error fetching combos:", error);
-        return NextResponse.json({ error: "Failed to fetch combos" }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: "Failed to fetch combos", details: message }, { status: 500 });
     }
 }
 
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
         // Logic check: if items provided, validate? For now trust admin.
 
-        const data: any = {
+        const data: Partial<Combo> & { updatedAt: string } = {
             priceCents: Number(priceCents),
             active: Boolean(active),
             name,
@@ -75,8 +77,9 @@ export async function POST(request: Request) {
 
         // Fetch back full doc to return (helpful for UI)
         return NextResponse.json({ success: true, id: docId });
-    } catch (error) {
-        return NextResponse.json({ error: "Failed to save combo" }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: "Failed to save combo", details: message }, { status: 500 });
     }
 }
 
@@ -89,7 +92,8 @@ export async function DELETE(request: Request) {
 
         await adminDb.collection('combos').doc(id).delete();
         return NextResponse.json({ success: true });
-    } catch (error) {
-        return NextResponse.json({ error: "Failed to delete combo" }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: "Failed to delete combo", details: message }, { status: 500 });
     }
 }

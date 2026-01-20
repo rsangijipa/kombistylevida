@@ -19,7 +19,7 @@ function OrdersList() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const fetchOrders = async () => {
+    const fetchOrders = React.useCallback(async () => {
         try {
             const res = await fetch('/api/admin/orders');
             if (res.ok) {
@@ -31,13 +31,13 @@ function OrdersList() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchOrders(); // Initial fetch
         const interval = setInterval(fetchOrders, 30000); // Poll every 30s
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchOrders]);
 
     const filteredOrders = orders.filter(o =>
         o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

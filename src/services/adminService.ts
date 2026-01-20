@@ -10,7 +10,7 @@ export interface DashboardStats {
     packsSold: number;
     returnsPending: number;
     salesHistory: { date: string; value: number }[];
-    topFlavors: { name: string; qty: number }[];
+    topFlavors: { name: string; quantity: number }[];
 }
 
 // getDashboardStats migrated to /api/admin/stats

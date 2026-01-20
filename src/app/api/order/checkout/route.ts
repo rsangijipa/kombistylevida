@@ -46,7 +46,7 @@ export async function POST(request: Request) {
                 cartInputs.push({
                     productId: item.bundleId,
                     variantKey: 'default', // Bundles have one price
-                    quantity: item.qty || 1
+                    quantity: item.quantity || item.qty || 1
                 });
             } else if (item.type === 'PACK') {
                 // Flatten pack items into individual products for stock check & calculation
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
                             cartInputs.push({
                                 productId: sub.productId,
                                 variantKey: item.size === 12 ? '500ml' : '300ml', // Infer variant from pack size
-                                quantity: sub.qty || 1
+                                quantity: sub.quantity || sub.qty || 1
                             });
                         }
                     });
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
                     cartInputs.push({
                         productId: pid,
                         variantKey: variant,
-                        quantity: item.qty || 1
+                        quantity: item.quantity || item.qty || 1
                     });
                 }
             }

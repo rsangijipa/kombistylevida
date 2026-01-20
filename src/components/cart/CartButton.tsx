@@ -12,7 +12,7 @@ export function CartButton({ className }: { className?: string }) {
     // Avoid hydration mismatch
     useEffect(() => setMounted(true), []);
 
-    const totalQty = items.reduce((acc, i) => acc + i.qty, 0);
+    const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
 
     if (!mounted) return null;
 

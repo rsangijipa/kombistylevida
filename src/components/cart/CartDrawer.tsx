@@ -14,7 +14,7 @@ import { buildOrderMessage, buildWhatsAppLink, validateOrder } from "@/lib/whats
 import { useCatalog } from "@/context/CatalogContext"; // New Import
 
 export function CartDrawer() {
-    const { items, isOpen, removeItem, updateQty, toggleCart, selectedDate, selectedSlotId, notes, setNotes, clearCart, bottlesToReturn, setBottlesToReturn } = useCartStore();
+    const { items, isOpen, removeItem, updateQuantity, toggleCart, selectedDate, selectedSlotId, notes, setNotes, clearCart, bottlesToReturn, setBottlesToReturn } = useCartStore();
     const customer = useCustomerStore(); // contains .reset()
     const { getProduct, getCombo, products, combos } = useCatalog(); // Dynamic Catalog
 
@@ -100,12 +100,12 @@ export function CartDrawer() {
     const subtotal = items.reduce((acc, item) => {
         if (item.type === 'PACK') {
             const priceCents = item.size === 6 ? 8990 : 16990;
-            return acc + (priceCents * item.qty);
+            return acc + (priceCents * item.quantity);
         }
 
         if (item.type === 'BUNDLE') {
             const combo = getCombo(item.bundleId);
-            return acc + ((combo?.priceCents || 0) * item.qty);
+            return acc + ((combo?.priceCents || 0) * item.quantity);
         }
 
         // Handle Composite IDs for Price
@@ -123,11 +123,11 @@ export function CartDrawer() {
         if (sizeCode && prod?.variants) {
             const variant = prod.variants.find(v => v.size.includes(sizeCode));
             if (variant) {
-                return acc + (variant.price * 100 * item.qty);
+                return acc + (variant.price * 100 * item.quantity);
             }
         }
 
-        return acc + (prod?.priceCents || 0) * item.qty;
+        return acc + (prod?.priceCents || 0) * item.quantity;
     }, 0);
 
     return (
@@ -217,7 +217,7 @@ export function CartDrawer() {
                                                         const p = getProduct(subItem.productId);
                                                         return (
                                                             <span key={idx} className="inline-flex items-center rounded-sm bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink/70">
-                                                                {subItem.qty}x {p?.name.split(' ')[0] || 'Sabor'}
+                                                                {subItem.quantity}x {p?.name.split(' ')[0] || 'Sabor'}
                                                             </span>
                                                         );
                                                     })}
@@ -260,7 +260,7 @@ export function CartDrawer() {
                                                         const p = getProduct(subItem.productId);
                                                         return (
                                                             <span key={idx} className="inline-flex items-center rounded-sm bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-700">
-                                                                {subItem.qty}x {p?.name.split(' ')[0] || 'Item'}
+                                                                {subItem.quantity}x {p?.name.split(' ')[0] || 'Item'}
                                                             </span>
                                                         );
                                                     })}
@@ -268,8 +268,8 @@ export function CartDrawer() {
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
                                                 <QuantityStepper
-                                                    qty={item.qty}
-                                                    onUpdate={(val) => updateQty(item.bundleId, val)}
+                                                    quantity={item.quantity}
+                                                    onUpdate={(val) => updateQuantity(item.bundleId, val)}
                                                     size="sm"
                                                 />
                                                 <button
@@ -338,8 +338,8 @@ export function CartDrawer() {
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
                                                 <QuantityStepper
-                                                    qty={item.qty}
-                                                    onUpdate={(val) => updateQty(item.productId, val)}
+                                                    quantity={item.quantity}
+                                                    onUpdate={(val) => updateQuantity(item.productId, val)}
                                                     size="sm"
                                                 />
                                             </div>

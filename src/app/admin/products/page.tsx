@@ -20,22 +20,22 @@ function ProductsManager() {
     const [products, setProducts] = useState<Product[]>([]);
     const [saving, setSaving] = useState<string | null>(null);
 
-    const fetchProducts = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('/api/admin/products');
-            if (res.ok) {
-                const data = await res.json();
-                setProducts(data);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchProducts = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch('/api/admin/products');
+                if (res.ok) {
+                    const data = await res.json();
+                    setProducts(data);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchProducts();
     }, []);
 

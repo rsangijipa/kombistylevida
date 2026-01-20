@@ -50,7 +50,7 @@ function PickingView() {
             const sum: Record<string, number> = {};
             filtered.forEach(o => {
                 o.items.forEach(item => {
-                    sum[item.productName] = (sum[item.productName] || 0) + item.qty;
+                    sum[item.productName] = (sum[item.productName] || 0) + item.quantity;
                     // Could also summarize by item.productId if names vary, but name is snapshot
                 });
             });
@@ -118,10 +118,10 @@ function PickingView() {
                             <h2 className="font-bold text-lg text-ink mb-4 uppercase tracking-wider border-b pb-2">Resumo de Produtos</h2>
                             {Object.keys(summary).length === 0 ? <span className="text-ink/40 italic">Nenhum item.</span> : (
                                 <ul className="grid grid-cols-2 gap-4">
-                                    {Object.entries(summary).map(([name, qty]) => (
+                                    {Object.entries(summary).map(([name, quantity]) => (
                                         <li key={name} className="flex justify-between items-center bg-paper2 p-3 rounded print:bg-transparent print:border-b print:rounded-none">
                                             <span className="font-serif font-bold text-lg">{name}</span>
-                                            <span className="text-xl font-bold text-olive print:text-black">{qty}</span>
+                                            <span className="text-xl font-bold text-olive print:text-black">{quantity}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -149,7 +149,7 @@ function PickingView() {
                                             <ul className="text-sm space-y-1 mb-3">
                                                 {order.items.map((item, i) => (
                                                     <li key={i} className="flex gap-2">
-                                                        <span className="font-bold w-6 text-right">{item.qty}x</span>
+                                                        <span className="font-bold w-6 text-right">{item.quantity}x</span>
                                                         <span>{item.productName}</span>
                                                     </li>
                                                 ))}

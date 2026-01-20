@@ -16,8 +16,9 @@ export async function GET() {
         const combos = combosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Combo[];
 
         return NextResponse.json({ products, combos });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("API Catalog Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

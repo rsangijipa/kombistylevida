@@ -91,34 +91,34 @@ export function buildOrderMessage({
     cart.forEach((item) => {
         if (item.type === 'PACK') {
             const packPrice = item.size === 6 ? 8990 : 16990;
-            totalCents += packPrice * item.qty;
-            message += `📦 *${item.displayName}* (${item.qty}x)\n`;
+            totalCents += packPrice * item.quantity;
+            message += `📦 *${item.displayName}* (${item.quantity}x)\n`;
 
             // Group flavors for cleaner display
             const flavorSummary: Record<string, number> = {};
             item.items.forEach(sub => {
-                flavorSummary[sub.productId] = (flavorSummary[sub.productId] || 0) + sub.qty;
+                flavorSummary[sub.productId] = (flavorSummary[sub.productId] || 0) + sub.quantity;
             });
 
-            Object.entries(flavorSummary).forEach(([pid, qty]) => {
+            Object.entries(flavorSummary).forEach(([pid, quantity]) => {
                 const p = findProduct(pid);
-                if (p) message += `   ├ ${qty}x ${p.name}\n`;
+                if (p) message += `   ├ ${quantity}x ${p.name}\n`;
             });
             message += `\n`;
 
         } else if (item.type === 'BUNDLE') {
             const combo = findCombo(item.bundleId);
             if (combo) {
-                totalCents += (combo.priceCents || 0) * item.qty;
-                message += `🛍️ *${combo.name}* (${item.qty}x)\n`;
+                totalCents += (combo.priceCents || 0) * item.quantity;
+                message += `🛍️ *${combo.name}* (${item.quantity}x)\n`;
                 // List items in combo
                 combo.items.forEach(sub => {
                     const p = findProduct(sub.productId);
-                    message += `   ├ ${sub.qty}x ${p?.name || 'Item'}\n`;
+                    message += `   ├ ${sub.quantity}x ${p?.name || 'Item'}\n`;
                 });
                 message += `\n`;
             } else {
-                message += `🛍️ *Combo (ID: ${item.bundleId})* (${item.qty}x)\n`;
+                message += `🛍️ *Combo (ID: ${item.bundleId})* (${item.quantity}x)\n`;
             }
 
         } else if (item.type === 'PRODUCT') {
@@ -140,9 +140,9 @@ export function buildOrderMessage({
                     if (variant) itemPrice = variant.price * 100;
                 }
 
-                totalCents += itemPrice * item.qty;
+                totalCents += itemPrice * item.quantity;
                 const sizeStr = sizeDisplay ? `(${sizeDisplay}ml)` : (product.size ? `(${product.size})` : "");
-                message += `▪️ *${item.qty}x* ${product.name} ${sizeStr}\n`;
+                message += `▪️ *${item.quantity}x* ${product.name} ${sizeStr}\n`;
             }
         }
     });

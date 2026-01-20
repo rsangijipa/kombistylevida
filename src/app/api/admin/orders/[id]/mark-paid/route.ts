@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { Transaction } from "firebase-admin/firestore";
 import { Order, InventoryMovement } from "@/types/firestore";
 import { CatalogProduct } from "@/lib/pricing/calculator";
 
@@ -16,7 +17,7 @@ export async function PATCH(
     let payload: { method: string } | undefined;
     try {
         payload = await request.json();
-    } catch (e) {
+    } catch (e: unknown) {
         // payload optional, default to OTHER if not provided
     }
     const method = payload?.method || "OTHER";
@@ -24,7 +25,7 @@ export async function PATCH(
     if (!orderId) return NextResponse.json({ error: "Order ID required" }, { status: 400 });
 
     try {
-        await adminDb.runTransaction(async (t) => {
+        await adminDb.runTransaction(async (t: Transaction) => {
             const orderRef = adminDb.collection("orders").doc(orderId);
             const orderDoc = await t.get(orderRef);
 
@@ -66,7 +67,7 @@ export async function PATCH(
                 // We will decrement.
 
                 t.update(adminDb.collection("catalog").doc(item.productId), {
-                    [`variants.${variantKey}.stockQty`]: currentStock - item.qty
+                    [`variants.${variantKey}.stockQty`]: currentStock - (item.quantity || (item as any).qty || 1)
                 });
 
                 // 3. Log Movement
@@ -75,7 +76,7 @@ export async function PATCH(
                     id: moveRef.id,
                     productId: item.productId,
                     type: 'SALE', // Out
-                    quantity: item.qty,
+                    quantity: item.quantity || (item as any).qty || 1,
                     reason: `Order ${orderId} PAID`,
                     orderId: orderId,
                     createdAt: new Date().toISOString()
@@ -110,8 +111,9 @@ export async function PATCH(
 
         return NextResponse.json({ success: true });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Mark Paid Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

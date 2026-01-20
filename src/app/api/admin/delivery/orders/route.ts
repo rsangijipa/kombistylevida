@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
         // Query orders 
         // delivery.date == date
-        let query = adminDb.collection('orders')
+        const query = adminDb.collection('orders')
             .where('delivery.date', '==', date)
             .where('status', '!=', 'CANCELED'); // Filter canceled? Maybe show them? sticking to active for now.
 

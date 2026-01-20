@@ -3,65 +3,74 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // --- HELPER FUNCTIONS ---
+    
+    // Verifica se o usuário é admin via Custom Claim ou Lista de Email (Fallback Seguro)
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true || 
-        request.auth.token.email == 'admin@kombucha.com'
+        request.auth.token.email in ['admin@kombucha.com', 'alessandro@kombistyle.com'] 
       );
     }
 
-    // --- PRODUCTS & CATALOG ---
+    // Verifica se o usuário acessa seu próprio documento
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- DOMAIN RULES ---
+
+    // 1. Catálogo e Produtos (Público Leitura / Admin Escrita)
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    
-    // --- CONTENT (Posts, Recipes) ---
-    match /posts/{postId} {
-      allow read: if true; // Public blog
-      allow write: if request.auth != null; // Temp: Allow any auth user (Admin claim might be missing)
-    }
-     match /recipes/{recipeId} {
+    match /combos/{comboId} {
       allow read: if true;
-      allow write: if request.auth != null; // Temp
+      allow write: if isAdmin();
     }
 
-    // --- DELIVERY ---
+    // 2. Conteúdo CMS (Blog/Receitas) - FECHAR ESCRITA PÚBLICA
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /recipes/{recipeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 3. Sistema de Logística
     match /deliverySlots/{slotId} {
-      allow read: if true; // Client needs to see availability
-      allow write: if isAdmin(); // Admin can manage slots directly
+      allow read: if true;
+      allow write: if isAdmin();
     }
-    
-    // --- ORDERS (SECURE) ---
+
+    // 4. Pedidos (Alta Segurança)
+    // Clientes podem criar, mas apenas Admins leem todos ou editam status
+    // Clientes podem ler APENAS seus próprios pedidos (se houver userId vinculado)
     match /orders/{orderId} {
-      // Allow Admins to manage orders
-      allow read, write: if isAdmin();
-    }
-    
-
-    // --- CUSTOMERS ---
-    match /customers/{phone} {
-       // ... (existing comments)
-       allow read, write: if false; 
+      allow read: if isAdmin() || (request.auth != null && resource.data.customer.id == request.auth.uid);
+      allow create: if true; // Checkout público permitido (Guest Checkout)
+      allow update: if isAdmin(); // Apenas admin muda status e pagamentos
+      allow delete: if false; // Auditoria: nunca deletar pedidos
     }
 
-    // --- MEMBERSHIPS (Roles) ---
-    match /memberships/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // 5. Clientes
+    match /customers/{customerId} {
+      allow read, write: if isAdmin(); // Dados sensíveis (PII). Admin gerencia.
     }
 
-    // --- INVENTORY ---
+    // 6. Inventário e Estoque (Server-Side Only)
     match /inventory/{productId} {
-      allow read: if true; // Used for "Em estoque" display?
-      allow write: if false; // Moved to API
+      allow read: if true;
+      allow write: if false; // Apenas via Admin SDK (API)
     }
-    
-    match /stockMovements/{id} {
-        allow read, write: if false;
+    match /stockMovements/{movementId} {
+      allow read, write: if false; // Apenas via Admin SDK (Audit Log)
     }
 
-    // Default deny
+    // Default Deny
     match /{document=**} {
       allow read, write: if false;
     }

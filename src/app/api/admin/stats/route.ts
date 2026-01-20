@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { OrderItem, Product } from '@/types/firestore';
 
 export async function GET() {
     try {
@@ -30,7 +31,7 @@ export async function GET() {
 
             // Packs logic (Check items)
             if (data.items && Array.isArray(data.items)) {
-                data.items.forEach((item: any) => {
+                data.items.forEach((item: OrderItem) => {
                     // Check if item is a pack by ID or explicit flag
                     // In new "Items" list, we might just have products.
                     // But if we want to track "Packs", we need to see how they are saved.
@@ -40,7 +41,7 @@ export async function GET() {
 
                     // Legacy structure support
                     if (item.productId && item.productId.startsWith("pack-")) {
-                        packsSold += (item.qty || 1);
+                        packsSold += (item.quantity || (item as any).qty || 1);
                     }
                 });
             }
@@ -68,9 +69,9 @@ export async function GET() {
         let lowStockCount = 0;
 
         catalogSnap.forEach(doc => {
-            const data = doc.data();
-            if (data.variants) {
-                Object.values(data.variants).forEach((v: any) => {
+            const data = doc.data() as Product;
+            if (data.variants && Array.isArray(data.variants)) {
+                data.variants.forEach((v) => {
                     if (v.active && (v.stockQty !== undefined && v.stockQty < 20)) {
                         lowStockCount++;
                     }
@@ -98,14 +99,14 @@ export async function GET() {
             salesMap[day] = (salesMap[day] || 0) + val;
 
             if (data.items) {
-                data.items.forEach((item: any) => {
+                data.items.forEach((item: OrderItem) => {
                     // New Flattened Structure usually has productName
                     if (item.productName) {
-                        flavorMap[item.productName] = (flavorMap[item.productName] || 0) + (item.quantity || item.qty || 1);
+                        flavorMap[item.productName] = (flavorMap[item.productName] || 0) + (item.quantity || (item as any).qty || 1);
                     } else if (item.subItems) { // Legacy
-                        item.subItems.forEach((sub: any) => {
+                        item.subItems.forEach((sub) => {
                             const name = sub.name || "Sabor (Pack)";
-                            flavorMap[name] = (flavorMap[name] || 0) + sub.qty;
+                            flavorMap[name] = (flavorMap[name] || 0) + (sub.quantity || (sub as any).qty || 1);
                         });
                     }
                 });
@@ -132,7 +133,7 @@ export async function GET() {
         const topFlavors = Object.entries(flavorMap)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
-            .map(([name, qty]) => ({ name, qty }));
+            .map(([name, count]) => ({ name, quantity: count }));
 
         return NextResponse.json({
             ordersToday,
@@ -145,7 +146,7 @@ export async function GET() {
             topFlavors
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Stats Error:", error);
         return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
     }

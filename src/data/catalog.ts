@@ -10,7 +10,7 @@ export type Product = {
 
 export type BundleItem = {
     productId: string;
-    qty: number;
+    quantity: number;
 };
 
 export type Bundle = {
@@ -80,10 +80,10 @@ export const BUNDLES: Bundle[] = [
         badge: "Mais Vendido",
         description: "Experimente um de cada e descubra seu favorito.",
         items: [
-            { productId: "ginger-lemon", qty: 1 },
-            { productId: "red-berries", qty: 1 },
-            { productId: "purple-grape", qty: 1 },
-            { productId: "passionfruit", qty: 1 },
+            { productId: "ginger-lemon", quantity: 1 },
+            { productId: "red-berries", quantity: 1 },
+            { productId: "purple-grape", quantity: 1 },
+            { productId: "passionfruit", quantity: 1 },
         ],
         priceCents: 5800, // R$ 58,00 (Desconto)
     },
@@ -93,8 +93,8 @@ export const BUNDLES: Bundle[] = [
         badge: "Saúde",
         description: "Foco no gengibre e frutas vermelhas para fortalecer.",
         items: [
-            { productId: "ginger-lemon", qty: 3 },
-            { productId: "red-berries", qty: 3 },
+            { productId: "ginger-lemon", quantity: 3 },
+            { productId: "red-berries", quantity: 3 },
         ],
         priceCents: 8500,
     },
@@ -104,10 +104,10 @@ export const BUNDLES: Bundle[] = [
         badge: "Economia",
         description: "Garanta a alegria da galera com 12 garrafas variadas.",
         items: [
-            { productId: "ginger-lemon", qty: 3 },
-            { productId: "red-berries", qty: 3 },
-            { productId: "purple-grape", qty: 3 },
-            { productId: "passionfruit", qty: 3 },
+            { productId: "ginger-lemon", quantity: 3 },
+            { productId: "red-berries", quantity: 3 },
+            { productId: "purple-grape", quantity: 3 },
+            { productId: "passionfruit", quantity: 3 },
         ],
         priceCents: 16000,
     },
