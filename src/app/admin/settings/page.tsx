@@ -114,6 +114,38 @@ function SettingsContent() {
                             {loading ? "Salvando..." : "Aplicar Configurações Padrão"}
                         </button>
                     </div>
+
+                    {/* Maintenance Card */}
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                        <h2 className="mb-4 text-lg font-bold text-amber-800 flex items-center gap-2">
+                            ⚠️ Manutenção do Sistema
+                        </h2>
+                        <p className="text-sm text-amber-900/70 mb-6">
+                            Use esta ferramenta se perceber discrepâncias entre a Agenda e os Pedidos reais.
+                            Isso vai recalcular todos os contadores de "Booked" baseados nos pedidos ativos dos próximos 30 dias.
+                        </p>
+
+                        <button
+                            onClick={async () => {
+                                if (!confirm("Isso vai sobrescrever os contadores da agenda com base nos pedidos atuais. Continuar?")) return;
+                                setLoading(true);
+                                try {
+                                    const res = await fetch('/api/admin/schedule/sync', { method: 'POST' });
+                                    const data = await res.json();
+                                    if (data.success) alert(`Sincronização concluída! ${data.processed} dias processados.`);
+                                    else alert("Erro: " + data.error);
+                                } catch (e) {
+                                    alert("Erro ao conectar.");
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            className="rounded-lg border border-amber-500 text-amber-900 hover:bg-amber-100 px-6 py-3 font-bold transition-transform active:scale-95 disabled:opacity-50"
+                        >
+                            {loading ? "Processando..." : "🔄 Sincronizar Agenda (Reparar)"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </AdminLayout>

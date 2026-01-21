@@ -16,7 +16,7 @@ interface CreateOrderParams {
  * Replaces client-side Firestore writes.
  */
 export async function createOrder(params: CreateOrderParams): Promise<{ orderId: string; whatsappMessage: string }> {
-    const { cart, customer, notes, bottlesToReturn, idempotencyKey } = params;
+    const { cart, customer, notes, bottlesToReturn, idempotencyKey, selectedDate, selectedSlotId } = params;
 
     // Calculate total (Client side estimate)
     // We pass this to server, server trusts it for MVP or recalculates if robust
@@ -42,6 +42,8 @@ export async function createOrder(params: CreateOrderParams): Promise<{ orderId:
         body: JSON.stringify({
             cart,
             customer,
+            selectedDate,
+            selectedSlotId,
             notes,
             bottlesToReturn,
             idempotencyKey
@@ -49,14 +51,14 @@ export async function createOrder(params: CreateOrderParams): Promise<{ orderId:
     });
 
     if (!res.ok) {
-        throw new Error("Failed to checkout");
+        const errorData = await res.json().catch(() => ({ error: "Unknown Error" }));
+        console.error("Checkout API Error:", errorData);
+        throw new Error(errorData.error || "Failed to checkout");
     }
 
     const data = await res.json();
-
-    if (!data.success || !data.orderId) {
-        throw new Error(data.error || "Persistence failed");
-    }
-
-    return { orderId: data.orderId, whatsappMessage: data.whatsappMessage };
+    return {
+        orderId: data.orderId,
+        whatsappMessage: data.whatsappMessage
+    };
 }

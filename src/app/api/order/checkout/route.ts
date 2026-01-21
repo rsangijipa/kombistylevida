@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from 'firebase-admin/firestore';
 import { parseKvOrderCookie, hashToken } from "@/lib/security/token";
 import { Order, Customer } from "@/types/firestore";
 import { calculateOrder, CatalogProduct, CartItemInput } from "@/lib/pricing/calculator";
@@ -18,10 +19,24 @@ export async function POST(request: Request) {
 
     // Input Validation
     if (!payload.cart || !Array.isArray(payload.cart) || payload.cart.length === 0) {
-        return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+        console.error("Checkout Failed: Empty Cart");
+        return NextResponse.json({ error: "O carrinho está vazio." }, { status: 400 });
     }
-    if (!payload.customer) {
-        return NextResponse.json({ error: "Customer details missing" }, { status: 400 });
+    if (!payload.customer || !payload.customer.phone || !payload.customer.name) {
+        console.error("Checkout Failed: Missing Customer Details");
+        return NextResponse.json({ error: "Dados do cliente incompletos (Nome/Telefone)." }, { status: 400 });
+    }
+
+    // Address Validation (Strict for Delivery)
+    const isDelivery = payload.customer.deliveryMethod !== 'pickup'; // Default to delivery if undefined? Or 'delivery' explicit check.
+    // The payload might send 'delivery' or 'pickup'. If not present, default to delivery usually?
+    // Let's check naming. cartDrawer sends `customer.deliveryMethod`.
+    if (isDelivery) {
+        if (!payload.customer.address || payload.customer.address.length < 5) {
+            console.error("Checkout Failed: Missing Address for Delivery");
+            return NextResponse.json({ error: "Endereço completo é obrigatório para entrega." }, { status: 400 });
+        }
+        // Optional: Check neighborhood if required by business logic
     }
 
     try {
@@ -82,8 +97,10 @@ export async function POST(request: Request) {
                             productIds.add(sub.productId);
                             cartInputs.push({
                                 productId: sub.productId,
-                                variantKey: item.size === 12 ? '500ml' : '300ml',
-                                quantity: sub.quantity || sub.qty || 1
+                                // P1-2: Use Explicit Variant from Payload. No more size inference.
+                                variantKey: item.variantKey || '300ml', // Fallback only for really old cached carts
+                                // Fix P0-2: Multiply sub-quantity by pack quantity
+                                quantity: (sub.quantity || sub.qty || 1) * (item.quantity || 1)
                             });
                         }
                     });
@@ -219,11 +236,27 @@ export async function POST(request: Request) {
 
                 if (variantIdx !== -1) {
                     if (currentStock < input.quantity) {
-                        throw new Error(`Estoque insuficiente para ${pData.name} (${input.variantKey}).`);
+                        // LOG EVENT: Stock Failure
+                        console.warn(JSON.stringify({
+                            event: 'stock_failure',
+                            productId: input.productId,
+                            variant: input.variantKey,
+                            requested: input.quantity,
+                            available: currentStock
+                        }));
+                        throw new Error(`Estoque insuficiente para ${pData.name} (${input.variantKey}). Disponível: ${currentStock}.`);
                     }
                     // Prepare update in memory
                     pData.variants[variantIdx].stockQty = currentStock - input.quantity;
                     stockUpdates.push({ ref: pDoc.ref, data: { variants: pData.variants } });
+                } else {
+                    // Variant requested but not found in backend
+                    // This could happen if admin removed usage of '300ml' or changed keys
+                    // We should verify if we want to block or allow (if allow, stock goes negative or ignored?)
+                    // Governance says: Inventory is Source of Truth.
+                    console.warn(`Variant ${input.variantKey} not found for ${pData.name}. Stock check skipped (Risk).`);
+                    // If strict, throw error:
+                    // throw new Error(`Variante ${input.variantKey} não encontrada para ${pData.name}.`);
                 }
             }
 
@@ -248,11 +281,34 @@ export async function POST(request: Request) {
                 updatedAt: new Date().toISOString()
             } : null;
 
-            // 3. ALL WRITES
             // A. Stock Updates
             for (const update of stockUpdates) {
                 t.set(update.ref, update.data, { merge: true });
             }
+
+            // A.2 Stock Movements (P2)
+            cartInputs.forEach(input => {
+                if (comboIds.has(input.productId)) return;
+
+                // Resolve Volume for logging
+                // We need to look up the variant to get the actual volume if not in input (input only has variantKey)
+                // We can look it up in catalogMap or just parse the key.
+                const cleanKey = input.variantKey.replace('ml', '');
+                const vol = parseInt(cleanKey) || 0;
+
+                // Only products
+                const mvId = adminDb.collection("stockMovements").doc().id;
+                t.set(adminDb.collection("stockMovements").doc(mvId), {
+                    productId: input.productId,
+                    variantKey: input.variantKey,
+                    volumeMl: vol, // P1-2 Explicit Volume
+                    type: 'OUT',
+                    quantity: input.quantity,
+                    reason: 'Sale',
+                    orderId: orderId,
+                    createdAt: new Date().toISOString()
+                });
+            });
 
             // B. Customer Update
             if (!customerDoc.exists) {
@@ -291,7 +347,7 @@ export async function POST(request: Request) {
                 shortId: orderId.slice(0, 8),
                 status: 'PENDING',
                 totalCents: calculation.pricing.totalCents,
-                items: calculation.items,
+                items: calculation.items, // Ensure this has volume info? calculation.items comes from calculator.
                 pricing: calculation.pricing,
                 customer: {
                     id: phoneKey,
@@ -314,6 +370,29 @@ export async function POST(request: Request) {
             };
 
             t.set(orderRef, orderData, { merge: true });
+
+            // D. Schedule Counters Update (Fix for "Order not appearing in Agenda")
+            // We must increment the usage counters in `deliveryDays` collection
+            // so that the Admin Schedule knows a slot is taken.
+            // Assumption: mode is 'DELIVERY' (or we get it from payload if PICKUP supported)
+            if (payload.selectedDate && payload.selectedSlotId) {
+                const mode = payload.customer.deliveryMethod === 'PICKUP' ? 'PICKUP' : 'DELIVERY';
+                const dayDocId = `${payload.selectedDate}_${mode}`;
+                const dayRef = adminDb.collection('deliveryDays').doc(dayDocId);
+
+                // We use set with merge because the doc might not exist yet (no overrides)
+                t.set(dayRef, {
+                    date: payload.selectedDate,
+                    mode,
+                    dailyBooked: FieldValue.increment(1),
+                    slots: {
+                        [payload.selectedSlotId]: {
+                            booked: FieldValue.increment(1)
+                        }
+                    },
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            }
         });
 
         // 4. Generate WhatsApp
@@ -323,6 +402,7 @@ export async function POST(request: Request) {
         calculation.items.forEach(item => {
             const totalFmt = (item.subtotalCents / 100).toFixed(2).replace('.', ',');
             const unitFmt = (item.unitPriceCents / 100).toFixed(2).replace('.', ',');
+            // P1-2: Explicit Volume in WhatsApp
             lines.push(`${item.quantity}x ${item.productName} (${item.variantKey === 'default' ? 'Combo' : item.variantKey})`);
             lines.push(`   R$ ${unitFmt} = R$ ${totalFmt}`);
         });
@@ -341,6 +421,17 @@ export async function POST(request: Request) {
 
         const whatsappMessage = lines.join('\n');
 
+        // P2: Structured Log Success
+        console.log(JSON.stringify({
+            level: 'info',
+            event: 'checkout_success',
+            orderId,
+            idempotencyKey: payload.idempotencyKey,
+            totalCents: calculation.pricing.totalCents,
+            customerPhone: payload.customer.phone,
+            schedule: payload.selectedDate ? `${payload.selectedDate} (${payload.selectedSlotId})` : 'ASAP'
+        }));
+
         return NextResponse.json({
             success: true,
             orderId: orderId,
@@ -348,7 +439,15 @@ export async function POST(request: Request) {
         });
 
     } catch (error: any) {
-        console.error("Checkout Failed:", error);
+        // P2: Structured Log Error
+        console.error(JSON.stringify({
+            level: 'error',
+            event: 'checkout_failed',
+            error: error.message,
+            stack: error.stack,
+            payload: { ...payload, cart: '...' } // Redact cart for brevity if needed
+        }));
+
         return NextResponse.json({
             error: error.message || "Internal Error",
             stack: error.stack

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { X, ShoppingBag, Trash2, Calendar, User, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useCustomerStore } from "@/store/customerStore";
@@ -20,6 +20,7 @@ export function CartDrawer() {
 
     const [validationError, setValidationError] = useState<string | null>(null);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const idempotencyKeyRef = useRef<string | null>(null);
 
     // Lock body scroll
     useEffect(() => {
@@ -58,18 +59,42 @@ export function CartDrawer() {
         setIsCheckingOut(true);
 
         // 0. Idempotency Key (prevent duplicates)
-        // We use a ref or state to keep it stable across retries if we wanted, 
-        // but for now generating one unique per "intent" is good.
-        // If we want to protecting against "Client sends request, network fails, User clicks again",
-        // we should ideally keep the SAME key until success.
-        // Let's fallback to specific simplified logic:
-        const idempotencyKey = crypto.randomUUID();
+        // P1-1: Persist ID to avoid duplicates on retry
+        if (!idempotencyKeyRef.current) {
+            idempotencyKeyRef.current = crypto.randomUUID();
+        }
+        const idempotencyKey = idempotencyKeyRef.current;
 
         try {
             // 1. Create Order on Server (Source of Truth)
+            // P1-2: Explicit Volume Mapping (Frontend -> Backend)
+            // We map the items here to ensure the backend receives explicit variantKey/volumeMl
+            // and does not have to guess based on 'size'.
+            const cartPayload = items.map(item => {
+                if (item.type === 'PACK') {
+                    // Legacy UI Rule: Pack 12 is 500ml, Pack 6 (default) is 300ml.
+                    // This is now explicit in the payload.
+                    const is500 = item.size === 12;
+                    return {
+                        ...item,
+                        variantKey: is500 ? '500ml' : '300ml',
+                        volumeMl: is500 ? 500 : 300
+                    };
+                }
+                // Products usually have variantKey handled in their ID or we add it if missing
+                if (item.type === 'PRODUCT') {
+                    // If product has composite ID (e.g. ::500ml), ensure we send clean explicit fields
+                    // if the backend needs them simplified. 
+                    // But backend explicitly parses composite IDs. 
+                    // We'll leave PRODUCT as is, primarily fixing PACK ambiguity.
+                    return item;
+                }
+                return item;
+            });
+
             // Server validates stock, prices, upserts customer, and generates WhatsApp text.
             const { whatsappMessage } = await createOrder({
-                cart: items,
+                cart: cartPayload,
                 customer,
                 selectedDate,
                 selectedSlotId,
@@ -82,10 +107,13 @@ export function CartDrawer() {
             clearCart();
             setNotes("");
             setBottlesToReturn(0);
+            idempotencyKeyRef.current = null; // Reset for next order
             toggleCart(false);
 
             // 3. Open WhatsApp
-            const link = `https://wa.me/556981123681?text=${encodeURIComponent(whatsappMessage)}`;
+            // 3. Open WhatsApp
+            const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "556981123681";
+            const link = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
             window.open(link, "_blank");
 
         } catch (e: any) {

@@ -1,31 +1,18 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET() {
     try {
-        // Read from `products` collection as that's where we decided to keep stock?
-        // OR read from `inventory` collection if we separate them.
-        // The Checkout now reads `stockQty` from `products/{id}.variants.{key}.stockQty`.
-        // So this endpoint should ideally return that.
-        // BUT listing ALL products to build inventory map is heavy.
-        // Let's stick to what typical Admin Inventory page needs.
-        // If the Admin Inventory Page expects a map of { productId: data }, we can just return products.
-        // OR we can aggregate.
-        // Since we are fixing the backend to use `products`, we should read from `products`.
         const snap = await adminDb.collection('products').where('active', '==', true).get();
         const inventory: Record<string, any> = {};
         snap.forEach(doc => {
             const data = doc.data();
-            // Transform simple structure for frontend if needed or send raw
             inventory[doc.id] = {
-                ...data, // includes variants with stockQty
-                currentStock: 0 // Legacy field fallback
+                ...data,
+                currentStock: 0
             };
         });
         return NextResponse.json(inventory);
@@ -38,11 +25,8 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { productId, amount, type, variantKey } = body;
-        // We need `variantKey` now because stock is per variant.
-        // If frontend doesn't send it, we default to '300ml' or fail?
-        // To be safe for existing UI, if no variantKey, we might need to guess or update all?
-        // Let's assume frontend sends it or we default to '300ml'.
 
+        // P0-3: Backend now expects variantKey to be passed explicitly (or validated)
         if (!productId || !amount || !type) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
@@ -56,12 +40,9 @@ export async function POST(request: Request) {
 
         const data = doc.data() as any;
         const targetVariant = variantKey || '300ml';
+
         // Ensure variants object exists
-        const variants = data.variants || []; // Array in firestore usually?
-        // Wait, my Checkout logic assumed `variants` is an Array in `products` doc (line 119 in checkout replaced code).
-        // `data.variants.forEach...`
-        // So to update, we need to find the item in array, update it, and write back the entire array.
-        // Firestore doesn't support updating one item in array easily without reading.
+        const variants = data.variants || [];
 
         // Find variant index
         let variantIndex = -1;
@@ -81,18 +62,17 @@ export async function POST(request: Request) {
                 updatedAt: new Date().toISOString()
             });
         } else {
-            // Variant doesn't exist? Create or Error.
-            // If it's a valid size, maybe add?
-            // For now, if not found, we can't update.
             return NextResponse.json({ error: `Variant ${targetVariant} not found` }, { status: 400 });
         }
 
-        // Log
+        // Log Stock Movement
         await adminDb.collection('stockMovements').add({
             productId,
             type,
             quantity: amount,
             variantKey: targetVariant,
+            // P1-2: Explicit Volume Logging
+            volumeMl: parseInt(targetVariant.replace('ml', '')) || 0,
             createdAt: new Date().toISOString(),
             reason: body.reason || "Manual Adjustment"
         });

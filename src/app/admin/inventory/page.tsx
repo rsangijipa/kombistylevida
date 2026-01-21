@@ -74,14 +74,28 @@ function InventoryManager() {
         try {
             const adminUid = "admin"; // In real usage, get from AuthContext
 
+            // P0-3: Fix ID splitting for backend
+            let finalProductId = selectedInventoryId;
+            let finalVariantKey = '300ml'; // default if not specified
+
+            if (selectedInventoryId.includes("::")) {
+                const parts = selectedInventoryId.split("::");
+                finalProductId = parts[0];
+                finalVariantKey = parts[1];
+            } else if (editingItem?.size === '500ml') {
+                // Fallback if ID didn't have :: but we know it's 500ml (rare if grid is correct)
+                finalVariantKey = '500ml';
+            }
+
             const res = await fetch('/api/admin/inventory', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    productId: selectedInventoryId, // This might be "id" or "id::500ml"
+                    productId: finalProductId,
                     amount,
                     reason: reason || "Manual Adjustment",
                     type: actionType,
+                    variantKey: finalVariantKey,
                     adminUid
                 })
             });
@@ -119,8 +133,28 @@ function InventoryManager() {
             ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {INVENTORY_GRID.map(item => {
-                        const inv = inventory[item.id] || { currentStock: 0, reservedStock: 0 };
-                        const available = inv.currentStock - inv.reservedStock;
+                        // Logic: Backend returns inventory keyed by `baseId` (productId).
+                        // We need to find the correct variant inside it.
+                        const productData = inventory[item.baseId];
+
+                        let currentStock = 0;
+                        let reserved = 0; // Default to 0 to prevent NaN
+
+                        if (productData) {
+                            reserved = productData.reservedStock || 0; // Prevent NaN
+
+                            if (productData.variants && Array.isArray(productData.variants)) {
+                                const variant = productData.variants.find((v: any) => v.size === item.size);
+                                if (variant) {
+                                    currentStock = variant.stockQty || 0;
+                                }
+                            } else {
+                                // Fallback for legacy products without variants
+                                currentStock = productData.stockQty || productData.currentStock || 0;
+                            }
+                        }
+
+                        const available = currentStock - reserved;
 
                         return (
                             <div key={item.id} className="relative rounded-xl border border-ink/10 bg-white p-6 shadow-sm overflow-hidden group">
@@ -149,7 +183,7 @@ function InventoryManager() {
                                             <div className="text-right">
                                                 <div className="text-[10px] uppercase font-bold text-ink/40 tracking-wider">Físico / Reservado</div>
                                                 <div className="text-sm font-mono text-ink">
-                                                    {inv.currentStock} / <span className="text-amber-600">{inv.reservedStock}</span>
+                                                    {currentStock} / <span className="text-amber-600">{reserved}</span>
                                                 </div>
                                             </div>
                                         </div>

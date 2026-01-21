@@ -272,19 +272,76 @@ function ScheduleDashboard() {
                                 </div>
                             </div>
 
-                            <div className="mt-auto">
-                                <button
-                                    className="w-full py-4 rounded-xl border-2 border-dashed border-ink/20 font-bold text-ink/40 hover:text-olive hover:border-olive hover:bg-olive/5 transition-all flex items-center justify-center gap-2"
-                                    onClick={() => alert("Feature em desenvolvimento: Ver Pedidos")}
-                                >
-                                    <Smartphone size={20} /> Ver Pedidos (Em breve)
-                                </button>
+                            <div className="mt-8 border-t pt-6">
+                                <h3 className="font-bold text-ink mb-4 flex items-center justify-between">
+                                    Pedidos Agendados
+                                    <span className="text-xs font-normal text-ink/50 bg-gray-100 px-2 py-1 rounded-full">
+                                        Source: Orders Collection
+                                    </span>
+                                </h3>
+
+                                <SlotOrdersList date={selectedSlot.dayDate} slotId={selectedSlot.slot.id} />
                             </div>
                         </div>
                     </div>
                 )}
             </div>
         </AdminLayout>
+    );
+}
+
+function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
+    // Inline fetch component for simplicity
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        fetch(`/api/admin/orders?date=${date}&slotId=${slotId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setOrders(data);
+            })
+            .finally(() => setLoading(false));
+    }, [date, slotId]);
+
+    if (loading) return <div className="text-center py-4"><Loader2 className="animate-spin inline" /></div>;
+    if (orders.length === 0) return <div className="text-center py-4 text-ink/40 text-sm">Nenhum pedido encontrado para este horário.</div>;
+
+    return (
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            {orders.map(order => (
+                <div key={order.id} className="border border-ink/10 rounded-lg p-3 bg-gray-50 text-sm hover:border-olive/50 transition-colors">
+                    <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-ink">{order.customer?.name || "Cliente"}</span>
+                        <span className="text-xs font-mono text-ink/50">#{order.shortId}</span>
+                    </div>
+                    <div className="text-xs text-ink/70 mb-2">
+                        {order.customer?.phone} • {order.customer?.neighborhood || "Sem bairro"}
+                    </div>
+                    <div className="space-y-1">
+                        {order.items?.map((item: any, i: number) => (
+                            <div key={i} className="flex justify-between text-xs">
+                                <span>{item.quantity}x {item.productName}</span>
+                                <span className="text-ink/50">{item.variantKey}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-ink/5 flex justify-between items-center">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                            {order.status}
+                        </span>
+                        <a
+                            href={`https://wa.me/${order.customer?.phone?.replace(/\D/g, '')}`}
+                            target="_blank"
+                            className="text-[10px] font-bold text-olive hover:underline"
+                        >
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }
 

@@ -155,6 +155,13 @@ export interface Combo {
 export interface InventoryItem {
     currentStock: number;
     reservedStock: number;
+    stockQty?: number; // Legacy or direct product stock
+    variants?: {
+        size: BottleSize;
+        price: number;
+        stockQty?: number;
+        active?: boolean;
+    }[];
     updatedAt?: string;
 }
 

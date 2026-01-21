@@ -1,18 +1,9 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase'; // Ensure this runs on edge/server correctly? 
-// Note: Usually we use firebase-admin for API routes to bypass rules, but client SDK can work if rules allow public read or if we don't auth.
-// Ideally, for Admin, we should verify auth token. For MVP, we'll try client SDK first, but beware of "client" usage in "server" env unless initialized properly.
-// Wait, `src/lib/firebase` initializes client SDK. This works in Next.js API routes usually, but runs as "anonymous" unless we pass a token. 
-// However, Firestore Rules might block it if it requires "auth != null".
-// Better strategy: Use a dedicated "Admin" service if strict, OR let's just assume the user is asking for the frontend to have a robust calendar, and the API is a clean way to aggregate.
-// Actually, using Client SDK in API Route avoids exposing Service Account Key to client, but it effectively acts as a "Client". It won't have Admin privileges.
-// If Firestore rules say "allow read: if request.auth != null", this API route won't work unless we pass the token from the header.
-// 
-// Simplified approach for User's Request: The user asked for "Implemente o calendário via API".
-// This implies the frontend calls this API, and this API talks to Firestore.
-// I will implement a basic aggregation here.
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -28,31 +19,40 @@ export async function GET(request: Request) {
     const end = new Date(year, month, 0, 23, 59, 59);
 
     try {
-        // Query Orders in Range
-        // Note: This requires an index on `scheduledDate`.
-        const ordersRef = collection(db, "orders");
-        const q = query(
-            ordersRef,
-            where("scheduledDate", ">=", Timestamp.fromDate(start)),
-            where("scheduledDate", "<=", Timestamp.fromDate(end))
-        );
+        // P1-4: Use Admin SDK to bypass client rules (which might require auth) in production
+        const ordersRef = adminDb.collection("orders");
+        // Ensure "schedule.date" is the field name. 
+        // In checkout we wrote: schedule: { date: ... }
+        // So field path is "schedule.date"
+        // Also note: Checkout stores date as STRING (ISO-ish) or TIMESTAMP?
+        // Checkout: schedule: { date: payload.selectedDate || null }
+        // CartDrawer passed `selectedDate` which comes from Date object usually?
+        // Let's check format. `selectedDate` is usually string "YYYY-MM-DD" or Date object.
+        // If it's stored as String "2024-01-20", range query on string works if format is ISO.
+        // Let's assume standardized format or just query everything and filter (if scaling permits).
+        // For efficiency, let's query. If field is string YYYY-MM-DD key.
 
-        const snapshot = await getDocs(q);
+        const snapshot = await ordersRef
+            .where("schedule.date", ">=", start.toISOString().split('T')[0])
+            .where("schedule.date", "<=", end.toISOString().split('T')[0])
+            .get();
 
         // Aggregate by Day
         const days: Record<string, { count: number, revenue: number, orders: any[] }> = {};
 
         snapshot.forEach(doc => {
             const data = doc.data();
-            const dateKey = data.scheduledDate.toDate().toISOString().split('T')[0]; // YYYY-MM-DD
+            const dateStr = data.schedule?.date;
 
-            if (!days[dateKey]) {
-                days[dateKey] = { count: 0, revenue: 0, orders: [] };
+            if (!dateStr) return;
+
+            if (!days[dateStr]) {
+                days[dateStr] = { count: 0, revenue: 0, orders: [] };
             }
 
-            days[dateKey].count += 1;
-            days[dateKey].revenue += (data.totalCents || 0);
-            days[dateKey].orders.push({ id: doc.id, ...data });
+            days[dateStr].count += 1;
+            days[dateStr].revenue += (data.totalCents || 0);
+            days[dateStr].orders.push({ id: doc.id, ...data });
         });
 
         // Convert to Array
@@ -63,6 +63,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ data: result });
     } catch (error: any) {
+        console.error("Schedule API Error", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
