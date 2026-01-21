@@ -8,6 +8,7 @@ interface CreateOrderParams {
     selectedSlotId: string | null;
     notes: string;
     bottlesToReturn: number;
+    idempotencyKey: string;
 }
 
 /**
@@ -15,7 +16,7 @@ interface CreateOrderParams {
  * Replaces client-side Firestore writes.
  */
 export async function createOrder(params: CreateOrderParams): Promise<{ orderId: string; whatsappMessage: string }> {
-    const { cart, customer, notes, bottlesToReturn } = params;
+    const { cart, customer, notes, bottlesToReturn, idempotencyKey } = params;
 
     // Calculate total (Client side estimate)
     // We pass this to server, server trusts it for MVP or recalculates if robust
@@ -42,7 +43,8 @@ export async function createOrder(params: CreateOrderParams): Promise<{ orderId:
             cart,
             customer,
             notes,
-            bottlesToReturn
+            bottlesToReturn,
+            idempotencyKey
         })
     });
 

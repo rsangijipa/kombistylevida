@@ -1,12 +1,12 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 import { parseKvOrderCookie, hashToken } from "@/lib/security/token";
-import { Order, Customer, InventoryMovement } from "@/types/firestore";
+import { Order, Customer } from "@/types/firestore";
 import { calculateOrder, CatalogProduct, CartItemInput } from "@/lib/pricing/calculator";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
     let payload;
@@ -25,6 +25,35 @@ export async function POST(request: Request) {
     }
 
     try {
+        // 2.5 Idempotency Check (Early Return)
+        if (payload.idempotencyKey) {
+            const existingSnap = await adminDb.collection("orders")
+                .where("idempotencyKey", "==", payload.idempotencyKey)
+                .limit(1)
+                .get();
+
+            if (!existingSnap.empty) {
+                const exists = existingSnap.docs[0];
+                const orderData = exists.data();
+                console.log(`Idempotency hit for key ${payload.idempotencyKey}. Returning existing order ${exists.id}`);
+
+                // Reconstruct message cheaply or use stored if available
+                const lines = [`🍃 *KOMBISTYLE VIDA* 🍃`, `Pedido: #${exists.id.slice(0, 8)}`];
+                lines.push(`Cliente: ${orderData.customer?.name || 'Cliente'}`);
+                lines.push(`───────────────────────`);
+                lines.push(`(Pedido recuperado)`);
+                lines.push(`*Total: R$ ${((orderData.totalCents || 0) / 100).toFixed(2).replace('.', ',')}*`);
+                lines.push(`───────────────────────`);
+                lines.push(`*Status:* ${orderData.status === 'PAID' ? 'Pago ✅' : 'Aguardando Pagamento'}`);
+
+                return NextResponse.json({
+                    success: true,
+                    orderId: exists.id,
+                    whatsappMessage: lines.join('\n')
+                });
+            }
+        }
+
         const cookieStore = await cookies();
         const kvOrderCookie = cookieStore.get("kv_order");
         const auth = parseKvOrderCookie(kvOrderCookie?.value);
@@ -41,41 +70,26 @@ export async function POST(request: Request) {
         for (const item of payload.cart) {
             if (item.type === 'BUNDLE') {
                 comboIds.add(item.bundleId);
-                // We treat Bundle as a "Product" for calculation purposes
-                // We'll synthesize a product entry later
                 cartInputs.push({
                     productId: item.bundleId,
-                    variantKey: 'default', // Bundles have one price
+                    variantKey: 'default',
                     quantity: item.quantity || item.qty || 1
                 });
             } else if (item.type === 'PACK') {
-                // Flatten pack items into individual products for stock check & calculation
-                // OR calculate as a unit if Pack is a product?
-                // Logic: Pack is usually a convenience. Pricing might be special.
-                // Prompt: "Garrafas: 300ml = R$12... Packs correspond to variants".
-                // If the pack ITSELF is a product in "products" collection, use it.
-                // But usually packs are groups.
-                // Re-reading payload structure: `item.items` access.
-                // Let's assume we price INDIVIDUAL items inside the pack effectively,
-                // OR we can assume `item.productId` refers to a specific Pack Product (if it exists).
-                // Given "products" collection typically holds single flavors.
-                // I will iterate sub-items.
                 if (item.items && Array.isArray(item.items)) {
                     item.items.forEach((sub: any) => {
                         if (sub.productId) {
                             productIds.add(sub.productId);
                             cartInputs.push({
                                 productId: sub.productId,
-                                variantKey: item.size === 12 ? '500ml' : '300ml', // Infer variant from pack size
+                                variantKey: item.size === 12 ? '500ml' : '300ml',
                                 quantity: sub.quantity || sub.qty || 1
                             });
                         }
                     });
                 }
             } else {
-                // Product
                 if (item.productId) {
-                    // Check for composite ID "id::size"
                     let pid = item.productId;
                     let variant = item.variant || '300ml';
 
@@ -104,7 +118,6 @@ export async function POST(request: Request) {
             const pDocs = await adminDb.getAll(...pRefs);
             pDocs.forEach(doc => {
                 if (doc.exists) {
-                    // Map Firestore Product to CatalogProduct
                     const data = doc.data() as any;
                     catalogMap[doc.id] = {
                         id: doc.id,
@@ -112,23 +125,15 @@ export async function POST(request: Request) {
                         active: data.active !== false,
                         variants: {}
                     };
-                    // Map variants array to record
                     if (data.variants && Array.isArray(data.variants)) {
                         data.variants.forEach((v: any) => {
-                            // v has size '300ml' and price.
-                            // Map to variantKey
                             catalogMap[doc.id].variants[v.size] = {
-                                priceCents: v.price * 100, // stored as float in app? Or cents? 
-                                // App `Product` interface says `price: number`. Usually float in frontend?
-                                // Let's assume it's float (e.g. 12.00) so * 100.
-                                // Wait, `types/firestore.ts` says `priceCents: number` for top level, but `variants: { price: number }`.
-                                // I'll assume `v.price` is float based on `price * 100` usage in cart.
+                                priceCents: v.price * 100,
                                 active: true,
                                 volumeMl: parseInt(v.size),
-                                stockQty: v.stockQty || 0 // If we start tracking it here
+                                stockQty: v.stockQty || 0
                             };
                         });
-                        // Fallback for top-level price if variants empty but priceCents exists
                         if (Object.keys(catalogMap[doc.id].variants).length === 0 && data.priceCents) {
                             catalogMap[doc.id].variants['300ml'] = { priceCents: data.priceCents, active: true, volumeMl: 300, stockQty: 0 };
                         }
@@ -153,7 +158,7 @@ export async function POST(request: Request) {
                                 priceCents: data.priceCents,
                                 active: true,
                                 volumeMl: 0,
-                                stockQty: 999 // Combos stock depends on items, complex check. Assume valid or check later.
+                                stockQty: 999
                             }
                         }
                     };
@@ -164,38 +169,75 @@ export async function POST(request: Request) {
         // 2. Calculate Totals
         const calculation = calculateOrder(cartInputs, catalogMap);
 
+        if (!calculation.isValid) {
+            throw new Error(`Erro no cálculo do pedido: ${calculation.errors.join(", ")}`);
+        }
+
         // 3. Transaction
         await adminDb.runTransaction(async (t) => {
-            const orderDoc = await t.get(orderRef);
-            let existingOrder: Order | undefined;
+            // 1. ALL READS
+            // A. Products
+            const uniqueProductIds = Array.from(productIds);
+            const productRefs = uniqueProductIds.map(id => adminDb.collection("products").doc(id));
+            const productDocs = productRefs.length > 0 ? await t.getAll(...productRefs) : [];
+            const productDocsMap = new Map();
+            productDocs.forEach(doc => {
+                if (doc.exists) productDocsMap.set(doc.id, doc);
+            });
 
+            // B. Order
+            const orderDoc = await t.get(orderRef);
+
+            // C. Customer
+            const phoneKey = payload.customer.phone.replace(/\D/g, '');
+            const customerRef = adminDb.collection("customers").doc(phoneKey);
+            const customerDoc = await t.get(customerRef);
+
+
+            // 2. LOGIC & VALIDATION
+            // Stock Check
+            const stockUpdates: { ref: any, data: any }[] = [];
+
+            for (const input of cartInputs) {
+                if (comboIds.has(input.productId)) continue;
+
+                const pDoc = productDocsMap.get(input.productId);
+                if (!pDoc) throw new Error(`Produto ${input.productId} não encontrado.`);
+
+                const pData = pDoc.data();
+                if (!pData || pData.active === false) throw new Error(`Produto ${pData?.name || input.productId} indisponível.`);
+
+                let variantIdx = -1;
+                let currentStock = 0;
+
+                if (pData.variants && Array.isArray(pData.variants)) {
+                    variantIdx = pData.variants.findIndex((v: any) => v.size.includes(input.variantKey));
+                    if (variantIdx !== -1) {
+                        currentStock = pData.variants[variantIdx].stockQty || 0;
+                    }
+                }
+
+                if (variantIdx !== -1) {
+                    if (currentStock < input.quantity) {
+                        throw new Error(`Estoque insuficiente para ${pData.name} (${input.variantKey}).`);
+                    }
+                    // Prepare update in memory
+                    pData.variants[variantIdx].stockQty = currentStock - input.quantity;
+                    stockUpdates.push({ ref: pDoc.ref, data: { variants: pData.variants } });
+                }
+            }
+
+            // Order Validation
+            let existingOrder: Order | undefined;
             if (orderDoc.exists) {
                 existingOrder = orderDoc.data() as Order;
                 if (auth && existingOrder.publicAccess?.tokenHash !== hashToken(auth.token)) {
                     throw new Error("Unauthorized access to order");
                 }
-                if (existingOrder.status === 'CONFIRMED') return;
+                if (existingOrder.status === 'CONFIRMED') return; // Idempotency fallback
             }
 
-            // Stock Check (Only for Products, skipped for now or implemented if stockQty became available)
-            // Using logic "Preferível: usar products/{id}.variants.{300ml|500ml}.stockQty"
-            // Use `catalogMap` which has fresh data? No, transaction needs fresh read.
-            // We skip re-read optimized for MVP unless stricter safely needed.
-            // Relying on `catalogMap` is technically outside transaction context (snapshot isolation),
-            // but `stockQty` check is requested.
-            // I will implement check using the just-fetched keys if they are in `products`.
-            // Re-reading strictly requires known keys.
-            // Let's assume `catalogMap` is close enough OR re-read.
-            // Re-reading is safer.
-            // (Skipping re-read code for brevity/performance in this MVP step unless critical, user said "Estoque deve baixar" in Mark Paid).
-            // Check is technically optional at creation if we don't reserve.
-
-            // Upsert Customers
-            const phoneKey = payload.customer.phone.replace(/\D/g, '');
-            const customerRef = adminDb.collection("customers").doc(phoneKey);
-            const customerDoc = await t.get(customerRef);
-
-            // ... Customer object construction (same as before) ...
+            // Customer Logic
             const newAddress = payload.customer.address ? {
                 label: "Entrega",
                 street: payload.customer.address,
@@ -206,11 +248,18 @@ export async function POST(request: Request) {
                 updatedAt: new Date().toISOString()
             } : null;
 
+            // 3. ALL WRITES
+            // A. Stock Updates
+            for (const update of stockUpdates) {
+                t.set(update.ref, update.data, { merge: true });
+            }
+
+            // B. Customer Update
             if (!customerDoc.exists) {
                 const newCust: Customer = {
                     phone: payload.customer.phone,
                     name: payload.customer.name,
-                    email: payload.customer.email,
+                    email: payload.customer.email || null,
                     addresses: newAddress ? [newAddress] : [],
                     ecoPoints: 0,
                     orderCount: 1,
@@ -225,24 +274,23 @@ export async function POST(request: Request) {
                 const existing = customerDoc.data() as Customer;
                 const finalAddresses = existing.addresses || [];
                 if (newAddress) {
-                    // Simple dedup or prepend
                     finalAddresses.unshift(newAddress);
                 }
                 t.update(customerRef, {
                     name: payload.customer.name,
-                    addresses: finalAddresses.slice(0, 5), // Keep last 5
+                    addresses: finalAddresses.slice(0, 5),
                     orderCount: (existing.orderCount || 0) + 1,
                     lifetimeValueCents: (existing.lifetimeValueCents || 0) + calculation.pricing.totalCents,
                     lastOrderAt: new Date().toISOString()
                 });
             }
 
-            // Write Order
+            // C. Order Write
             const orderData: any = {
                 id: orderId,
                 shortId: orderId.slice(0, 8),
                 status: 'PENDING',
-                totalCents: calculation.pricing.totalCents, // Unified Model
+                totalCents: calculation.pricing.totalCents,
                 items: calculation.items,
                 pricing: calculation.pricing,
                 customer: {
@@ -256,10 +304,11 @@ export async function POST(request: Request) {
                 schedule: {
                     date: payload.selectedDate || null,
                     slotId: payload.selectedSlotId || null,
-                    slotLabel: payload.selectedSlotId // Simplify
+                    slotLabel: payload.selectedSlotId
                 },
                 notes: payload.notes || "",
                 bottlesToReturn: payload.bottlesToReturn || 0,
+                idempotencyKey: payload.idempotencyKey || null,
                 createdAt: existingOrder?.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };
@@ -268,7 +317,6 @@ export async function POST(request: Request) {
         });
 
         // 4. Generate WhatsApp
-        // ... Recycled logic ...
         const lines = [`🍃 *KOMBISTYLE VIDA* 🍃`, `Pedido: #${orderId.slice(0, 8)}`];
         lines.push(`Cliente: ${payload.customer.name}`);
         lines.push(`───────────────────────`);
@@ -301,6 +349,9 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error("Checkout Failed:", error);
-        return NextResponse.json({ error: error.message || "Internal Error" }, { status: 500 });
+        return NextResponse.json({
+            error: error.message || "Internal Error",
+            stack: error.stack
+        }, { status: 500 });
     }
 }

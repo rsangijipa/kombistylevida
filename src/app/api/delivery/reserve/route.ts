@@ -1,8 +1,10 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 import { parseKvOrderCookie, hashToken } from "@/lib/security/token";
 import { Order, DeliverySlot } from "@/types/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: Request) {
     try {
@@ -33,15 +35,39 @@ export async function POST(request: Request) {
             const orderDoc = await t.get(orderRef);
             const slotDoc = await t.get(slotRef);
 
-            if (!orderDoc.exists) throw new Error("Order not found");
-            const order = orderDoc.data() as Order;
+            let order = orderDoc.exists ? (orderDoc.data() as Order) : null;
 
-            if (order.publicAccess?.tokenHash !== hashToken(auth.token)) {
-                throw new Error("Unauthorized");
+            if (!order) {
+                // Lazy Creation for Reservation
+                order = {
+                    id: auth.orderId,
+                    status: 'NEW',
+                    items: [],
+                    totalCents: 0,
+                    customer: { name: "Guest", phone: "", deliveryMethod: "delivery" },
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    schedule: { date: null },
+                    publicAccess: {
+                        tokenHash: hashToken(auth.token),
+                        revoked: false
+                    }
+                } as Order;
+
+                t.set(orderRef, order);
+            } else {
+                // Verify existing
+                if (order.publicAccess?.tokenHash !== hashToken(auth.token)) {
+                    throw new Error("Unauthorized");
+                }
             }
 
             // Check Slot Validity
             if (!slotDoc.exists) {
+                // This implies lazy creation failure or race condition?
+                // Or maybe the slot ID is mismatch?
+                // We should probably allow creation if it respects rules?
+                // But slots are seeded by API /slots.
                 throw new Error("Slot does not exist (refresh page)");
             }
             const slot = slotDoc.data() as DeliverySlot;
@@ -58,8 +84,6 @@ export async function POST(request: Request) {
             const oldStatus = order.deliveryReservation?.status;
 
             if (oldSlotId && oldStatus === 'HELD' && oldSlotId !== slotId) {
-                // Use FieldValue to decrement without read requirement on old slot
-                const { FieldValue } = require("firebase-admin/firestore");
                 const oldSlotRef = adminDb.collection("deliverySlots").doc(oldSlotId);
                 t.update(oldSlotRef, {
                     reserved: FieldValue.increment(-1),
@@ -101,6 +125,10 @@ export async function POST(request: Request) {
         const msg = error.message || "Unknown error";
         if (msg.includes("Full") || msg.includes("Closed")) return NextResponse.json({ error: msg }, { status: 409 });
         if (msg.includes("Unauthorized")) return NextResponse.json({ error: msg }, { status: 401 });
-        return NextResponse.json({ error: "Reservation failed", details: msg }, { status: 500 });
+        return NextResponse.json({
+            error: "Reservation failed",
+            details: msg,
+            stack: error.stack
+        }, { status: 500 });
     }
 }

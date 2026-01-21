@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { DeliverySlot } from "@/types/firestore";
@@ -102,3 +103,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: e.message }, { status: 500 });
     }
 }
+

@@ -23,9 +23,9 @@ export default function MonteSeuPackPage() {
                         <div className="absolute inset-0 z-0">
                             {/* Assuming next/image is usable, import if needed or use img. Using img for speed as import might be missing context */}
                             <img
-                                src="/images/pack/header_bg.jpg"
+                                src="/images/pack/hero-pack.jpg"
                                 alt="Monte Seu Pack Background"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover blur-sm scale-110"
                             />
                             {/* Overlay Gradient */}
                             <div className="absolute inset-0 bg-gradient-to-t from-paper to-transparent opacity-90" />

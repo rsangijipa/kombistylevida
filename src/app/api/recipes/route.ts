@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
@@ -28,3 +29,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Failed to fetch recipes" }, { status: 500 });
     }
 }
+

@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { AdminService } from "@/lib/firebase/adminDb";
@@ -109,3 +110,4 @@ export async function POST(request: Request) {
         }, { status: 500 });
     }
 }
+

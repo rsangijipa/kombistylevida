@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
@@ -57,3 +58,4 @@ export async function POST(_request: Request) {
         return NextResponse.json({ error: "Release failed" }, { status: 500 });
     }
 }
+

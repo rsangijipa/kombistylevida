@@ -27,7 +27,7 @@ export const PRODUCTS: Product[] = [
         id: "ginger-lemon",
         name: "Gengibre & Limão",
         shortDesc: "Clássico revigorante",
-        imageSrc: "/images/flavors/_processed/gengibre-limao.square.png",
+        imageSrc: "/images/flavors/v3-transparent/gengibre-limao.png",
         priceCents: 1200, // Base price 300ml
         size: "300ml",
         variants: [
@@ -39,7 +39,7 @@ export const PRODUCTS: Product[] = [
         id: "red-berries",
         name: "Frutas Vermelhas",
         shortDesc: "Doce e antioxidante",
-        imageSrc: "/images/flavors/_processed/frutas-vermelhas.square.png",
+        imageSrc: "/images/flavors/v3-transparent/frutas-vermelhas.png",
         priceCents: 1200,
         size: "300ml",
         variants: [
@@ -51,7 +51,7 @@ export const PRODUCTS: Product[] = [
         id: "purple-grape",
         name: "Uva Roxa",
         shortDesc: "Intenso e encorpado",
-        imageSrc: "/images/flavors/_processed/uva-roxa.square.png",
+        imageSrc: "/images/flavors/v3-transparent/uva-roxa.png",
         priceCents: 1200,
         size: "300ml",
         variants: [
@@ -63,7 +63,7 @@ export const PRODUCTS: Product[] = [
         id: "passionfruit",
         name: "Maracujá",
         shortDesc: "Tropical e calmante",
-        imageSrc: "/images/flavors/_processed/maracuja.square.png",
+        imageSrc: "/images/flavors/v3-transparent/maracuja.png",
         priceCents: 1200,
         size: "300ml",
         variants: [

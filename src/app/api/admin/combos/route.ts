@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
@@ -97,3 +98,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: "Failed to delete combo", details: message }, { status: 500 });
     }
 }
+

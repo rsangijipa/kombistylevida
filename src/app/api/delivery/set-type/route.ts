@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
@@ -77,3 +78,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Operation failed" }, { status: 500 });
     }
 }
+

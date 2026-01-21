@@ -59,6 +59,8 @@ function initAdmin(): App {
 
     if (!config && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== 'phase-production-build') {
         console.error("❌ Firebase Admin Configuration Missing! Database operations will fail.");
+    } else if (process.env.NODE_ENV === "production") {
+        console.log(`✅ Firebase Admin Initializing. Project: ${(config as any)?.projectId || 'N/A'}, Strategy: ${typeof config === 'string' ? 'File' : 'Env'}`);
     }
 
     try {

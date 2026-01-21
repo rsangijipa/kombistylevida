@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 // import { headers } from "next/headers";
@@ -44,3 +45,4 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
 }
+

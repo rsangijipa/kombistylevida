@@ -186,6 +186,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                         </button>
                     </div>
                 </div>
+                {/* Env Fingerprint */}
+                <div className="px-6 pb-2 text-center">
+                    <p className="text-[9px] font-mono text-ink/20 break-all select-all">
+                        PID: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '---'}
+                    </p>
+                </div>
             </aside>
 
             {/* Mobile Header */}

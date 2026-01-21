@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
@@ -53,3 +54,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: "Failed to delete recipe" }, { status: 500 });
     }
 }
+

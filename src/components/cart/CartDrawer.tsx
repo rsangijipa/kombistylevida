@@ -57,6 +57,14 @@ export function CartDrawer() {
 
         setIsCheckingOut(true);
 
+        // 0. Idempotency Key (prevent duplicates)
+        // We use a ref or state to keep it stable across retries if we wanted, 
+        // but for now generating one unique per "intent" is good.
+        // If we want to protecting against "Client sends request, network fails, User clicks again",
+        // we should ideally keep the SAME key until success.
+        // Let's fallback to specific simplified logic:
+        const idempotencyKey = crypto.randomUUID();
+
         try {
             // 1. Create Order on Server (Source of Truth)
             // Server validates stock, prices, upserts customer, and generates WhatsApp text.
@@ -66,7 +74,8 @@ export function CartDrawer() {
                 selectedDate,
                 selectedSlotId,
                 notes,
-                bottlesToReturn
+                bottlesToReturn,
+                idempotencyKey
             });
 
             // 2. Clear Cart & State
@@ -123,7 +132,7 @@ export function CartDrawer() {
         if (sizeCode && prod?.variants) {
             const variant = prod.variants.find(v => v.size.includes(sizeCode));
             if (variant) {
-                return acc + (variant.price * 100 * item.quantity);
+                return acc + ((variant.price || 0) * 100 * item.quantity);
             }
         }
 

@@ -1,92 +1,80 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-import { Order, InventoryMovement } from "@/types/firestore";
-import { CatalogProduct } from "@/lib/pricing/calculator";
-import { Transaction } from "firebase-admin/firestore";
+import { Order } from "@/types/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function PATCH(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    const { id: orderId } = await params;
-
-    if (!orderId) return NextResponse.json({ error: "Order ID required" }, { status: 400 });
-
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
     try {
-        await adminDb.runTransaction(async (t: Transaction) => {
+        const { id: orderId } = await context.params;
+        const updatedBy = "admin"; // Placeholder
+
+        await adminDb.runTransaction(async (t) => {
             const orderRef = adminDb.collection("orders").doc(orderId);
             const orderDoc = await t.get(orderRef);
 
-            if (!orderDoc.exists) throw new Error("Order not found");
-            const order = orderDoc.data() as Order;
+            if (!orderDoc.exists) {
+                throw new Error("Order not found");
+            }
 
-            if (order.status === "CANCELED") return; // Idempotent
+            const customOrder = orderDoc.data() as Order;
 
-            // Check if we need to restock
-            const needsRestock = (order.payment?.status === "PAID" || order.status === "PAID");
+            if (customOrder.status === 'CANCELED') {
+                return; // Already canceled
+            }
 
-            if (needsRestock) {
-                // 1. Read Catalog
-                const productIds = Array.from(new Set(order.items.map(i => i.productId)));
-                const productRefs = productIds.map(id => adminDb.collection("catalog").doc(id));
-                const productDocs = await Promise.all(productRefs.map(ref => t.get(ref)));
+            // Restore Stock
+            const items = customOrder.items || [];
+            const productIds = new Set(items.map(i => i.productId));
 
-                const catalogMap: Record<string, CatalogProduct> = {};
-                productDocs.forEach(doc => {
-                    if (doc.exists) catalogMap[doc.id] = { id: doc.id, ...doc.data() } as CatalogProduct;
+            const productsToUpdate = new Map<string, any>();
+
+            // 1. Load Data
+            const uniqueIds = Array.from(productIds);
+            const refs = uniqueIds.map(id => adminDb.collection("products").doc(id));
+            if (refs.length > 0) {
+                const docs = await t.getAll(...refs);
+                docs.forEach(d => {
+                    if (d.exists) productsToUpdate.set(d.id, { ref: d.ref, data: d.data() });
                 });
+            }
 
-                // 2. Increment Stock
-                for (const item of order.items) {
-                    const prod = catalogMap[item.productId];
-                    if (prod) {
-                        const variantKey = item.size === '500ml' ? '500ml' : (item.size === '300ml' ? '300ml' : (item.variantKey || '300ml'));
-                        const currentStock = prod.variants?.[variantKey]?.stockQty || 0;
-
-                        t.update(adminDb.collection("catalog").doc(item.productId), {
-                            [`variants.${variantKey}.stockQty`]: currentStock + (item.quantity || (item as any).qty || 1)
-                        });
-
-                        // 3. Log Movement
-                        const moveRef = adminDb.collection("stockMovements").doc();
-                        const movement: InventoryMovement = {
-                            id: moveRef.id,
-                            productId: item.productId,
-                            type: 'ADJUST', // IN/ADJUST
-                            quantity: item.quantity || (item as any).qty || 1,
-                            reason: `Order ${orderId} CANCELED (Restock)`,
-                            orderId: orderId,
-                            createdAt: new Date().toISOString()
-                        };
-                        t.set(moveRef, movement);
+            // 2. Modify Data in Memory
+            for (const item of items) {
+                const entry = productsToUpdate.get(item.productId);
+                if (entry && entry.data && entry.data.variants) {
+                    const idx = entry.data.variants.findIndex((v: any) => v.size && v.size.includes(item.variantKey));
+                    if (idx !== -1) {
+                        const current = entry.data.variants[idx].stockQty || 0;
+                        entry.data.variants[idx].stockQty = current + item.quantity;
                     }
                 }
             }
 
-            // 4. Update Order Status
-            t.update(orderRef, {
-                status: "CANCELED",
-                "payment.status": "CANCELED", // Or keep paid but refunded? Usually canceled implies void.
-                "logistics.status": "DONE", // Close logistics loop
-                updatedAt: new Date().toISOString()
+            // 3. Write Back
+            productsToUpdate.forEach((entry) => {
+                t.set(entry.ref, { variants: entry.data.variants }, { merge: true });
             });
 
-            // 5. Update Agenda Item
-            const date = order.schedule?.date || order.delivery?.date;
-            if (date) {
-                const agendaRef = adminDb.collection("agenda").doc(date).collection("items").doc(orderId);
-                t.set(agendaRef, { status: "CANCELED" }, { merge: true });
-            }
+            // Update Order
+            t.update(orderRef, {
+                status: 'CANCELED',
+                updatedAt: new Date().toISOString(),
+                // Audit Trail
+                history: FieldValue.arrayUnion({
+                    action: 'CANCELED',
+                    timestamp: new Date().toISOString(),
+                    user: updatedBy,
+                    details: `Canceled via Admin UI`
+                })
+            } as any);
         });
 
         return NextResponse.json({ success: true });
-
-    } catch (error: unknown) {
-        console.error("Cancel API Error:", error);
-        const message = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ error: message }, { status: 500 });
+    } catch (error: any) {
+        console.error("Cancel Error:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
