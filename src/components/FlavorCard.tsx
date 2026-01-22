@@ -19,53 +19,48 @@ export function FlavorCard({
 }) {
     return (
         <article
-            className="group relative flex h-full w-full cursor-pointer flex-col justify-between overflow-hidden rounded-xl bg-paper transition-all duration-300 active:scale-[0.98] hover:-translate-y-2 hover:shadow-paper touch-manipulation"
+            className="group relative flex h-[400px] w-full cursor-pointer flex-col overflow-hidden rounded-[24px] bg-paper shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] touch-manipulation"
             onClick={onOpen}
         >
-            {/* 
-         Editorial Frame: Subtle single line, inset.
-      */}
-            <div className="absolute inset-[8px] md:inset-[12px] border border-ink/10 pointer-events-none z-20 rounded-lg transition-colors group-hover:border-ink/20" />
+            {/* 1. Full-Bleed Image Background */}
+            <div className="absolute inset-0 z-0 bg-paper2">
+                {flavor.imageSrc && (
+                    <Image
+                        src={flavor.imageSrc}
+                        alt={flavor.title}
+                        fill
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 400px"
+                    />
+                )}
+                {/* Subtle Gradient to ensure text readability at bottom */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+            </div>
 
-            {/* Conteúdo */}
-            <div className="relative z-10 flex flex-1 flex-col items-center px-2 py-6 md:px-6 md:pt-12 md:pb-10 text-center">
+            {/* Editorial Frame (Inset) - White/Light for contrast on dark overlay or standard dark on light? 
+               Since we have a full image, a white border might look classy. 
+            */}
+            <div className="absolute inset-[10px] border border-white/20 rounded-[18px] pointer-events-none z-20 transition-colors group-hover:border-white/40" />
 
-                {/* Imagem */}
-                <div className="relative w-28 md:w-48 aspect-square mb-4 md:mb-8 flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-105">
-                    {flavor.imageSrc && (
-                        <Image
-                            src={flavor.imageSrc}
-                            alt={flavor.title}
-                            fill
-                            className="object-contain drop-shadow-sm"
-                            sizes="(max-width: 768px) 100vw, 300px"
-                        />
-                    )}
-                </div>
 
-                {/* Título */}
-                <div className="flex-1 flex flex-col items-center justify-start">
-                    <h3 className="font-serif text-xl md:text-3xl text-ink font-normal leading-tight group-active:scale-95 transition-transform">
-                        {flavor.title.split('\n').map((line, i) => (
-                            <React.Fragment key={i}>
-                                {line}
-                                {i < flavor.title.split('\n').length - 1 && <br />}
-                            </React.Fragment>
-                        ))}
+            {/* 2. Content Overlay (Bottom) */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-6 flex flex-col items-center text-center">
+
+                {/* Blurred Glass Backdrop for Text */}
+                <div className="absolute inset-0 bg-paper/10 backdrop-blur-md border-t border-white/10" />
+
+                <div className="relative z-10 w-full flex flex-col items-center gap-2">
+                    <h3 className="font-serif text-2xl md:text-3xl text-paper font-normal leading-tight drop-shadow-md">
+                        {flavor.title.replace("\n", " ")}
                     </h3>
-                    {/* Decorative Flourish */}
-                    <div className="mt-2 md:mt-4 opacity-40 text-amber">
-                        <Flourish className="w-12 h-3 md:w-16 md:h-4" />
-                    </div>
-                </div>
 
-                {/* Botão (Hidden by default on desktop, visible on mobile?) 
-                    User request: "No hover desktop, opacity 0 -> 1. Mobile static."
-                */}
-                <div className="mt-4 md:mt-8 opacity-100 md:opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0">
+                    {/* Decorative Divider */}
+                    <div className="h-[2px] w-8 bg-amber/80 rounded-full" />
+
+                    {/* Button - Now ghost-styled to blend */}
                     <button
                         className={cn(
-                            "inline-flex h-8 md:h-10 items-center rounded-full border border-ink/20 bg-transparent px-4 md:px-6 text-[10px] md:text-xs font-bold uppercase tracking-widest text-ink transition-all hover:bg-ink hover:text-paper hover:border-transparent",
+                            "mt-3 inline-flex h-9 items-center rounded-full border border-white/30 bg-white/10 px-6 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-white hover:text-ink hover:border-white",
                         )}
                         type="button"
                         onClick={(e) => {
@@ -73,13 +68,10 @@ export function FlavorCard({
                             onOpen?.();
                         }}
                     >
-                        Ver Sabor
+                        Ver Detalhes
                     </button>
                 </div>
             </div>
-
-            {/* Background Texture is handled by global body, but we can add a subtle tint here */}
-            <div className="absolute inset-0 bg-white/40 opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none"></div>
         </article>
     );
 }

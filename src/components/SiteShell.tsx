@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { cn } from "@/lib/cn";
 import { BubblesOverlay } from "@/components/BubblesOverlay";
 import Link from "next/link";
 import { TopNav } from "@/components/TopNav";
@@ -26,10 +27,26 @@ export function SiteShell({ children }: SiteShellProps) {
 
             {/* 
         Container Principal (O Quadro)
-        - Max-width restrito: 1040px
-        - Relative + Overflow hidden
+            {/* 
+        Container Principal (O Quadro)
+        - Premium Frame
+        - Wider on desktop (1440px), safe on huge screens (95vw)
       */}
-            <div className="relative mx-auto max-w-[1100px] overflow-hidden bg-paper2/95 min-h-[90vh] rounded-[32px] md:rounded-[48px] shadow-2xl mb-4 mt-0 md:mb-8 md:mt-0">
+            <div
+                className={cn(
+                    "relative mx-auto w-full overflow-hidden transition-all duration-500",
+                    // Width Control
+                    "max-w-[1440px] 2xl:max-w-[95vw]",
+                    // "Floating" Premium Feel
+                    "bg-paper2/95 backdrop-blur-md", // Base glass feel
+                    "rounded-[24px] lg:rounded-[32px]", // Responsive radius
+                    "shadow-[0_18px_60px_rgba(0,0,0,0.12)]", // Soft, deep shadow
+                    "border border-ink/5", // Subtle definition
+                    // Spacing
+                    "mb-4 mt-2 md:mb-8 md:mt-4",
+                    "min-h-[90vh]"
+                )}
+            >
 
 
 

@@ -79,7 +79,7 @@ export default function Page() {
                     <div className="mx-auto mt-6 h-px w-20 bg-ink/20" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6 xl:gap-8">
                     {flavors.map((flavor) => (
                         <FlavorCard
                             key={flavor.id}

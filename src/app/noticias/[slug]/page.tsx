@@ -117,7 +117,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     </div>
 
                     {/* Scrollable Content Area (Implicitly scrollable by page, but styled to feel contained) */}
-                    <div className="prose prose-lg prose-stone max-w-none 
+                    <div className="prose prose-lg prose-stone max-w-prose mx-auto
                         prose-headings:font-serif prose-headings:font-bold prose-headings:text-ink
                         prose-p:text-ink/80 prose-p:leading-relaxed
                         prose-a:text-olive prose-a:font-bold hover:prose-a:text-olive/80

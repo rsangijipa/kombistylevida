@@ -20,6 +20,7 @@ export type Bundle = {
     description: string;
     items: BundleItem[];
     priceCents?: number;
+    imageSrc?: string;
 };
 
 export const PRODUCTS: Product[] = [
@@ -86,6 +87,7 @@ export const BUNDLES: Bundle[] = [
             { productId: "passionfruit", quantity: 1 },
         ],
         priceCents: 5800, // R$ 58,00 (Desconto)
+        imageSrc: "/images/bundles/kit-mix-bucket.png"
     },
     {
         id: "kit-imunidade",
@@ -97,6 +99,7 @@ export const BUNDLES: Bundle[] = [
             { productId: "red-berries", quantity: 3 },
         ],
         priceCents: 8500,
+        imageSrc: "/images/bundles/kit-mix-bucket.png"
     },
     {
         id: "pack-festa",
@@ -110,6 +113,7 @@ export const BUNDLES: Bundle[] = [
             { productId: "passionfruit", quantity: 3 },
         ],
         priceCents: 16000,
+        imageSrc: "/images/bundles/kit-mix-bucket.png"
     },
 ];
 

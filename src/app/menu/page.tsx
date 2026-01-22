@@ -63,14 +63,36 @@ export default function MenuPage() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto px-4">
-                            {BUNDLES.map((bundle) => (
-                                <div key={bundle.id} className="relative group overflow-hidden bg-paper rounded-xl shadow-sm transition-all duration-700 hover:-translate-y-2 hover:shadow-paper">
+                            {BUNDLES.map((bundle, index) => (
+                                <div
+                                    key={bundle.id}
+                                    className="relative group overflow-hidden bg-paper rounded-xl shadow-sm transition-all duration-700 hover:-translate-y-2 hover:shadow-paper animate-in fade-in slide-in-from-bottom-4"
+                                    style={{ animationDelay: `${index * 150}ms` }}
+                                >
                                     {/* Editorial Border (Inset) */}
                                     <div className="absolute inset-[10px] border border-ink/10 rounded-lg pointer-events-none z-10 transition-colors group-hover:border-ink/20" />
 
-                                    <div className="p-6 md:p-8 text-center relative z-0 flex flex-col h-full justify-between">
+                                    <div className="p-6 md:p-8 text-center relative z-0 flex flex-col h-full justify-between items-center">
+
+                                        {/* Bundle Image */}
+                                        <div className="relative w-48 h-48 mb-6 transition-transform duration-700 group-hover:scale-105">
+                                            {bundle.imageSrc ? (
+                                                <Image
+                                                    src={bundle.imageSrc}
+                                                    alt={bundle.name}
+                                                    fill
+                                                    className="object-contain drop-shadow-md"
+                                                    sizes="(max-width: 768px) 200px, 300px"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-ink/5 rounded-full flex items-center justify-center text-ink/20 font-serif">
+                                                    Sem Foto
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {bundle.badge && (
-                                            <span className="absolute right-6 top-6 bg-amber/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm rounded-sm">
+                                            <span className="absolute right-6 top-6 bg-amber/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink shadow-sm backdrop-blur-sm rounded-sm z-20">
                                                 {bundle.badge}
                                             </span>
                                         )}
@@ -106,10 +128,14 @@ export default function MenuPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-                        {PRODUCTS.map((prod) => {
+                        {PRODUCTS.map((prod, index) => {
                             const qty = getQty(prod.id);
                             return (
-                                <article key={prod.id} className="group relative flex flex-col justify-between bg-paper rounded-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-paper">
+                                <article
+                                    key={prod.id}
+                                    className="group relative flex flex-col justify-between bg-paper rounded-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-paper animate-in fade-in slide-in-from-bottom-4"
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                >
                                     {/* Editorial Border */}
                                     <div className="absolute inset-[8px] border border-ink/5 rounded-lg pointer-events-none z-20 group-hover:border-ink/15 transition-colors" />
 

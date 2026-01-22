@@ -94,9 +94,13 @@ export default function NoticiasIndexPage() {
                     {posts.length === 0 ? (
                         <NewsEmptyState />
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {posts.map(post => (
-                                <div key={post.slug} className="group flex flex-col bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 xl:gap-8">
+                            {posts.map((post, index) => (
+                                <div
+                                    key={post.slug}
+                                    className="group flex flex-col bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                >
                                     {/* Image */}
                                     <div className="relative aspect-[4/3] overflow-hidden">
                                         {post.coverImage ? (
