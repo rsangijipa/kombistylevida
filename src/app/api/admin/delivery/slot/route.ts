@@ -1,14 +1,13 @@
 export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-// import { headers } from "next/headers";
+import { adminGuard } from "@/lib/auth/adminGuard";
+
+import { DeliverySlot } from "@/types/firestore";
 
 export async function PATCH(request: Request) {
     try {
-        // TODO: Add Authentication Check here (e.g. check cookie or header)
-        // const headerList = headers();
-        // const secret = headerList.get("x-admin-secret");
-        // if (secret !== process.env.ADMIN_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        await adminGuard();
 
         const body = await request.json();
         const { slotId, capacity, isOpen } = body;
@@ -24,7 +23,7 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: "Slot not found" }, { status: 404 });
         }
 
-        const updates: any = {
+        const updates: Partial<DeliverySlot> = {
             updatedAt: new Date().toISOString()
         };
 
@@ -45,4 +44,3 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
 }
-

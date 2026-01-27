@@ -4,9 +4,18 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { OrderItem, Product } from '@/types/firestore';
+import { adminGuard } from '@/lib/auth/adminGuard';
+
+// Local type for handling legacy data
+type LegacyOrderItem = OrderItem & {
+    qty?: number;
+    subItems?: { name?: string; quantity?: number; qty?: number }[];
+};
 
 export async function GET() {
     try {
+        await adminGuard();
+
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
@@ -30,19 +39,19 @@ export async function GET() {
                 revenueToday += (data.totalCents || 0);
             }
 
-            // Packs logic (Check items)
-            if (data.items && Array.isArray(data.items)) {
+            // Packs logic (Check metadata first, then legacy items)
+            if (data.metadata?.originalCart && Array.isArray(data.metadata.originalCart)) {
+                data.metadata.originalCart.forEach((cartItem: { type: string; quantity: number }) => {
+                    if (cartItem.type === 'PACK') {
+                        packsSold += (cartItem.quantity || 1);
+                    }
+                });
+            } else if (data.items && Array.isArray(data.items)) {
+                // Fallback for legacy orders
                 data.items.forEach((item: OrderItem) => {
-                    // Check if item is a pack by ID or explicit flag
-                    // In new "Items" list, we might just have products.
-                    // But if we want to track "Packs", we need to see how they are saved.
-                    // If we flattened packs into items, we might lose "Pack count" unless we tag them.
-                    // However, for MVP, let's count items that are "pack-*" or if the order implies a pack (business logic).
-                    // Or, if we kept "subItems" in some legacy orders, handle that.
-
-                    // Legacy structure support
+                    const legacyItem = item as LegacyOrderItem;
                     if (item.productId && item.productId.startsWith("pack-")) {
-                        packsSold += (item.quantity || (item as any).qty || 1);
+                        packsSold += (item.quantity || legacyItem.qty || 1);
                     }
                 });
             }
@@ -65,8 +74,8 @@ export async function GET() {
             }
         });
 
-        // 3. Low Stock (Scanning Catalog Variants)
-        const catalogSnap = await adminDb.collection('catalog').where('active', '==', true).get();
+        // 3. Low Stock (Scanning Products)
+        const catalogSnap = await adminDb.collection('products').where('active', '==', true).get();
         let lowStockCount = 0;
 
         catalogSnap.forEach(doc => {
@@ -101,13 +110,14 @@ export async function GET() {
 
             if (data.items) {
                 data.items.forEach((item: OrderItem) => {
+                    const legacyItem = item as LegacyOrderItem;
                     // New Flattened Structure usually has productName
                     if (item.productName) {
-                        flavorMap[item.productName] = (flavorMap[item.productName] || 0) + (item.quantity || (item as any).qty || 1);
-                    } else if (item.subItems) { // Legacy
-                        item.subItems.forEach((sub) => {
+                        flavorMap[item.productName] = (flavorMap[item.productName] || 0) + (item.quantity || legacyItem.qty || 1);
+                    } else if (legacyItem.subItems) { // Legacy
+                        legacyItem.subItems.forEach((sub) => {
                             const name = sub.name || "Sabor (Pack)";
-                            flavorMap[name] = (flavorMap[name] || 0) + (sub.quantity || (sub as any).qty || 1);
+                            flavorMap[name] = (flavorMap[name] || 0) + (sub.quantity || (sub as { qty?: number }).qty || 1);
                         });
                     }
                 });
@@ -147,9 +157,11 @@ export async function GET() {
             topFlavors
         });
 
-    } catch (error: unknown) {
+    } catch (error: any) {
+        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
         console.error("Stats Error:", error);
         return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
     }
 }
-

@@ -21,11 +21,10 @@ export default function MonteSeuPackPage() {
                     <div className="relative h-[240px] md:h-[320px] w-full">
                         {/* Background Image */}
                         <div className="absolute inset-0 z-0">
-                            {/* Assuming next/image is usable, import if needed or use img. Using img for speed as import might be missing context */}
                             <img
-                                src="/images/pack/hero-pack.jpg"
-                                alt="Monte Seu Pack Background"
-                                className="w-full h-full object-cover blur-sm scale-110"
+                                src="/images/lifestyle/delivery-bag.jpg" // Updated to new delivery bag image
+                                alt="Monte Seu Pack - Delivery"
+                                className="w-full h-full object-cover object-[center_30%] blur-[2px] scale-105 opacity-90"
                             />
                             {/* Overlay Gradient */}
                             <div className="absolute inset-0 bg-gradient-to-t from-paper to-transparent opacity-90" />

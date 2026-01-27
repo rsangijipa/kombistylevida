@@ -5,9 +5,11 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { BUNDLES as SEED_BUNDLES } from '@/data/catalog';
 import { Combo } from '@/types/firestore';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const snapshot = await adminDb.collection('combos').get();
         let combos = snapshot.docs.map(doc => doc.data());
 
@@ -51,6 +53,7 @@ const slugify = (text: string) => {
 
 export async function POST(request: Request) {
     try {
+        await adminGuard();
         const body = await request.json();
         const { id, priceCents, active, name, description, size, items, badge } = body;
 
@@ -86,6 +89,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
@@ -98,4 +102,3 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: "Failed to delete combo", details: message }, { status: 500 });
     }
 }
-

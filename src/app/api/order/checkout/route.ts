@@ -365,6 +365,10 @@ export async function POST(request: Request) {
                 notes: payload.notes || "",
                 bottlesToReturn: payload.bottlesToReturn || 0,
                 idempotencyKey: payload.idempotencyKey || null,
+                metadata: {
+                    originalCart: payload.cart,
+                    userAgent: request.headers.get('user-agent') || 'unknown'
+                },
                 createdAt: existingOrder?.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             };

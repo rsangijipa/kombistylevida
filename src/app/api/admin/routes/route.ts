@@ -2,9 +2,12 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
+
         const { searchParams } = new URL(request.url);
         const date = searchParams.get('date');
 
@@ -27,9 +30,11 @@ export async function GET(request: Request) {
         const activeOrders = orders.filter((o: any) => o.status !== 'CANCELED');
 
         return NextResponse.json(activeOrders);
-    } catch (error) {
+    } catch (error: any) {
+        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
         console.error("Routes API Error:", error);
         return NextResponse.json({ error: "Failed to fetch routes" }, { status: 500 });
     }
 }
-

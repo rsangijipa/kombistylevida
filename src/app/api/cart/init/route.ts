@@ -5,7 +5,7 @@ import { AdminService } from "@/lib/firebase/adminDb";
 import { generateToken, hashToken, parseKvOrderCookie } from "@/lib/security/token";
 import { Order } from "@/types/firestore";
 
-export async function POST(request: Request) {
+export async function POST() {
     try {
         const cookieStore = await cookies();
         const kvOrderCookie = cookieStore.get("kv_order");

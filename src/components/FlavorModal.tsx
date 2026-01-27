@@ -10,6 +10,7 @@ export type FlavorDetails = {
     id?: string;
     title: string;
     imageSrc?: string;
+    lifestyleSrc?: string;
     longDesc?: string;
     ingredients?: string[];
     pairings?: string[]; // Harmonização
@@ -159,9 +160,24 @@ export function FlavorModal({ isOpen, onClose, flavor }: FlavorModalProps) {
                     <div className="hidden md:flex flex-row h-auto overflow-hidden">
 
                         {/* Desktop Left: Image Side (Expanded to 50%) */}
-                        <div className="relative flex-shrink-0 w-1/2 items-center justify-center bg-paper2 min-h-[600px]">
-                            <div className="absolute inset-0 opacity-20 mix-blend-multiply bg-[url('/images/paper-texture.png')] bg-repeat" />
-                            <div className="relative w-full h-full p-12">
+                        <div className="relative flex-shrink-0 w-1/2 items-center justify-center bg-paper2 min-h-[600px] overflow-hidden group">
+                            {/* Background Texture or Lifestyle Image */}
+                            {flavor.lifestyleSrc ? (
+                                <Image
+                                    src={flavor.lifestyleSrc}
+                                    alt="Lifestyle"
+                                    fill
+                                    className="object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
+                                />
+                            ) : (
+                                <div className="absolute inset-0 opacity-20 mix-blend-multiply bg-[url('/images/paper-texture.png')] bg-repeat" />
+                            )}
+
+                            {/* Main Bottle Image - If lifestyle exists, maybe shadow/smaller? Or just centered. */}
+                            <div className={cn(
+                                "relative w-full h-full p-12 transition-all duration-500",
+                                flavor.lifestyleSrc ? "scale-90 translate-y-4 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" : ""
+                            )}>
                                 {flavor.imageSrc && (
                                     <Image
                                         src={flavor.imageSrc}

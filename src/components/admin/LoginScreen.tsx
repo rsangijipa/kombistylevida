@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { User, Lock, Home } from "lucide-react";
 import Link from "next/link";
@@ -13,18 +13,39 @@ export function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [isRegistering, setIsRegistering] = useState(false);
 
+    const syncSession = async (user: FirebaseUser) => {
+        try {
+            const token = await user.getIdToken();
+            await fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken: token }),
+            });
+            // Force full reload/navigation to ensure middleware sees the cookie
+            window.location.href = "/admin";
+        } catch (err) {
+            console.error("Session Sync Failed", err);
+            setError("Falha ao criar sessão segura.");
+            setLoading(false);
+        }
+    };
+
+
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setLoading(true);
         try {
+            let userCredential;
             if (isRegistering) {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // Auto login happens on success
+                userCredential = await createUserWithEmailAndPassword(auth, email, password);
             } else {
-                await signInWithEmailAndPassword(auth, email, password);
+                userCredential = await signInWithEmailAndPassword(auth, email, password);
             }
+            await syncSession(userCredential.user);
         } catch (err: any) {
+            setLoading(false);
             console.error(err);
             if (err.code === 'auth/email-already-in-use') {
                 setError("Email já cadastrado.");
@@ -33,8 +54,6 @@ export function LoginScreen() {
             } else {
                 setError("Falha na autenticação. Verifique os dados.");
             }
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -43,11 +62,11 @@ export function LoginScreen() {
         setLoading(true);
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const userCredential = await signInWithPopup(auth, provider);
+            await syncSession(userCredential.user);
         } catch (err: any) {
             console.error(err);
             setError("Erro com Google Login.");
-        } finally {
             setLoading(false);
         }
     };
@@ -109,6 +128,7 @@ export function LoginScreen() {
                         {loading ? "Processando..." : (isRegistering ? "Criar Conta" : "Entrar com Email")}
                     </button>
 
+                    {/* Registration Disabled for Security
                     <button
                         type="button"
                         onClick={() => setIsRegistering(!isRegistering)}
@@ -116,6 +136,7 @@ export function LoginScreen() {
                     >
                         {isRegistering ? "Já tem conta? Fazer Login" : "Não tem conta? Cadastrar"}
                     </button>
+                    */}
                 </form>
 
                 <div className="my-6 flex items-center gap-2">

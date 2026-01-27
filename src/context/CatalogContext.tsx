@@ -36,7 +36,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
 
                 if (dynProducts.length > 0) {
                     setProducts(dynProducts.filter(p => p.active));
-                } else {
+                } else if (process.env.NEXT_PUBLIC_ALLOW_STATIC_FALLBACK === 'true') {
                     // Fallback Products
                     const mapped = STATIC_PRODUCTS.map(p => ({
                         ...p,
@@ -49,7 +49,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
 
                 if (dynCombos.length > 0) {
                     setCombos(dynCombos.filter(c => c.active));
-                } else {
+                } else if (process.env.NEXT_PUBLIC_ALLOW_STATIC_FALLBACK === 'true') {
                     // Fallback Combos
                     setCombos(STATIC_BUNDLES.map(b => ({
                         id: b.id,
@@ -64,25 +64,28 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
                 }
 
             } catch (e) {
-                console.error("Failed to load catalog, using static", e);
-                // Full fallback
-                const mapped = STATIC_PRODUCTS.map(p => ({
-                    ...p,
-                    priceCents: p.priceCents || 0,
-                    active: true,
-                    updatedAt: new Date().toISOString()
-                })) as Product[];
-                setProducts(mapped);
-                setCombos(STATIC_BUNDLES.map(b => ({
-                    id: b.id,
-                    name: b.name,
-                    description: b.description,
-                    badge: b.badge,
-                    items: b.items,
-                    priceCents: b.priceCents || 0,
-                    active: true,
-                    updatedAt: new Date().toISOString()
-                })) as Combo[]);
+                console.error("Failed to load catalog", e);
+                // Full fallback only if allowed
+                if (process.env.NEXT_PUBLIC_ALLOW_STATIC_FALLBACK === 'true') {
+                    console.warn("Using static fallback catalog");
+                    const mapped = STATIC_PRODUCTS.map(p => ({
+                        ...p,
+                        priceCents: p.priceCents || 0,
+                        active: true,
+                        updatedAt: new Date().toISOString()
+                    })) as Product[];
+                    setProducts(mapped);
+                    setCombos(STATIC_BUNDLES.map(b => ({
+                        id: b.id,
+                        name: b.name,
+                        description: b.description,
+                        badge: b.badge,
+                        items: b.items,
+                        priceCents: b.priceCents || 0,
+                        active: true,
+                        updatedAt: new Date().toISOString()
+                    })) as Combo[]);
+                }
             } finally {
                 setLoading(false);
             }

@@ -5,7 +5,8 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from 'firebase-admin/firestore';
 import { logEvent, logError } from "@/lib/logger";
-import { Order } from "@/types/firestore";
+import { Order, Product } from "@/types/firestore";
+import { adminGuard } from "@/lib/auth/adminGuard";
 
 export async function POST(request: Request) {
     let body;
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
 
     try {
+        await adminGuard();
         await adminDb.runTransaction(async (t) => {
             const orderRef = adminDb.collection("orders").doc(orderId);
             const orderDoc = await t.get(orderRef);
@@ -47,72 +49,33 @@ export async function POST(request: Request) {
             // If products are deleted, we can't restore stock easily, but let's try
             const pRefs = Array.from(productIds).map(id => adminDb.collection("products").doc(id));
             const pDocs = await t.getAll(...pRefs);
-            const pMap = new Map();
-            pDocs.forEach(d => { if (d.exists) pMap.set(d.id, d.data()); });
+            const pMap = new Map<string, Product>();
+            pDocs.forEach(d => { if (d.exists) pMap.set(d.id, d.data() as Product); });
 
             order.items.forEach(item => {
-                // Handle PACK
-                if (item.subItems) {
-                    // TODO: Pack logic revert.
-                    // The checkout flattened pack items into cartInputs? No, Checkout kept them as Items in Order but Stock was deducted from components.
-                    // Wait, Checkout log: cartInputs pushed simple items.
-                    // Order.items stores the structure.
-                    // We need to revert exactly what was deducted.
-                    // Checkout deduces:
-                    // if item.type === 'PACK' -> forEach sub -> deduce sub.quantity * item.quantity
+                // Simple Product (or Flattened Pack Item)
+                const pid = item.productId;
+                const variantKey = item.variantKey || (item.size || '300ml');
+                const quantityToRestore = item.quantity;
 
-                    item.subItems.forEach(sub => {
-                        const pid = sub.productId;
-                        const variantKey = item.variantKey || '300ml'; // stored in item for pack? Checkout puts it in item.
-                        const quantityToRestore = (sub.quantity) * (item.quantity);
+                const pData = pMap.get(pid);
+                if (pData && pData.variants) {
+                    const vIdx = pData.variants.findIndex((v) => v.size.includes(variantKey));
+                    if (vIdx !== -1) {
+                        pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
+                        t.set(adminDb.collection("products").doc(pid), { variants: pData.variants }, { merge: true });
 
-                        const pData = pMap.get(pid);
-                        if (pData && pData.variants) {
-                            const vIdx = pData.variants.findIndex((v: any) => v.size.includes(variantKey));
-                            if (vIdx !== -1) {
-                                pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
-                                t.set(adminDb.collection("products").doc(pid), { variants: pData.variants }, { merge: true });
-
-                                // Stock Movement
-                                const mvId = adminDb.collection("stockMovements").doc().id;
-                                t.set(adminDb.collection("stockMovements").doc(mvId), {
-                                    productId: pid,
-                                    variantKey,
-                                    type: 'IN', // Revert
-                                    quantity: quantityToRestore,
-                                    reason: `Cancellation: ${reason || 'Admin'}`,
-                                    orderId,
-                                    createdAt: new Date().toISOString()
-                                });
-                            }
-                        }
-                    });
-
-                } else {
-                    // Simple Product
-                    const pid = item.productId;
-                    const variantKey = item.variantKey || (item.size || '300ml');
-                    const quantityToRestore = item.quantity;
-
-                    const pData = pMap.get(pid);
-                    if (pData && pData.variants) {
-                        const vIdx = pData.variants.findIndex((v: any) => v.size.includes(variantKey));
-                        if (vIdx !== -1) {
-                            pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
-                            t.set(adminDb.collection("products").doc(pid), { variants: pData.variants }, { merge: true });
-
-                            // Stock Movement
-                            const mvId = adminDb.collection("stockMovements").doc().id;
-                            t.set(adminDb.collection("stockMovements").doc(mvId), {
-                                productId: pid,
-                                variantKey,
-                                type: 'IN',
-                                quantity: quantityToRestore,
-                                reason: `Cancellation: ${reason || 'Admin'}`,
-                                orderId,
-                                createdAt: new Date().toISOString()
-                            });
-                        }
+                        // Stock Movement
+                        const mvId = adminDb.collection("stockMovements").doc().id;
+                        t.set(adminDb.collection("stockMovements").doc(mvId), {
+                            productId: pid,
+                            variantKey,
+                            type: 'IN', // Revert
+                            quantity: quantityToRestore,
+                            reason: `Cancellation: ${reason || 'Admin'}`,
+                            orderId,
+                            createdAt: new Date().toISOString()
+                        });
                     }
                 }
             });
@@ -153,8 +116,9 @@ export async function POST(request: Request) {
         logEvent('order_canceled', { orderId, reason });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
-        logError('order_cancel_failed', error, { orderId });
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Cancellation failed";
+        logError('order_cancel_failed', message, { orderId });
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

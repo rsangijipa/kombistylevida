@@ -3,9 +3,11 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET() {
     try {
+        await adminGuard();
         const snapshot = await adminDb.collection('customers')
             .orderBy('lastOrderAt', 'desc')
             .limit(50)
@@ -25,8 +27,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        await adminGuard();
         const body = await request.json();
-        const { action, phone, delta, reason, isSubscriber, adminUid } = body;
+        const { action, phone, delta, isSubscriber } = body;
 
         if (!phone) return NextResponse.json({ error: 'Phone required' }, { status: 400 });
 
@@ -54,4 +57,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 });
     }
 }
-

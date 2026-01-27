@@ -3,13 +3,16 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { Product } from '@/types/firestore';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET() {
     try {
+        await adminGuard();
         const snap = await adminDb.collection('products').where('active', '==', true).get();
-        const inventory: Record<string, any> = {};
+        const inventory: Record<string, Product & { currentStock: number }> = {};
         snap.forEach(doc => {
-            const data = doc.data();
+            const data = doc.data() as Product;
             inventory[doc.id] = {
                 ...data,
                 currentStock: 0
@@ -23,6 +26,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        await adminGuard();
         const body = await request.json();
         const { productId, amount, type, variantKey } = body;
 
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
-        const data = doc.data() as any;
+        const data = doc.data() as Product;
         const targetVariant = variantKey || '300ml';
 
         // Ensure variants object exists
@@ -47,7 +51,7 @@ export async function POST(request: Request) {
         // Find variant index
         let variantIndex = -1;
         if (Array.isArray(variants)) {
-            variantIndex = variants.findIndex((v: any) => v.size === targetVariant);
+            variantIndex = variants.findIndex((v) => v.size === targetVariant);
         }
 
         const delta = type === 'IN' ? amount : -amount;
@@ -79,7 +83,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Inventory Adjust Error", error);
         return NextResponse.json({ error: "Failed to adjust" }, { status: 500 });
     }

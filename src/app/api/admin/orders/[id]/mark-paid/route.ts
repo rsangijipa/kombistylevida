@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { Order } from "@/types/firestore";
 import { FieldValue } from "firebase-admin/firestore";
+import { adminGuard } from "@/lib/auth/adminGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +12,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const { id: orderId } = await context.params;
         const body = await request.json();
 
-        // 1. Validate Admin (TODO: Middleware check)
-        const updatedBy = "admin"; // Placeholder
+        // 1. Validate Admin
+        const user = await adminGuard();
+        const updatedBy = user.email || "admin";
 
         // 2. Update Order
         await adminDb.runTransaction(async (t) => {
@@ -41,12 +43,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
                     user: updatedBy,
                     details: `Marked as paid via Admin UI`
                 })
-            } as any);
+            });
         });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Mark Paid Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

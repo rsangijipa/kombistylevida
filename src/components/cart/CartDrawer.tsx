@@ -116,9 +116,10 @@ export function CartDrawer() {
             const link = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
             window.open(link, "_blank");
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("Failed to checkout", e);
-            setValidationError(e.message || "Erro ao criar pedido. Tente novamente.");
+            const errorMessage = e instanceof Error ? e.message : "Erro ao criar pedido. Tente novamente.";
+            setValidationError(errorMessage);
         } finally {
             setIsCheckingOut(false);
         }

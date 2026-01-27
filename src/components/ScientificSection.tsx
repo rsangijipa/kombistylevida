@@ -55,6 +55,30 @@ export function ScientificSection() {
                         <CultureFeature key={c.title} feature={c} />
                     ))}
                 </div>
+
+                {/* Usage Tips (From Poster) */}
+                <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    <div className="flex flex-col items-center gap-2 text-center p-4 rounded-2xl bg-white/40">
+                        <span className="text-2xl">❄️</span>
+                        <h4 className="font-bold text-sm text-olive uppercase tracking-wide">Beba Gelada</h4>
+                        <p className="text-xs text-ink2">Temperatura ideal entre 2°C e 5°C.</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 text-center p-4 rounded-2xl bg-white/40">
+                        <span className="text-2xl">🚫👋</span>
+                        <h4 className="font-bold text-sm text-olive uppercase tracking-wide">Não Agite</h4>
+                        <p className="text-xs text-ink2">Gás natural. Abra com cuidado.</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 text-center p-4 rounded-2xl bg-white/40">
+                        <span className="text-2xl">🧊</span>
+                        <h4 className="font-bold text-sm text-olive uppercase tracking-wide">Refrigerada</h4>
+                        <p className="text-xs text-ink2">Mantenha sempre na geladeira.</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 text-center p-4 rounded-2xl bg-white/40">
+                        <span className="text-2xl">🌿</span>
+                        <h4 className="font-bold text-sm text-olive uppercase tracking-wide">Viva</h4>
+                        <p className="text-xs text-ink2">Pode conter sedimentos naturais (normal).</p>
+                    </div>
+                </div>
             </div>
 
             {/* Mode: SCIENTIFIC */}

@@ -72,6 +72,30 @@ export const PRODUCTS: Product[] = [
             { size: "500ml", price: 15 }
         ]
     },
+    {
+        id: "blackberry",
+        name: "Amora",
+        shortDesc: "Suave e marcante",
+        imageSrc: "/images/flavors/blackberry.jpg", // New Uploaded Image
+        priceCents: 1200,
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
+    },
+    {
+        id: "hibiscus-pineapple",
+        name: "Hibisco com Abacaxi",
+        shortDesc: "Refrescante e tropical",
+        imageSrc: "/images/flavors/hibiscus-pineapple.jpg", // New Uploaded Image
+        priceCents: 1200,
+        size: "300ml",
+        variants: [
+            { size: "300ml", price: 12 },
+            { size: "500ml", price: 15 }
+        ]
+    },
 ];
 
 export const BUNDLES: Bundle[] = [

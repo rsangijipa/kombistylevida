@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         description: "Kombucha artesanal de verdade. Fermentação lenta, ingredientes naturais e muita vida. Feito em Ariquemes - RO.",
         type: "website",
         locale: "pt_BR",
-        // images: ["/images/og-image.jpg"], // TODO: Add OG Image later if available
+        images: ["/images/home-hero-bg.jpg"],
     },
     twitter: {
         card: "summary_large_image",

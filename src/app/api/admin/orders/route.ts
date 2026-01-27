@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { Order } from "@/types/firestore";
+import { adminGuard } from "@/lib/auth/adminGuard";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const date = searchParams.get('date');
         const slotId = searchParams.get('slotId');
@@ -34,8 +36,9 @@ export async function GET(request: Request) {
         })) as Order[];
 
         return NextResponse.json(orders);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("API Admin Orders Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

@@ -4,7 +4,16 @@ import { CATALOG_MAP } from "@/data/catalog";
 import { DELIVERY_SLOTS } from "@/data/deliverySlots";
 import { Product, Combo } from "@/types/firestore";
 
-const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "556981123681";
+const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+
+if (!PHONE_NUMBER) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error("Critical Configuration Error: NEXT_PUBLIC_WHATSAPP_NUMBER is not set.");
+    }
+    console.warn("NEXT_PUBLIC_WHATSAPP_NUMBER is missing. Using dev fallback.");
+}
+
+const FINAL_NUMBER = PHONE_NUMBER || "556981123681";
 
 interface BuildMessageParams {
     cart: CartItem[];
@@ -212,5 +221,5 @@ export function buildOrderMessage({
 
 export function buildWhatsAppLink(message: string): string {
     const encodedMsg = encodeURIComponent(message);
-    return `https://wa.me/${PHONE_NUMBER}?text=${encodedMsg}`;
+    return `https://wa.me/${FINAL_NUMBER}?text=${encodedMsg}`;
 }
