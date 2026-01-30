@@ -63,25 +63,49 @@ export function CustomerForm() {
 
             {/* Address fields (Only if delivery) */}
             {deliveryMethod === "delivery" && (
-                <div className="animate-in slide-in-from-top-2 fade-in duration-200">
-                    <div className="mb-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Bairro</label>
+                <div className="animate-in slide-in-from-top-2 fade-in duration-200 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Bairro</label>
+                            <input
+                                type="text"
+                                value={neighborhood}
+                                onChange={(e) => setField("neighborhood", e.target.value)}
+                                placeholder="Ex: Centro"
+                                className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Número</label>
+                            <input
+                                type="text"
+                                value={useCustomerStore((s) => s.number)}
+                                onChange={(e) => setField("number", e.target.value)}
+                                placeholder="123"
+                                className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Rua / Logradouro</label>
                         <input
                             type="text"
-                            value={neighborhood}
-                            onChange={(e) => setField("neighborhood", e.target.value)}
-                            placeholder="Ex: Centro"
+                            value={address}
+                            onChange={(e) => setField("address", e.target.value)}
+                            placeholder="Av. Carlos Gomes"
                             className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
                         />
                     </div>
+
                     <div>
-                        <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Endereço Completo</label>
-                        <textarea
-                            value={address}
-                            onChange={(e) => setField("address", e.target.value)}
-                            placeholder="Rua, Número, Complemento"
-                            rows={2}
-                            className="w-full resize-none rounded-md border border-ink/20 bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-olive"
+                        <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Complemento (Opcional)</label>
+                        <input
+                            type="text"
+                            value={useCustomerStore((s) => s.complement)}
+                            onChange={(e) => setField("complement", e.target.value)}
+                            placeholder="Apto 101, Ao lado da padaria..."
+                            className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
                         />
                     </div>
                 </div>

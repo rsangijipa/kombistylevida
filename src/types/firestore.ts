@@ -21,6 +21,7 @@ export interface Customer {
         label?: string; // "Casa", "Trabalho"
         street: string;
         number: string;
+        complement?: string;
         district: string;
         city: string;
         notes?: string;
@@ -51,6 +52,8 @@ export interface Order {
         deliveryMethod: 'delivery' | 'pickup';
         neighborhood?: string;
         address?: string;
+        number?: string;
+        complement?: string;
         zipCode?: string;
     };
 
@@ -106,6 +109,8 @@ export interface Order {
         status: 'RESERVED' | 'RELEASED' | 'CONFIRMED' | 'HELD' | 'EXPIRED';
         expiresAt?: string;
     };
+
+    whatsappMessage?: string; // Generated at checkout for consistency
 
     createdAt: string;
     updatedAt: string;

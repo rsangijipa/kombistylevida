@@ -190,6 +190,32 @@ export async function POST(request: Request) {
             throw new Error(`Erro no cálculo do pedido: ${calculation.errors.join(", ")}`);
         }
 
+        // 2a. Generate WhatsApp Message (Pre-calculation for persistence)
+        const lines = [`🍃 *KOMBISTYLE VIDA* 🍃`, `Pedido: #${orderId.slice(0, 8)}`];
+        lines.push(`Cliente: ${payload.customer.name}`);
+        lines.push(`───────────────────────`);
+        calculation.items.forEach(item => {
+            const totalFmt = (item.subtotalCents / 100).toFixed(2).replace('.', ',');
+            const unitFmt = (item.unitPriceCents / 100).toFixed(2).replace('.', ',');
+            // P1-2: Explicit Volume in WhatsApp
+            lines.push(`${item.quantity}x ${item.productName} (${item.variantKey === 'default' ? 'Combo' : item.variantKey})`);
+            lines.push(`   R$ ${unitFmt} = R$ ${totalFmt}`);
+        });
+        lines.push(``);
+        lines.push(`*Total: R$ ${(calculation.pricing.totalCents / 100).toFixed(2).replace('.', ',')}*`);
+        lines.push(`───────────────────────`);
+        if (payload.customer.deliveryMethod === 'pickup') {
+            lines.push(`🏃 *Retirada no Local*`);
+        } else {
+            lines.push(`📍 *Entrega:* ${payload.customer.address}, ${payload.customer.number || "S/N"}${payload.customer.complement ? ' - ' + payload.customer.complement : ''} - ${payload.customer.neighborhood}`);
+            if (payload.selectedDate) lines.push(`📅 Data: ${new Date(payload.selectedDate).toLocaleDateString('pt-BR')}`);
+        }
+        lines.push(``);
+        lines.push(`*Status:* Aguardando Pagamento (Pix/Cartão)`);
+        lines.push(`Envie o comprovante por aqui! 🙌`);
+
+        const safeWhatsappMessage = lines.join('\n');
+
         // 3. Transaction
         await adminDb.runTransaction(async (t) => {
             // 1. ALL READS
@@ -355,6 +381,8 @@ export async function POST(request: Request) {
                     phone: payload.customer.phone,
                     deliveryMethod: payload.customer.deliveryMethod || 'delivery',
                     address: payload.customer.address,
+                    number: payload.customer.number,
+                    complement: payload.customer.complement,
                     neighborhood: payload.customer.neighborhood,
                 },
                 schedule: {
@@ -365,6 +393,7 @@ export async function POST(request: Request) {
                 notes: payload.notes || "",
                 bottlesToReturn: payload.bottlesToReturn || 0,
                 idempotencyKey: payload.idempotencyKey || null,
+                whatsappMessage: safeWhatsappMessage, // <--- SAVED TO DB
                 metadata: {
                     originalCart: payload.cart,
                     userAgent: request.headers.get('user-agent') || 'unknown'
@@ -399,32 +428,6 @@ export async function POST(request: Request) {
             }
         });
 
-        // 4. Generate WhatsApp
-        const lines = [`🍃 *KOMBISTYLE VIDA* 🍃`, `Pedido: #${orderId.slice(0, 8)}`];
-        lines.push(`Cliente: ${payload.customer.name}`);
-        lines.push(`───────────────────────`);
-        calculation.items.forEach(item => {
-            const totalFmt = (item.subtotalCents / 100).toFixed(2).replace('.', ',');
-            const unitFmt = (item.unitPriceCents / 100).toFixed(2).replace('.', ',');
-            // P1-2: Explicit Volume in WhatsApp
-            lines.push(`${item.quantity}x ${item.productName} (${item.variantKey === 'default' ? 'Combo' : item.variantKey})`);
-            lines.push(`   R$ ${unitFmt} = R$ ${totalFmt}`);
-        });
-        lines.push(``);
-        lines.push(`*Total: R$ ${(calculation.pricing.totalCents / 100).toFixed(2).replace('.', ',')}*`);
-        lines.push(`───────────────────────`);
-        if (payload.customer.deliveryMethod === 'pickup') {
-            lines.push(`🏃 *Retirada no Local*`);
-        } else {
-            lines.push(`📍 *Entrega:* ${payload.customer.address} - ${payload.customer.neighborhood}`);
-            if (payload.selectedDate) lines.push(`📅 Data: ${new Date(payload.selectedDate).toLocaleDateString('pt-BR')}`);
-        }
-        lines.push(``);
-        lines.push(`*Status:* Aguardando Pagamento (Pix/Cartão)`);
-        lines.push(`Envie o comprovante por aqui! 🙌`);
-
-        const whatsappMessage = lines.join('\n');
-
         // P2: Structured Log Success
         console.log(JSON.stringify({
             level: 'info',
@@ -439,7 +442,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             orderId: orderId,
-            whatsappMessage
+            whatsappMessage: safeWhatsappMessage
         });
 
     } catch (error: any) {

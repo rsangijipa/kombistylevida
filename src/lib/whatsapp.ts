@@ -176,7 +176,12 @@ export function buildOrderMessage({
 
     // Delivery Details
     if (isDelivery) {
-        if (customer.address) message += `📍 *Endereço:* ${customer.address}\n`;
+        if (customer.address) {
+            let fullAddress = customer.address;
+            if (customer.number) fullAddress += `, ${customer.number}`;
+            if (customer.complement) fullAddress += ` - ${customer.complement}`;
+            message += `📍 *Endereço:* ${fullAddress}\n`;
+        }
         if (customer.neighborhood) message += `🏙️ *Bairro:* ${customer.neighborhood}\n`;
 
         // Slot Logic

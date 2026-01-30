@@ -3,9 +3,11 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
 
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        await adminGuard();
         const body = await request.json();
         const { action, id, testimonial, status, reason, adminUid } = body;
 
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });

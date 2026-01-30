@@ -53,31 +53,78 @@ export async function POST(request: Request) {
             pDocs.forEach(d => { if (d.exists) pMap.set(d.id, d.data() as Product); });
 
             order.items.forEach(item => {
-                // Simple Product (or Flattened Pack Item)
-                const pid = item.productId;
-                const variantKey = item.variantKey || (item.size || '300ml');
-                const quantityToRestore = item.quantity;
+                // Check if it's a bundle/pack with subItems
+                if (item.subItems && item.subItems.length > 0) {
+                    // It's a Pack or Bundle -> Restore the sub-components
+                    item.subItems.forEach(sub => {
+                        const pid = sub.productId;
+                        // For packs, the sub-items usually follow the pack's variant size (e.g. 300ml)
+                        // or default to '300ml' if not specified.
+                        const variantKey = item.variantKey || '300ml';
+                        // Total quantity to restore = (qty per pack) * (number of packs)
+                        const quantityToRestore = sub.quantity * item.quantity;
 
-                const pData = pMap.get(pid);
-                if (pData && pData.variants) {
-                    const vIdx = pData.variants.findIndex((v) => v.size.includes(variantKey));
-                    if (vIdx !== -1) {
-                        pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
-                        t.set(adminDb.collection("products").doc(pid), { variants: pData.variants }, { merge: true });
+                        const pData = pMap.get(pid);
+                        if (pData && pData.variants) {
+                            // Find the variant to restore (e.g. '300ml')
+                            const vIdx = pData.variants.findIndex((v) => v.size.includes(variantKey));
+                            if (vIdx !== -1) {
+                                // Restore Stock
+                                pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
+                                // Queue the update (will be batched if multiple items hit same doc, 
+                                // but here we are setting effectively last-write-wins per doc in this loop. 
+                                // Ideally we should aggregate updates per doc first, but since order items are usually distinct products, this is acceptable for now.
+                                // If a pack contains A and B, and another item is A, we might have a race in this local map if not careful.
+                                // Better approach: Update the object in pMap, then write all pMap changes at the end? 
+                                // No, pData is a reference to the object in the Map. So updating pData.variants updates the Map.
+                                // We just need to make sure we write the Map back to Firestore.
 
-                        // Stock Movement
-                        const mvId = adminDb.collection("stockMovements").doc().id;
-                        t.set(adminDb.collection("stockMovements").doc(mvId), {
-                            productId: pid,
-                            variantKey,
-                            type: 'IN', // Revert
-                            quantity: quantityToRestore,
-                            reason: `Cancellation: ${reason || 'Admin'}`,
-                            orderId,
-                            createdAt: new Date().toISOString()
-                        });
+                                // Log Movement
+                                const mvId = adminDb.collection("stockMovements").doc().id;
+                                t.set(adminDb.collection("stockMovements").doc(mvId), {
+                                    productId: pid,
+                                    variantKey,
+                                    type: 'IN', // Revert
+                                    quantity: quantityToRestore,
+                                    reason: `Cancellation: ${reason || 'Admin'} (Pack Item)`,
+                                    orderId,
+                                    createdAt: new Date().toISOString()
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    // Simple Product (Single)
+                    const pid = item.productId;
+                    const variantKey = item.variantKey || (item.size || '300ml');
+                    const quantityToRestore = item.quantity;
+
+                    const pData = pMap.get(pid);
+                    if (pData && pData.variants) {
+                        const vIdx = pData.variants.findIndex((v) => v.size.includes(variantKey));
+                        if (vIdx !== -1) {
+                            pData.variants[vIdx].stockQty = (pData.variants[vIdx].stockQty || 0) + quantityToRestore;
+
+                            // Log Movement
+                            const mvId = adminDb.collection("stockMovements").doc().id;
+                            t.set(adminDb.collection("stockMovements").doc(mvId), {
+                                productId: pid,
+                                variantKey,
+                                variant: variantKey, // Legacy campatibility
+                                type: 'IN', // Revert
+                                quantity: quantityToRestore,
+                                reason: `Cancellation: ${reason || 'Admin'}`,
+                                orderId,
+                                createdAt: new Date().toISOString()
+                            });
+                        }
                     }
                 }
+            });
+
+            // Write back all modified products from pMap
+            pMap.forEach((product, pid) => {
+                t.set(adminDb.collection("products").doc(pid), { variants: product.variants }, { merge: true });
             });
 
 

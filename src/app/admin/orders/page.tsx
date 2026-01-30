@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { Search, Loader2 } from "lucide-react";
-import { Order } from "@/types/firestore";
+import { Search, Loader2, MessageSquare, Copy } from "lucide-react";
+import { useOrders } from "@/hooks/useOrders";
 
 export default function OrdersPage() {
     return (
@@ -15,32 +15,11 @@ export default function OrdersPage() {
 }
 
 function OrdersList() {
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { orders, loading } = useOrders(100);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const fetchOrders = React.useCallback(async () => {
-        try {
-            const res = await fetch('/api/admin/orders');
-            if (res.ok) {
-                const data = await res.json();
-                setOrders(data);
-            }
-        } catch (error) {
-            console.error("Error fetching orders:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchOrders(); // Initial fetch
-        const interval = setInterval(fetchOrders, 30000); // Poll every 30s
-        return () => clearInterval(interval);
-    }, [fetchOrders]);
-
     const filteredOrders = orders.filter(o =>
-        o.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (o.shortId || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -53,7 +32,6 @@ function OrdersList() {
                 body: JSON.stringify({ method: "PIX" })
             });
             if (!res.ok) throw new Error(await res.text());
-            fetchOrders();
         } catch (e: any) {
             alert("Erro: " + e.message);
         }
@@ -62,22 +40,40 @@ function OrdersList() {
     const handleCancel = async (orderId: string) => {
         if (!confirm("Cancelar pedido? Se já pago, o estoque será estornado.")) return;
         try {
-            const res = await fetch(`/api/admin/orders/${orderId}/cancel`, { method: "PATCH" });
+            const res = await fetch(`/api/admin/orders/${orderId}/cancel`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId, reason: "Admin Request", actor: "admin" })
+            });
             if (!res.ok) throw new Error(await res.text());
-            fetchOrders();
         } catch (e: any) {
             alert("Erro: " + e.message);
         }
     };
 
+    const openWhatsApp = (phone: string, text?: string) => {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text || "")}`;
+        window.open(url, '_blank');
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert("Mensagem copiada!");
+    };
+
     return (
         <AdminLayout>
-            {/* ... header ... */}
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                {/* ... title and search ... */}
                 <div>
                     <h1 className="font-serif text-3xl font-bold text-ink">Pedidos</h1>
-                    <p className="text-ink2">Acompanhe os pedidos em tempo real.</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-olive opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-olive"></span>
+                        </span>
+                        <p className="text-ink2 text-sm">Tempo Real Ativo</p>
+                    </div>
                 </div>
 
                 <div className="relative w-full md:w-auto">
@@ -157,7 +153,28 @@ function OrdersList() {
                                             <td className="px-6 py-4 font-bold text-olive">
                                                 R$ {((order.totalCents || order.pricing?.totalCents || 0) / 100).toFixed(2).replace(".", ",")}
                                             </td>
-                                            <td className="px-6 py-4 flex flex-col gap-1">
+                                            <td className="px-6 py-4 flex flex-col gap-2">
+                                                <div className="flex items-center gap-1 mb-1">
+                                                    {order.whatsappMessage && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openWhatsApp(order.customer.phone, order.whatsappMessage)}
+                                                                title="Abrir WhatsApp com Cliente"
+                                                                className="p-1.5 rounded bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                                                            >
+                                                                <MessageSquare size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => copyToClipboard(order.whatsappMessage!)}
+                                                                title="Copiar Mensagem"
+                                                                className="p-1.5 rounded bg-paper2 text-ink/60 hover:bg-paper2/80 transition-colors"
+                                                            >
+                                                                <Copy size={14} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+
                                                 {order.status !== 'PAID' && order.status !== 'CANCELED' && (
                                                     <button
                                                         onClick={() => handleMarkPaid(order.id)}
@@ -216,6 +233,26 @@ function OrdersList() {
                                                 {order.schedule.date ? new Date(order.schedule.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'S/ Data'}
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Whatsapp Actions Mobile */}
+                                    <div className="flex items-center justify-end gap-2 mb-4 border-b border-ink/5 pb-4">
+                                        {order.whatsappMessage && (
+                                            <>
+                                                <button
+                                                    onClick={() => openWhatsApp(order.customer.phone, order.whatsappMessage)}
+                                                    className="flex items-center gap-2 px-3 py-2 rounded bg-green-50 text-green-700 text-xs font-bold"
+                                                >
+                                                    <MessageSquare size={14} /> Abrir WhatsApp
+                                                </button>
+                                                <button
+                                                    onClick={() => copyToClipboard(order.whatsappMessage!)}
+                                                    className="flex items-center gap-2 px-3 py-2 rounded bg-paper2 text-ink/60 text-xs font-bold"
+                                                >
+                                                    <Copy size={14} /> Copiar
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">

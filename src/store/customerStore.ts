@@ -6,6 +6,8 @@ export interface CustomerState {
     phone: string;
     deliveryMethod: "delivery" | "pickup";
     address: string;
+    number: string;
+    complement: string;
     neighborhood: string;
     consentToSave: boolean; // LGPD
 
@@ -22,6 +24,8 @@ export const useCustomerStore = create<CustomerState>()(
             phone: "",
             deliveryMethod: "delivery",
             address: "",
+            number: "",
+            complement: "",
             neighborhood: "",
             consentToSave: false,
 
@@ -37,7 +41,7 @@ export const useCustomerStore = create<CustomerState>()(
                     // Zustand persist partialize could handle this, but for simple MVP:
                 }
             },
-            reset: () => set({ name: "", phone: "", address: "", neighborhood: "", consentToSave: false }),
+            reset: () => set({ name: "", phone: "", address: "", number: "", complement: "", neighborhood: "", consentToSave: false }),
         }),
         {
             name: "kombi-customer-storage",

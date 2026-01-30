@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Loader2, Lock, Unlock, RefreshCw, MapPin, Truck, Calendar as CalIcon, ChevronRight, User } from "lucide-react";
+import { Loader2, Lock, Unlock, RefreshCw, MapPin, Truck, Calendar as CalIcon, ChevronRight, User, Printer, Map as MapIcon } from "lucide-react";
+import { useSlotOrders } from "@/hooks/useSlotOrders";
 import { cn } from "@/lib/cn";
 
 // Types
@@ -254,21 +255,27 @@ export default function AdminDeliveryPage() {
 }
 
 // Sub-component for Orders List (Reused logic)
+// Sub-component for Orders List (Reused logic)
 function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { orders, loading } = useSlotOrders(date, slotId);
+    const [viewMode, setViewMode] = useState<'list' | 'manifest'>('list');
 
-    useEffect(() => {
-        setLoading(true);
-        fetch(`/api/admin/orders?date=${date}&slotId=${slotId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) setOrders(data);
-                else setOrders([]);
-            })
-            .catch(() => setOrders([]))
-            .finally(() => setLoading(false));
-    }, [date, slotId]);
+    // Grouping Logic
+    const grouped = React.useMemo(() => {
+        const groups: Record<string, typeof orders> = {};
+        orders.forEach(o => {
+            const hood = o.customer?.neighborhood || "Outros";
+            if (!groups[hood]) groups[hood] = [];
+            groups[hood].push(o);
+        });
+        return groups;
+    }, [orders]);
+
+    const handlePrint = () => {
+        // Simple print trigger. 
+        // In a real app, we'd style a specific @media print area.
+        window.print();
+    };
 
     if (loading) return (
         <div className="flex flex-col gap-2 p-1">
@@ -283,47 +290,106 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
         </div>
     );
 
-    return (
-        <div className="flex-1 overflow-y-auto pr-1 space-y-3 font-sans scrollbar-thin scrollbar-thumb-ink/10">
-            {orders.map(order => (
-                <div key={order.id} className="bg-white border border-ink/5 rounded-xl p-3 shadow-sm hover:border-olive/30 transition-colors group">
-                    <div className="flex justify-between items-start mb-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[10px] font-bold">
-                                <User size={12} />
-                            </div>
-                            <span className="font-bold text-sm text-ink truncate max-w-[120px]">{order.customer?.name}</span>
-                        </div>
-                        <span className="text-[10px] font-mono text-ink/40 bg-paper2 px-1.5 py-0.5 rounded">#{order.shortId}</span>
-                    </div>
-
-                    <div className="pl-8">
-                        <p className="text-xs text-ink/70 mb-2 leading-tight flex items-start gap-1">
-                            <MapPin size={10} className="mt-0.5 shrink-0 opacity-50" />
-                            {order.customer?.neighborhood || "Endereço não informado"}
-                        </p>
-
-                        <div className="bg-paper2/50 rounded-lg p-2 space-y-1">
-                            {order.items?.map((item: any, i: number) => (
-                                <div key={i} className="flex justify-between text-[11px] text-ink/80">
-                                    <span>{item.quantity}x {item.productName}</span>
-                                    <span className="opacity-50">{item.variantKey}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="mt-2 pl-8 flex justify-end">
-                        <a
-                            href={`https://wa.me/${order.customer?.phone?.replace(/\D/g, '')}`}
-                            target="_blank"
-                            className="text-[10px] font-bold uppercase tracking-wider text-olive hover:underline flex items-center gap-1"
-                        >
-                            WhatsApp <ChevronRight size={10} />
-                        </a>
-                    </div>
+    // MANIFEST VIEW
+    if (viewMode === 'manifest') {
+        return (
+            <div className="flex-1 overflow-y-auto pr-1 space-y-6 font-sans scrollbar-thin scrollbar-thumb-ink/10">
+                <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 py-2 border-b">
+                    <button onClick={() => setViewMode('list')} className="text-xs text-olive font-bold underline">Voltar</button>
+                    <button onClick={handlePrint} className="flex items-center gap-2 bg-ink text-white px-3 py-1.5 rounded-full text-xs font-bold hover:opacity-80">
+                        <Printer size={12} /> Imprimir
+                    </button>
                 </div>
-            ))}
+
+                <div id="printable-manifest" className="space-y-6">
+                    <div className="text-center md:hidden print:block mb-4">
+                        <h1 className="font-bold text-xl uppercase">Manifesto de Entrega</h1>
+                        <p>{new Date(date).toLocaleDateString()} - {slotId}</p>
+                    </div>
+
+                    {Object.entries(grouped).sort().map(([hood, hoodOrders]) => (
+                        <div key={hood} className="break-inside-avoid">
+                            <h4 className="font-bold text-lg text-ink/80 border-b-2 border-ink/10 mb-3 pb-1 uppercase tracking-wider">{hood} ({hoodOrders.length})</h4>
+                            <div className="space-y-2">
+                                {hoodOrders.map(order => (
+                                    <div key={order.id} className="border-b border-dashed border-ink/10 pb-2 mb-2">
+                                        <div className="flex justify-between font-bold text-sm">
+                                            <span>{order.customer.name}</span>
+                                            <span>#{order.shortId}</span>
+                                        </div>
+                                        <div className="text-xs text-ink/70">
+                                            {order.customer.address}, {order.customer.number || "S/N"} {order.customer.complement ? `- ${order.customer.complement}` : ''}
+                                        </div>
+                                        <div className="text-xs italic text-ink/50 mt-1">
+                                            {order.items.map((i: any) => `${i.quantity}x ${i.productName}`).join(', ')}
+                                        </div>
+                                        {/* Phone for Driver */}
+                                        <div className="text-[10px] font-mono mt-1 text-ink/40">
+                                            Tel: {order.customer.phone}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // STANDARD LIST VIEW
+    return (
+        <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex justify-end mb-2 px-1">
+                <button
+                    onClick={() => setViewMode('manifest')}
+                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink/50 hover:text-olive transition-colors"
+                >
+                    <MapIcon size={12} /> Ver Rotas / Manifesto
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3 font-sans scrollbar-thin scrollbar-thumb-ink/10">
+                {orders.map(order => (
+                    <div key={order.id} className="bg-white border border-ink/5 rounded-xl p-3 shadow-sm hover:border-olive/30 transition-colors group">
+                        <div className="flex justify-between items-start mb-1">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[10px] font-bold">
+                                    <User size={12} />
+                                </div>
+                                <span className="font-bold text-sm text-ink truncate max-w-[120px]">{order.customer?.name}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-ink/40 bg-paper2 px-1.5 py-0.5 rounded">#{order.shortId}</span>
+                        </div>
+
+                        <div className="pl-8">
+                            <p className="text-xs text-ink/70 mb-2 leading-tight flex items-start gap-1">
+                                <MapPin size={10} className="mt-0.5 shrink-0 opacity-50" />
+                                {order.customer?.neighborhood || "Endereço não informado"}
+                            </p>
+
+                            <div className="bg-paper2/50 rounded-lg p-2 space-y-1">
+                                {order.items?.map((item: any, i: number) => (
+                                    <div key={i} className="flex justify-between text-[11px] text-ink/80">
+                                        <span>{item.quantity}x {item.productName}</span>
+                                        <span className="opacity-50">{item.variantKey}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-2 pl-8 flex justify-end">
+                            <a
+                                href={`https://wa.me/${order.customer?.phone?.replace(/\D/g, '')}`}
+                                target="_blank"
+                                className="text-[10px] font-bold uppercase tracking-wider text-olive hover:underline flex items-center gap-1"
+                            >
+                                WhatsApp <ChevronRight size={10} />
+                            </a>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

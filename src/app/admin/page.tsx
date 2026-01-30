@@ -3,35 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { DashboardStats } from "@/services/adminService";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Package, RotateCcw, TrendingUp, Loader2, AlertCircle, ShoppingCart, Truck, PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 export default function AdminPage() {
-    const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-    const fetchStats = () => {
-        setLoading(true);
-        setError("");
-        fetch('/api/admin/stats')
-            .then(res => {
-                if (!res.ok) throw new Error("Falha ao carregar dados.");
-                return res.json();
-            })
-            .then(setStats)
-            .catch(err => {
-                console.error(err);
-                setError("Erro de conexão.");
-            })
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchStats();
-    }, []);
+    const { stats, loading, error } = useDashboardStats();
 
     // Skeleton Component
     const Skel = ({ className }: { className?: string }) => (
@@ -44,24 +22,20 @@ export default function AdminPage() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="font-serif text-3xl font-bold text-ink">Dashboard</h1>
-                        <p className="text-ink2 mt-1">Visão geral da operação em tempo real.</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-olive opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-olive"></span>
+                            </span>
+                            <p className="text-ink2 text-sm">Tempo Real Ativo</p>
+                        </div>
                     </div>
-                    {/* Quick Refresh */}
-                    <button
-                        onClick={fetchStats}
-                        disabled={loading}
-                        className="text-xs font-bold uppercase tracking-wider text-olive hover:text-olive/80 disabled:opacity-50 flex items-center gap-2"
-                    >
-                        <RotateCcw size={14} className={cn(loading && "animate-spin")} />
-                        Atualizar
-                    </button>
                 </div>
 
                 {error && (
                     <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-center gap-3">
                         <AlertCircle size={20} />
                         <span className="text-sm font-medium">{error}</span>
-                        <button onClick={fetchStats} className="ml-auto text-xs underline">Tentar novamente</button>
                     </div>
                 )}
 

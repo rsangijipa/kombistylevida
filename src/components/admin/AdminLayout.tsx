@@ -18,7 +18,7 @@ const NAV_ITEMS = [
     { label: "Produtos", href: "/admin/products", icon: Tag },
     { label: "Combos", href: "/admin/combos", icon: ShoppingBag },
     { label: "Blog & Conteúdo", href: "/admin/content/posts", icon: FileText },
-    { label: "Depoimentos", href: "/admin/content/testimonials", icon: MessageSquare },
+    { label: "Depoimentos", href: "/admin/testimonials", icon: MessageSquare },
     { label: "Configs", href: "/admin/settings", icon: Settings },
 ];
 
