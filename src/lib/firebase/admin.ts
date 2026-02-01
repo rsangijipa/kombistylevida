@@ -1,8 +1,8 @@
 import "server-only";
 
-import { initializeApp, getApps, getApp, App, cert, ServiceAccount } from "firebase-admin/app";
-import { getAuth, Auth } from "firebase-admin/auth";
-import { getFirestore, Firestore } from "firebase-admin/firestore";
+import type { App, ServiceAccount } from "firebase-admin/app";
+import type { Auth } from "firebase-admin/auth";
+import type { Firestore } from "firebase-admin/firestore";
 import fs from 'fs';
 import path from 'path';
 
@@ -11,6 +11,7 @@ import path from 'path';
  * 
  * This file is designed to be imported anywhere without crashing the build.
  * Initialization happens only on the first access to adminDb or adminAuth.
+ * All imports are dynamic (require) to prevent bundling 'firebase-admin' in client chunks.
  */
 
 function getAdminConfig(): ServiceAccount | string | null {
@@ -44,32 +45,53 @@ function getAdminConfig(): ServiceAccount | string | null {
     }
 
     // 2. Check for JSON file fallback (mostly local)
-    const jsonPath = path.join(process.cwd(), 'planar-outlook-final-creds.json');
-    if (fs.existsSync(jsonPath)) {
-        return jsonPath;
+    // Use try-catch for path operations to be extra safe
+    try {
+        const jsonPath = path.join(process.cwd(), 'planar-outlook-final-creds.json');
+        if (fs.existsSync(jsonPath)) {
+            return jsonPath;
+        }
+    } catch (e) {
+        // Ignore path errors (e.g. if process.cwd() fails in some envs)
     }
 
     return null;
 }
 
+// Singleton holder for the app
+let initializedApp: App | undefined;
+
 function initAdmin(): App {
-    if (getApps().length > 0) return getApp();
+    if (initializedApp) return initializedApp;
+
+    // --- LAZY IMPORTS ---
+    // These require statements run ONLY on the server, at runtime.
+    // They will not be evaluated during build if this function isn't called.
+    const { initializeApp, getApps, getApp, cert } = require("firebase-admin/app");
+
+    // Check global/existing apps first
+    if (getApps().length > 0) {
+        initializedApp = getApp();
+        return initializedApp!;
+    }
 
     const config = getAdminConfig();
 
     if (!config && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== 'phase-production-build') {
         console.error("❌ Firebase Admin Configuration Missing! Database operations will fail.");
     } else if (process.env.NODE_ENV === "production") {
-        console.log(`✅ Firebase Admin Initializing. Project: ${(config as any)?.projectId || 'N/A'}, Strategy: ${typeof config === 'string' ? 'File' : 'Env'}`);
+        console.log(`✅ Firebase Admin Initializing. Strategy: ${typeof config === 'string' ? 'File' : 'Env'}`);
     }
 
     try {
-        return initializeApp({
+        initializedApp = initializeApp({
             credential: config ? cert(config) : undefined,
         });
+        return initializedApp!;
     } catch (error) {
         if ((error as any).code === 'app/already-exists') {
-            return getApp();
+            initializedApp = getApp();
+            return initializedApp!;
         }
         console.error("FATAL: Firebase Admin Init Failed", error);
         throw error;
@@ -83,6 +105,7 @@ function initAdmin(): App {
 export const adminDb: Firestore = new Proxy({} as Firestore, {
     get(target, prop, receiver) {
         const app = initAdmin();
+        const { getFirestore } = require("firebase-admin/firestore");
         const db = getFirestore(app, "kombuchaarike");
         const value = (db as any)[prop];
         return typeof value === 'function' ? value.bind(db) : value;
@@ -92,6 +115,7 @@ export const adminDb: Firestore = new Proxy({} as Firestore, {
 export const adminAuth: Auth = new Proxy({} as Auth, {
     get(target, prop, receiver) {
         const app = initAdmin();
+        const { getAuth } = require("firebase-admin/auth");
         const auth = getAuth(app);
         const value = (auth as any)[prop];
         return typeof value === 'function' ? value.bind(auth) : value;
