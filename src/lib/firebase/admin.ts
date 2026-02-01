@@ -36,13 +36,16 @@ function initAdmin(): App {
     // Read inside function to avoid build-time evaluation
     let config: ServiceAccount | string | null = null;
 
-    const projectId = process.env['FIREBASE_ADMIN_PROJECT_ID'];
-    const clientEmail = process.env['FIREBASE_ADMIN_CLIENT_EMAIL'];
+    // Dynamic key access to prevent Webpack DefinePlugin from inlining secrets
+    const getEnv = (key: string) => process.env[key];
+
+    const projectId = getEnv('FIREBASE_ADMIN_PROJECT_ID');
+    const clientEmail = getEnv('FIREBASE_ADMIN_CLIENT_EMAIL');
 
     // Encode/decode handling
-    let privateKey = process.env['FIREBASE_ADMIN_PRIVATE_KEY_BASE64']
-        ? Buffer.from(process.env['FIREBASE_ADMIN_PRIVATE_KEY_BASE64'] || '', 'base64').toString('utf8')
-        : process.env['FIREBASE_ADMIN_PRIVATE_KEY'];
+    let privateKey = getEnv('FIREBASE_ADMIN_PRIVATE_KEY_BASE64')
+        ? Buffer.from(getEnv('FIREBASE_ADMIN_PRIVATE_KEY_BASE64') || '', 'base64').toString('utf8')
+        : getEnv('FIREBASE_ADMIN_PRIVATE_KEY');
 
     if (privateKey) {
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
