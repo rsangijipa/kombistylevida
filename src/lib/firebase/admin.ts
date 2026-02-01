@@ -14,49 +14,7 @@ import path from 'path';
  * All imports are dynamic (require) to prevent bundling 'firebase-admin' in client chunks.
  */
 
-function getAdminConfig(): ServiceAccount | string | null {
-    // 1. Check for Environment Variables
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
 
-    let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64
-        ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_BASE64, 'base64').toString('utf8')
-        : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-    if (privateKey) {
-        // Handle "double quote wrapper" from some copy-pastes
-        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-            privateKey = privateKey.slice(1, -1);
-        }
-        // Robust replacement: Handle literal "\n" (two chars) -> real newline
-        // but preserve real newlines if they already exist
-        // And don't break if it's already correct.
-        if (privateKey.includes("\\n")) {
-            privateKey = privateKey.replace(/\\n/g, "\n");
-        }
-    }
-
-    if (projectId && clientEmail && privateKey) {
-        return {
-            projectId,
-            clientEmail,
-            privateKey
-        };
-    }
-
-    // 2. Check for JSON file fallback (mostly local)
-    // Use try-catch for path operations to be extra safe
-    try {
-        const jsonPath = path.join(process.cwd(), 'planar-outlook-final-creds.json');
-        if (fs.existsSync(jsonPath)) {
-            return jsonPath;
-        }
-    } catch (e) {
-        // Ignore path errors (e.g. if process.cwd() fails in some envs)
-    }
-
-    return null;
-}
 
 // Singleton holder for the app
 let initializedApp: App | undefined;
@@ -66,7 +24,6 @@ function initAdmin(): App {
 
     // --- LAZY IMPORTS ---
     // These require statements run ONLY on the server, at runtime.
-    // They will not be evaluated during build if this function isn't called.
     const { initializeApp, getApps, getApp, cert } = require("firebase-admin/app");
 
     // Check global/existing apps first
@@ -75,7 +32,42 @@ function initAdmin(): App {
         return initializedApp!;
     }
 
-    const config = getAdminConfig();
+    // --- CONFIGURATION ---
+    // Read inside function to avoid build-time evaluation
+    let config: ServiceAccount | string | null = null;
+
+    const projectId = process.env['FIREBASE_ADMIN_PROJECT_ID'];
+    const clientEmail = process.env['FIREBASE_ADMIN_CLIENT_EMAIL'];
+
+    // Encode/decode handling
+    let privateKey = process.env['FIREBASE_ADMIN_PRIVATE_KEY_BASE64']
+        ? Buffer.from(process.env['FIREBASE_ADMIN_PRIVATE_KEY_BASE64'] || '', 'base64').toString('utf8')
+        : process.env['FIREBASE_ADMIN_PRIVATE_KEY'];
+
+    if (privateKey) {
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+            privateKey = privateKey.slice(1, -1);
+        }
+        if (privateKey.includes("\\n")) {
+            privateKey = privateKey.replace(/\\n/g, "\n");
+        }
+    }
+
+    if (projectId && clientEmail && privateKey) {
+        config = {
+            projectId,
+            clientEmail,
+            privateKey
+        };
+    } else {
+        // Fallback to JSON file
+        try {
+            const jsonPath = path.join(process.cwd(), 'planar-outlook-final-creds.json');
+            if (fs.existsSync(jsonPath)) {
+                config = jsonPath;
+            }
+        } catch (e) { /* ignore */ }
+    }
 
     if (!config && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== 'phase-production-build') {
         console.error("❌ Firebase Admin Configuration Missing! Database operations will fail.");
@@ -98,9 +90,7 @@ function initAdmin(): App {
     }
 }
 
-// Proxied exports to avoid top-level execution crashes during build
-// These will only trigger initAdmin() when a property is accessed.
-
+// Proxied exports
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const adminDb: Firestore = new Proxy({} as Firestore, {
     get(target, prop, receiver) {
