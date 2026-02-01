@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import { Search, Loader2, MessageSquare, Copy } from "lucide-react";
-import { useOrders } from "@/hooks/useOrders";
+import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
+
+import { useToast } from "@/context/ToastContext";
 
 export default function OrdersPage() {
     return (
@@ -15,8 +17,9 @@ export default function OrdersPage() {
 }
 
 function OrdersList() {
-    const { orders, loading } = useOrders(100);
+    const { orders, loading } = useOrdersRealtime({ limitCount: 100 });
     const [searchTerm, setSearchTerm] = useState("");
+    const toast = useToast();
 
     const filteredOrders = orders.filter(o =>
         (o.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -25,6 +28,8 @@ function OrdersList() {
 
     const handleMarkPaid = async (orderId: string) => {
         if (!confirm("Confirmar pagamento e baixar estoque?")) return;
+
+        const tid = toast.loading("Processando pagamento...");
         try {
             const res = await fetch(`/api/admin/orders/${orderId}/mark-paid`, {
                 method: "PATCH",
@@ -32,13 +37,19 @@ function OrdersList() {
                 body: JSON.stringify({ method: "PIX" })
             });
             if (!res.ok) throw new Error(await res.text());
+
+            toast.removeToast(tid);
+            toast.success("Pedido confirmado!", "Estoque atualizado com sucesso.");
         } catch (e: any) {
-            alert("Erro: " + e.message);
+            toast.removeToast(tid);
+            toast.error("Erro ao processar", e.message);
         }
     };
 
     const handleCancel = async (orderId: string) => {
         if (!confirm("Cancelar pedido? Se já pago, o estoque será estornado.")) return;
+
+        const tid = toast.loading("Cancelando pedido...");
         try {
             const res = await fetch(`/api/admin/orders/${orderId}/cancel`, {
                 method: "POST",
@@ -46,8 +57,12 @@ function OrdersList() {
                 body: JSON.stringify({ orderId, reason: "Admin Request", actor: "admin" })
             });
             if (!res.ok) throw new Error(await res.text());
+
+            toast.removeToast(tid);
+            toast.success("Pedido cancelado", "Estoque foi estornado.");
         } catch (e: any) {
-            alert("Erro: " + e.message);
+            toast.removeToast(tid);
+            toast.error("Erro ao cancelar", e.message);
         }
     };
 
@@ -59,7 +74,7 @@ function OrdersList() {
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        alert("Mensagem copiada!");
+        toast.success("Mensagem copiada!");
     };
 
     return (

@@ -8,34 +8,17 @@ import { Search, Plus, Minus, User as UserIcon, RefreshCw, Star, ShoppingBag, Ca
 import { cn } from "@/lib/cn";
 import { useCustomerOrders } from "@/hooks/useCustomerOrders";
 
+import { useCustomersRealtime } from "@/hooks/useCustomersRealtime";
+
 export default function CustomersPage() {
     const { user } = useAuth();
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { customers, loading } = useCustomersRealtime();
     const [searchTerm, setSearchTerm] = useState("");
 
     // Detail Modal State
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [viewMode, setViewMode] = useState<'DETAILS' | 'ADJUST'>('DETAILS'); // DETAILS shows history/info, ADJUST shows points
 
-    useEffect(() => {
-        fetchCustomers();
-    }, []);
-
-    const fetchCustomers = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('/api/admin/customers');
-            if (res.ok) {
-                const data = await res.json();
-                setCustomers(data);
-            }
-        } catch (e) {
-            console.error("Failed to fetch customers", e);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleToggleVip = async (customer: Customer) => {
         if (!user) return;
@@ -53,7 +36,7 @@ export default function CustomersPage() {
             });
 
             if (res.ok) {
-                setCustomers(prev => prev.map(c => c.phone === customer.phone ? { ...c, isSubscriber: newState } : c));
+                // Realtime listener will update UI
                 if (selectedCustomer?.phone === customer.phone) {
                     setSelectedCustomer(prev => prev ? { ...prev, isSubscriber: newState } : null);
                 }
@@ -72,13 +55,6 @@ export default function CustomersPage() {
                 <div className="space-y-6 animate-in fade-in">
                     <div className="flex items-center justify-between">
                         <h1 className="text-2xl font-bold text-olive font-serif">Gestão de Clientes</h1>
-                        <button
-                            onClick={fetchCustomers}
-                            className="p-2 text-ink/50 hover:text-olive transition-colors"
-                            title="Atualizar lista"
-                        >
-                            <RefreshCw size={20} />
-                        </button>
                     </div>
 
                     {/* Search */}
@@ -247,7 +223,7 @@ export default function CustomersPage() {
                                             onSuccess={(delta) => {
                                                 // Optimistic update
                                                 setSelectedCustomer(prev => prev ? { ...prev, ecoPoints: (prev.ecoPoints || 0) + delta } : null);
-                                                setCustomers(prev => prev.map(c => c.phone === selectedCustomer.phone ? { ...c, ecoPoints: (c.ecoPoints || 0) + delta } : c));
+                                                // Realtime will update main list
                                                 setViewMode('DETAILS');
                                             }}
                                         />

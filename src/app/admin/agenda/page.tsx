@@ -4,7 +4,8 @@
 import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { Loader2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Info, MapPin, ExternalLink } from "lucide-react";
+import { useDeliveryWeekRealtime, useDeliveryDayRealtime } from "@/hooks/useDeliveryRealtime";
 
 export default function AgendaPage() {
     return (
@@ -15,16 +16,26 @@ export default function AgendaPage() {
 }
 
 function AgendaManager() {
-    const [loading, setLoading] = useState(true);
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
-    const [slots, setSlots] = useState<any[]>([]);
+
+    // 1. Weekly Slots Hook
+    const { slots, loading } = useDeliveryWeekRealtime(weekStart);
 
     // Detail Modal State
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [detailOrders, setDetailOrders] = useState<any[]>([]);
-    const [detailLoading, setDetailLoading] = useState(false);
     const [editCapacity, setEditCapacity] = useState<number>(0);
-    const [dayData, setDayData] = useState<any>(null); // current day data for modal
+    const [dayData, setDayData] = useState<any>(null);
+
+    // 2. Daily Details Hook
+    const { orders: detailOrders, loading: detailLoading, dayData: realtimeDayData } = useDeliveryDayRealtime(selectedDate);
+
+    // Sync realtime day data to local dayData state
+    useEffect(() => {
+        if (realtimeDayData) {
+            setDayData(realtimeDayData);
+            setEditCapacity(realtimeDayData.dailyCapacityOverride || 10);
+        }
+    }, [realtimeDayData]);
 
     // Derived State
     const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -32,33 +43,6 @@ function AgendaManager() {
         d.setDate(d.getDate() + i);
         return d;
     });
-
-    const fetchSlots = React.useCallback(async () => {
-        setLoading(true);
-        // Recalculate weekDays inside to avoid dependency on derived state
-        const days = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(weekStart);
-            d.setDate(d.getDate() + i);
-            return d;
-        });
-        const startStr = days[0].toISOString().split('T')[0];
-        const endStr = days[6].toISOString().split('T')[0];
-        try {
-            const res = await fetch(`/api/admin/delivery/slots?start=${startStr}&end=${endStr}`);
-            if (res.ok) {
-                const data = await res.json();
-                setSlots(data); // Array of DeliveryDay docs
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    }, [weekStart]);
-
-    useEffect(() => {
-        fetchSlots();
-    }, [fetchSlots]);
 
     const handleNextWeek = () => {
         const next = new Date(weekStart);
@@ -76,29 +60,8 @@ function AgendaManager() {
         setWeekStart(getMonday(new Date()));
     };
 
-    const openDetail = async (date: string) => {
+    const openDetail = (date: string) => {
         setSelectedDate(date);
-        setDetailLoading(true);
-
-        // Find existing data for this day
-        const existing = slots.find(s => s.date === date);
-        setDayData(existing);
-
-        // Defaults
-        const currentCap = existing?.dailyCapacityOverride || 10;
-        setEditCapacity(currentCap);
-
-        try {
-            const res = await fetch(`/api/admin/delivery/orders?date=${date}`);
-            if (res.ok) {
-                const data = await res.json();
-                setDetailOrders(data);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setDetailLoading(false);
-        }
     };
 
     const saveCapacity = async () => {
@@ -115,7 +78,7 @@ function AgendaManager() {
             });
 
             if (res.ok) {
-                await fetchSlots(); // refresh grid
+                // No manual refresh needed
                 setSelectedDate(null); // close
             }
         } catch (e) {
@@ -136,7 +99,7 @@ function AgendaManager() {
                 })
             });
             if (res.ok) {
-                fetchSlots();
+                // No manual refresh needed
             }
         } catch (e) {
             alert("Erro ao atualizar data.");
@@ -273,21 +236,63 @@ function AgendaManager() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {detailOrders.map(order => (
-                                    <div key={order.id} className="flex items-center justify-between p-3 border border-ink/5 rounded-lg bg-white shadow-sm hover:bg-paper2/30">
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-mono text-xs font-bold text-ink/50 bg-ink/5 px-2 py-1 rounded">#{order.shortId}</span>
-                                            <div>
-                                                <div className="font-bold text-sm text-ink">{order.customerName}</div>
-                                                <div className="text-xs text-ink/60">{order.slotLabel || 'Sem horário'}</div>
+                                {detailOrders.map(order => {
+                                    const addressLine1 = order.customerAddress ? `${order.customerAddress}, ${order.customerNumber || 'S/N'}${order.customerComplement ? ' - ' + order.customerComplement : ''}` : null;
+                                    const addressLine2 = order.customerNeighborhood ? `${order.customerNeighborhood}${order.customerCity ? ' - ' + order.customerCity : ''}` : (order.customerAddress ? 'Porto Velho' : null);
+
+                                    // Use 'dir' for "Traçar Rota"
+                                    const mapsQuery = addressLine1
+                                        ? encodeURIComponent(`${addressLine1}, ${addressLine2 || 'Porto Velho'}`)
+                                        : '';
+                                    const mapsLink = mapsQuery ? `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}` : null;
+
+                                    return (
+                                        <div key={order.id} className="flex flex-col gap-3 p-4 border border-ink/5 rounded-xl bg-white shadow-sm hover:border-olive/20 transition-colors">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-[10px] font-bold text-ink/40 bg-ink/5 px-1.5 py-0.5 rounded">#{order.shortId}</span>
+                                                    <div className="font-bold text-sm text-ink">{order.customerName}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-bold text-sm text-olive">R$ {(order.totalCents / 100).toFixed(2).replace('.', ',')}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-[auto_1fr] gap-3 pl-1">
+                                                <div className="pt-0.5"><MapPin size={14} className="text-olive" /></div>
+                                                <div className="text-xs leading-relaxed">
+                                                    {addressLine1 ? (
+                                                        <>
+                                                            <div className="text-ink font-medium">{addressLine1}</div>
+                                                            <div className="text-ink/50">{addressLine2}</div>
+                                                            {mapsLink && (
+                                                                <a
+                                                                    href={mapsLink}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 mt-2 text-olive font-bold hover:underline bg-olive/5 px-3 py-1.5 rounded-lg transition-colors text-[10px] uppercase tracking-wider"
+                                                                >
+                                                                    Traçar Rota <ExternalLink size={10} />
+                                                                </a>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-ink/40 italic">Endereço não disponível (Retirada?)</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center border-t border-ink/5 pt-3 mt-1">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">
+                                                    {order.slotLabel || 'Sem horário'}
+                                                </span>
+                                                <span className="text-[10px] uppercase font-bold text-ink/40 bg-gray-50 px-2 py-0.5 rounded-full border border-ink/5">
+                                                    {order.status}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-sm text-olive">R$ {(order.totalCents / 100).toFixed(2).replace('.', ',')}</div>
-                                            <div className="text-[10px] uppercase font-bold text-ink/40">{order.status}</div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

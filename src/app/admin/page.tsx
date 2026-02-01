@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { Package, RotateCcw, TrendingUp, Loader2, AlertCircle, ShoppingCart, Truck, PlusCircle, Search } from "lucide-react";
+import { Package, TrendingUp, Loader2, AlertCircle, ShoppingCart, Truck, PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { SalesChart } from "@/components/admin/charts/SalesChart";
 
 export default function AdminPage() {
     const { stats, loading, error } = useDashboardStats();
@@ -133,31 +134,14 @@ export default function AdminPage() {
                             <TrendingUp size={16} className="text-ink/40" />
                         </div>
 
-                        <div className="flex h-48 items-end justify-between gap-2 overflow-hidden text-xs text-ink/60 relative">
-                            {/* Y-Axis Grid Lines? Keep simple for MVP: just bars */}
+                        <div className="h-64 mt-4 relative">
                             {loading ? (
                                 <div className="flex h-full w-full items-center justify-center text-ink/20 gap-1">
                                     <Loader2 className="animate-spin" size={16} />
                                     <span className="text-[10px]">Carregando...</span>
                                 </div>
                             ) : (
-                                stats?.salesHistory.map((day, i) => {
-                                    // Calculate relative height. Max value?
-                                    const maxVal = Math.max(...(stats?.salesHistory.map(d => d.value) || [100]));
-                                    const hPercent = maxVal === 0 ? 0 : Math.round((day.value / maxVal) * 100);
-
-                                    return (
-                                        <div key={i} className="flex flex-1 flex-col items-center gap-2 group">
-                                            <div className="relative w-full rounded-t-sm bg-olive/20 transition-all duration-500 hover:bg-olive group-hover:shadow-md" style={{ height: `${Math.max(4, hPercent)}%` }}>
-                                                {/* Tooltip */}
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-ink px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap z-10 pointer-events-none">
-                                                    R$ {day.value.toFixed(2)}
-                                                </div>
-                                            </div>
-                                            <span className="text-[9px] md:text-[10px] font-medium opacity-60">{day.date}</span>
-                                        </div>
-                                    )
-                                })
+                                <SalesChart data={stats?.salesHistory || []} />
                             )}
                         </div>
                     </div>

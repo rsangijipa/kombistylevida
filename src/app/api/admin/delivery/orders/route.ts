@@ -2,9 +2,11 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const date = searchParams.get('date'); // YYYY-MM-DD
         const slotId = searchParams.get('slotId'); // optional filter
@@ -26,20 +28,18 @@ export async function GET(request: Request) {
                 id: doc.id,
                 shortId: d.shortId,
                 customerName: d.customer?.name || "Cliente",
+                customerPhone: d.customer?.phone,
+                customerAddress: d.customer?.address,
+                customerNumber: d.customer?.number,
+                customerComplement: d.customer?.complement,
+                customerNeighborhood: d.customer?.neighborhood,
+                customerCity: d.customer?.city,
                 status: d.status,
-                slotLabel: d.schedule?.slotLabel,
+                slotLabel: d.schedule?.slotLabel, // or delivery.window
                 delivery: d.delivery,
                 totalCents: d.totalCents
             };
         });
-
-        // Filter by slotId in memory if needed (or add index)
-        // Since we don't have slotId strictly on root 'delivery' object sometimes, memory filter is safer for MVP.
-        /* 
-           If slotId is passed, we might want to filter.
-           However, sticking to returning all orders for the day is likely more useful for the UI 
-           so the client can distribute them or show unassigned ones.
-        */
 
         return NextResponse.json(orders);
     } catch (error) {
@@ -47,4 +47,3 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
     }
 }
-

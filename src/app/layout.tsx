@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/cn";
 import { CatalogProvider } from "@/context/CatalogContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const serif = Cormorant_Garamond({
     subsets: ["latin"],
@@ -52,7 +53,9 @@ export default function RootLayout({
                 )}
             >
                 <CatalogProvider>
-                    {children}
+                    <ToastProvider>
+                        {children}
+                    </ToastProvider>
                     <ScrollToTop />
                 </CatalogProvider>
             </body>

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { InventoryItem } from "@/types/firestore";
-import { PRODUCTS as CATALOG } from "@/data/catalog";
 import { Loader2, Plus, Minus, Settings2 } from "lucide-react";
+import { useInventoryRealtime } from "@/hooks/useInventoryRealtime";
+import { useToast } from "@/context/ToastContext";
 
 export default function InventoryPage() {
     return (
@@ -15,32 +15,39 @@ export default function InventoryPage() {
     );
 }
 
-// Helper to flatten variants into inventory rows
-const INVENTORY_GRID = CATALOG.flatMap(product => {
-    if (product.variants && product.variants.length > 0) {
-        return product.variants.map(v => ({
-            id: v.size === '300ml' ? product.id : `${product.id}::${v.size}`,
-            baseId: product.id,
-            name: product.name,
-            imageSrc: product.imageSrc,
-            size: v.size,
-            isVariant: true
-        }));
-    }
-    // Fallback for non-variant products (legacy or bundles if we ever tracked them directly)
-    return [{
-        id: product.id,
-        baseId: product.id,
-        name: product.name,
-        imageSrc: product.imageSrc,
-        size: product.size || '300ml',
-        isVariant: false
-    }];
-});
-
 function InventoryManager() {
-    const [loading, setLoading] = useState(true);
-    const [inventory, setInventory] = useState<Record<string, InventoryItem>>({});
+    const { products, loading } = useInventoryRealtime();
+    const toast = useToast();
+
+    // DYNAMIC GRID: Derived purely from Realtime Firestore Data
+    const inventoryItems = useMemo(() => {
+        return products.flatMap(product => {
+            if (product.variants && product.variants.length > 0) {
+                return product.variants.map(v => ({
+                    id: v.size === '300ml' ? product.id : `${product.id}::${v.size}`,
+                    baseId: product.id,
+                    name: product.name,
+                    imageSrc: product.imageSrc,
+                    size: v.size,
+                    isVariant: true,
+                    // Direct access to data since we are mapping from it
+                    currentStock: v.stockQty || 0,
+                    reserved: (product.reservedStock || 0), // Note: Reserved is usually per product, needing refinement if per variant
+                }));
+            }
+            // Fallback for non-variant products
+            return [{
+                id: product.id,
+                baseId: product.id,
+                name: product.name,
+                imageSrc: product.imageSrc,
+                size: '300ml',
+                isVariant: false,
+                currentStock: (product as any).stockQty || 0,
+                reserved: (product.reservedStock || 0)
+            }];
+        });
+    }, [products]);
 
     // Action State
     const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
@@ -49,41 +56,29 @@ function InventoryManager() {
     const [reason, setReason] = useState("");
     const [processing, setProcessing] = useState(false);
 
-    const fetchInventory = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('/api/admin/inventory');
-            if (res.ok) {
-                const data = await res.json();
-                setInventory(data);
-            }
-        } catch (e) {
-            console.error("Failed to load inventory", e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchInventory();
-    }, []);
+    // Find the item being edited for the modal (from dynamic list)
+    const editingItem = useMemo(() =>
+        selectedInventoryId ? inventoryItems.find(i => i.id === selectedInventoryId) : null,
+        [selectedInventoryId, inventoryItems]);
 
     const handleSave = async () => {
         if (!selectedInventoryId || amount <= 0) return;
+
+        const tid = toast.loading("Atualizando estoque...");
         setProcessing(true);
+
         try {
             const adminUid = "admin"; // In real usage, get from AuthContext
 
-            // P0-3: Fix ID splitting for backend
+            // ID Parsing logic
             let finalProductId = selectedInventoryId;
-            let finalVariantKey = '300ml'; // default if not specified
+            let finalVariantKey = '300ml';
 
             if (selectedInventoryId.includes("::")) {
                 const parts = selectedInventoryId.split("::");
                 finalProductId = parts[0];
                 finalVariantKey = parts[1];
             } else if (editingItem?.size === '500ml') {
-                // Fallback if ID didn't have :: but we know it's 500ml (rare if grid is correct)
                 finalVariantKey = '500ml';
             }
 
@@ -101,29 +96,29 @@ function InventoryManager() {
             });
 
             if (res.ok) {
-                fetchInventory();
+                toast.removeToast(tid);
+                toast.success("Estoque atualizado!");
                 setAmount(0);
                 setReason("");
                 setSelectedInventoryId(null);
             } else {
-                alert("Erro ao salvar ajuste.");
+                const txt = await res.text();
+                throw new Error(txt);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Erro ao salvar ajuste.");
+            toast.removeToast(tid);
+            toast.error("Erro ao atualizar", e.message);
         } finally {
             setProcessing(false);
         }
     };
 
-    // Find the item being edited for the modal
-    const editingItem = selectedInventoryId ? INVENTORY_GRID.find(i => i.id === selectedInventoryId) : null;
-
     return (
         <AdminLayout>
             <div className="mb-8">
                 <h1 className="font-serif text-3xl font-bold text-ink">Estoque</h1>
-                <p className="text-ink2">Gerencie a produção (300ml e 500ml).</p>
+                <p className="text-ink2">Gerencie a produção em tempo real.</p>
             </div>
 
             {loading ? (
@@ -132,28 +127,10 @@ function InventoryManager() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {INVENTORY_GRID.map(item => {
-                        // Logic: Backend returns inventory keyed by `baseId` (productId).
-                        // We need to find the correct variant inside it.
-                        const productData = inventory[item.baseId];
-
-                        let currentStock = 0;
-                        let reserved = 0; // Default to 0 to prevent NaN
-
-                        if (productData) {
-                            reserved = productData.reservedStock || 0; // Prevent NaN
-
-                            if (productData.variants && Array.isArray(productData.variants)) {
-                                const variant = productData.variants.find((v: any) => v.size === item.size);
-                                if (variant) {
-                                    currentStock = variant.stockQty || 0;
-                                }
-                            } else {
-                                // Fallback for legacy products without variants
-                                currentStock = productData.stockQty || productData.currentStock || 0;
-                            }
-                        }
-
+                    {inventoryItems.map(item => {
+                        // Current Stock is already in the item from the map
+                        const currentStock = item.currentStock;
+                        const reserved = item.reserved;
                         const available = currentStock - reserved;
 
                         return (
@@ -208,12 +185,18 @@ function InventoryManager() {
                             </div>
                         );
                     })}
+
+                    {inventoryItems.length === 0 && (
+                        <div className="col-span-full py-12 text-center text-ink/40 italic">
+                            Nenhum produto encontrado. Cadastre produtos no banco.
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* Adjustment Modal */}
             {selectedInventoryId && editingItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-bold text-lg text-ink">

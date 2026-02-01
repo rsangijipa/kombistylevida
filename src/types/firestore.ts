@@ -140,6 +140,8 @@ export interface Product {
     variants?: { size: BottleSize; price: number; stockQty?: number; active?: boolean }[];
     active: boolean; // New: to hide products without deleting
     updatedAt: string;
+    stockQty?: number; // Legacy or simple products
+    reservedStock?: number; // Realtime calculated
 }
 
 // Collection: combos/{id}

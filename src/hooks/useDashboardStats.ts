@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Order, Product } from '@/types/firestore';
 
@@ -14,71 +14,8 @@ export interface DashboardStats {
 }
 
 export function useDashboardStats() {
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        setLoading(true);
-        const now = new Date();
-        const startOf7DaysAgo = new Date();
-        startOf7DaysAgo.setDate(now.getDate() - 7);
-        startOf7DaysAgo.setHours(0, 0, 0, 0);
-
-        // 1. Listen to Recent Orders (Last 7 Days) for Charts & Today's Stats
-        // Note: This misses "Pending" orders older than 7 days. 
-        // For strict "Pending Delivery" count, we might need a separate query or assume backlog < 7 days.
-        // Let's rely on this for now to keep Reads low, assuming operation is healthy.
-        // Ideally: Status-based query is better for "Pending", Date-based for "Sales".
-        // Let's do TWO queries for correctness.
-
-        const qRecent = query(
-            collection(db, 'orders'),
-            where('createdAt', '>=', startOf7DaysAgo.toISOString()),
-            orderBy('createdAt', 'desc')
-        );
-
-        const qPending = query(
-            collection(db, 'orders'),
-            where('status', 'in', ['PENDING', 'CONFIRMED', 'PAID', 'IN_PRODUCTION', 'OUT_FOR_DELIVERY'])
-        );
-
-        // 2. Listen to Products for Inventory
-        const qProducts = query(collection(db, 'products'));
-
-        const unsubRecent = onSnapshot(qRecent, (snap) => {
-            const recentData = snap.docs.map(d => ({ ...d.data(), id: d.id } as Order));
-
-            // We need to merge with pending, but careful of duplicates if we use a single list.
-            // Actually, for the Stats object, we can compute derived values from the two sets.
-            // Let's store raw sets.
-            setOrders(prev => {
-                // This is complex because we have two async listeners updating state.
-                // We should probably just combine them in a robust way or keep separate states.
-                // Let's use a "reducer" style or just keep separate states in the hook.
-                // But for simplicity of this `useEffect`, let's just dispatch to a state merger?
-                // No, sticking to separate state variables is safer.
-                return recentData;
-            });
-        }, (err) => {
-            console.error("Error fetching recent orders:", err);
-            setError("Erro ao carregar pedidos recentes.");
-        });
-
-        const unsubPending = onSnapshot(qPending, (snap) => {
-            // We'll handle pending count separately
-            // Requires a separate state: const [pendingCount, setPendingCount] = useState(0);
-            // See below.
-        }, (err) => {
-            console.error("Error fetching pending orders:", err);
-        });
-
-        // ... Rethinking structure to avoid race conditions/flicker.
-    }, []);
-
-    // Let's try a simpler approach: 
-    // We only expose the `stats` object.
 
     // We need 3 listeners.
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -97,7 +34,15 @@ export function useDashboardStats() {
         );
 
         const unsubRecent = onSnapshot(qRecent, (snap) => {
-            setRecentOrders(snap.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
+            setRecentOrders(snap.docs.map(d => {
+                const data = d.data();
+                return {
+                    ...data,
+                    id: d.id,
+                    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt
+                } as Order;
+            }));
             setLoading(false);
         }, (err) => {
             console.error(err);
@@ -110,7 +55,15 @@ export function useDashboardStats() {
             where('status', 'in', ['PENDING', 'CONFIRMED', 'PAID', 'IN_PRODUCTION', 'OUT_FOR_DELIVERY'])
         );
         const unsubPending = onSnapshot(qPending, (snap) => {
-            setPendingOrders(snap.docs.map(d => ({ ...d.data(), id: d.id } as Order)));
+            setPendingOrders(snap.docs.map(d => {
+                const data = d.data();
+                return {
+                    ...data,
+                    id: d.id,
+                    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt
+                } as Order;
+            }));
         }, (err) => console.error(err));
 
         // Query 3: Products

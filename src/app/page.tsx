@@ -20,55 +20,44 @@ export default function Page() {
     return (
         <SiteShell>
             {/* HERO SECTION */}
-            {/* Edge-to-Edge: No negative top margin needed since SiteShell has pt-0 */}
-            <div className="relative -mx-4 md:-mx-12 mb-8 text-center md:mb-16 overflow-hidden pb-8 rounded-t-[32px] md:rounded-t-[48px]">
+            {/* Split Layout: Image takes main space, Text Bar below it */}
+            <div className="relative -mx-4 md:-mx-12 mb-8 text-center md:mb-12 rounded-t-[32px] md:rounded-t-[48px] overflow-hidden bg-paper2">
 
-                {/* Custom Hero Background */}
-                <div className="absolute inset-0 z-0">
+                {/* 1. Image Area (Unobstructed) */}
+                <div className="relative w-full h-[60vh] md:h-[75vh]">
                     <Image
-                        src="/images/home-hero-bg.jpg"
+                        src="/images/hero-new.jpg"
                         alt="Hero Background"
                         fill
-                        className="object-cover opacity-100" // Increased opacity for immersion
+                        className="object-cover"
                         priority
                     />
-                    {/* Scrim for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-paper2/10 via-paper2/20 to-paper2/95" />
-                    <div className="absolute inset-0 bg-radial-[circle_at_center,_transparent_0%,_rgba(0,0,0,0.1)_100%]" />
                 </div>
 
-                <div className="mx-auto max-w-4xl px-4 pt-24 md:pt-40 relative z-10 flex flex-col items-center">
-                    {/* Logo: Significantly Increased Size */}
-                    <div className="relative mb-8 h-[160px] w-[300px] md:h-[400px] md:w-[860px] transition-all duration-700 ease-out animate-in fade-in zoom-in-95">
-                        <Image
-                            src="/images/logo.png"
-                            alt="Kombucha Arikê"
-                            fill
-                            className="object-contain drop-shadow-lg"
-                            priority
-                        />
+                {/* 2. Text Bar (Compact) */}
+                <div className="bg-paper2 py-4 px-6 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-2xl relative z-10 -mt-10 rounded-t-[24px] mx-auto max-w-4xl animate-in slide-in-from-bottom-4 fade-in duration-700">
+
+                    {/* Slogan */}
+                    <div className="text-center md:text-left">
+                        <p className="font-serif text-xl text-ink font-bold leading-tight">
+                            Estilo e sabor em cada gole.
+                        </p>
+                        <p className="text-ink2 text-sm mt-0.5">Fermentação natural, ingredientes reais.</p>
                     </div>
 
-                    {/* Slogan: Editorial Serif */}
-                    <p className="max-w-xl font-serif text-2xl leading-relaxed text-ink md:text-3xl animate-in slide-in-from-bottom-4 fade-in duration-1000 delay-150 drop-shadow-sm font-medium">
-                        Estilo e sabor em cada gole. <br className="hidden md:block" />
-                        <span className="text-ink2 text-lg md:text-2xl mt-2 block">Fermentação natural, ingredientes reais.</span>
-                    </p>
-
                     {/* CTA Section */}
-                    <div className="mt-8 flex flex-col items-center justify-center gap-4 min-[450px]:flex-row animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-300">
+                    <div className="flex flex-col items-center md:items-end justify-center gap-1.5">
                         <a
                             href="https://wa.me/5548999999999"
-                            className="inline-flex h-12 items-center justify-center rounded-full bg-amber px-8 text-xs font-bold uppercase tracking-widest text-ink shadow-paper transition-all hover:-translate-y-1 hover:bg-amber2 hover:shadow-xl active:scale-95"
+                            className="inline-flex h-10 items-center justify-center rounded-full bg-amber px-6 text-xs font-bold uppercase tracking-widest text-ink shadow-md transition-all hover:-translate-y-0.5 hover:bg-amber2 hover:shadow-lg active:scale-95 whitespace-nowrap"
                         >
                             Pedir no WhatsApp
                         </a>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-ink/40">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-ink/40">
                             Entrega em Ariquemes e Região
                         </span>
                     </div>
                 </div>
-
 
             </div>
 

@@ -7,6 +7,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Product } from "@/types/firestore";
 import { Loader2, Save, AlertCircle } from "lucide-react";
 
+import { useInventoryRealtime } from "@/hooks/useInventoryRealtime";
+
 export default function ProductsPage() {
     return (
         <AuthProvider>
@@ -16,28 +18,10 @@ export default function ProductsPage() {
 }
 
 function ProductsManager() {
-    const [loading, setLoading] = useState(true);
-    const [products, setProducts] = useState<Product[]>([]);
+    const { products, loading } = useInventoryRealtime();
     const [saving, setSaving] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch('/api/admin/products');
-                if (res.ok) {
-                    const data = await res.json();
-                    setProducts(data);
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, []);
+    // No manual fetch needed
 
     const handleUpdate = async (product: Product, updates: Partial<Product>) => {
         setSaving(product.id);
@@ -56,7 +40,7 @@ function ProductsManager() {
             });
 
             if (res.ok) {
-                setProducts(prev => prev.map(p => p.id === product.id ? newProduct : p));
+                // Realtime hook will update
             }
         } catch (e) {
             alert("Erro ao salvar produto");

@@ -36,49 +36,48 @@ export async function POST(request: Request) {
         }
 
         const ref = adminDb.collection('products').doc(productId);
-        const doc = await ref.get();
-
-        if (!doc.exists) {
-            return NextResponse.json({ error: "Product not found" }, { status: 404 });
-        }
-
-        const data = doc.data() as Product;
         const targetVariant = variantKey || '300ml';
 
-        // Ensure variants object exists
-        const variants = data.variants || [];
+        // Transactional Update
+        await adminDb.runTransaction(async (t) => {
+            const doc = await t.get(ref);
+            if (!doc.exists) throw new Error("Product not found");
 
-        // Find variant index
-        let variantIndex = -1;
-        if (Array.isArray(variants)) {
-            variantIndex = variants.findIndex((v) => v.size === targetVariant);
-        }
+            const data = doc.data() as Product;
+            const variants = data.variants || [];
 
-        const delta = type === 'IN' ? amount : -amount;
+            // Find variant index
+            let variantIndex = -1;
+            if (Array.isArray(variants)) {
+                variantIndex = variants.findIndex((v) => v.size === targetVariant);
+            }
 
-        if (variantIndex > -1) {
-            // Update existing variant
-            const oldQty = variants[variantIndex].stockQty || 0;
-            variants[variantIndex].stockQty = Math.max(0, oldQty + delta);
+            const delta = type === 'IN' ? amount : -amount;
 
-            await ref.update({
-                variants: variants,
-                updatedAt: new Date().toISOString()
+            if (variantIndex > -1) {
+                // Update existing variant
+                const oldQty = variants[variantIndex].stockQty || 0;
+                variants[variantIndex].stockQty = Math.max(0, oldQty + delta);
+
+                t.update(ref, {
+                    variants: variants,
+                    updatedAt: new Date().toISOString()
+                });
+            } else {
+                throw new Error(`Variant ${targetVariant} not found`);
+            }
+
+            // Log Stock Movement (inside transaction or after - often better inside to ensure consistency)
+            const mvRef = adminDb.collection('stockMovements').doc();
+            t.set(mvRef, {
+                productId,
+                type,
+                quantity: amount,
+                variantKey: targetVariant,
+                volumeMl: parseInt(targetVariant.replace('ml', '')) || 0,
+                createdAt: new Date().toISOString(),
+                reason: body.reason || "Manual Adjustment"
             });
-        } else {
-            return NextResponse.json({ error: `Variant ${targetVariant} not found` }, { status: 400 });
-        }
-
-        // Log Stock Movement
-        await adminDb.collection('stockMovements').add({
-            productId,
-            type,
-            quantity: amount,
-            variantKey: targetVariant,
-            // P1-2: Explicit Volume Logging
-            volumeMl: parseInt(targetVariant.replace('ml', '')) || 0,
-            createdAt: new Date().toISOString(),
-            reason: body.reason || "Manual Adjustment"
         });
 
         return NextResponse.json({ success: true });
