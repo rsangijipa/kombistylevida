@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { buildBusinessWhatsAppLink } from "@/config/business";
 
 export function StickyCTA() {
     const [visible, setVisible] = useState(false);
@@ -28,7 +29,7 @@ export function StickyCTA() {
             )}
         >
             <a
-                href="https://wa.me/5548999999999"
+                href={buildBusinessWhatsAppLink()}
                 target="_blank"
                 rel="noreferrer"
                 className="flex h-14 w-14 items-center justify-center rounded-full border border-ink/40 bg-[#25D366] text-white shadow-[0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-110 active:scale-95"

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { Search, Loader2, MessageSquare, Copy } from "lucide-react";
+import { Search, Loader2, MessageSquare, Copy, CheckSquare2 } from "lucide-react";
 import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
 
 import { useToast } from "@/context/ToastContext";
+import { buildCustomerWhatsAppLink } from "@/config/business";
 
 export default function OrdersPage() {
     return (
@@ -19,12 +20,27 @@ export default function OrdersPage() {
 function OrdersList() {
     const { orders, loading } = useOrdersRealtime({ limitCount: 100 });
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+    const [selectedMethod, setSelectedMethod] = useState<"ALL" | "delivery" | "pickup">("ALL");
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const toast = useToast();
 
+    const statusCounts = useMemo(() => {
+        return orders.reduce<Record<string, number>>((acc, order) => {
+            acc[order.status] = (acc[order.status] || 0) + 1;
+            return acc;
+        }, {});
+    }, [orders]);
+
     const filteredOrders = orders.filter(o =>
-        (o.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (o.shortId || "").toLowerCase().includes(searchTerm.toLowerCase())
+        ((o.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (o.shortId || "").toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (selectedStatus === "ALL" || o.status === selectedStatus) &&
+        (selectedMethod === "ALL" || o.customer?.deliveryMethod === selectedMethod)
     );
+
+    const selectableOrders = filteredOrders.filter((order) => order.status !== "CANCELED");
+    const allVisibleSelected = selectableOrders.length > 0 && selectableOrders.every((order) => selectedIds.includes(order.id));
 
     const handleMarkPaid = async (orderId: string) => {
         if (!confirm("Confirmar pagamento e baixar estoque?")) return;
@@ -53,9 +69,7 @@ function OrdersList() {
         const tid = toast.loading("Cancelando pedido...");
         try {
             const res = await fetch(`/api/admin/orders/${orderId}/cancel`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ orderId, reason: "Admin Request", actor: "admin" })
+                method: "PATCH",
             });
             if (!res.ok) throw new Error(await res.text());
 
@@ -68,9 +82,92 @@ function OrdersList() {
         }
     };
 
+    const toggleSelect = (orderId: string, checked: boolean) => {
+        setSelectedIds((prev) => {
+            if (checked) return Array.from(new Set([...prev, orderId]));
+            return prev.filter((id) => id !== orderId);
+        });
+    };
+
+    const toggleSelectAllVisible = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...selectableOrders.map((order) => order.id)])));
+            return;
+        }
+        const visibleSet = new Set(selectableOrders.map((order) => order.id));
+        setSelectedIds((prev) => prev.filter((id) => !visibleSet.has(id)));
+    };
+
+    const handleBulkMarkPaid = async () => {
+        const validIds = selectedIds.filter((id) => {
+            const order = orders.find((item) => item.id === id);
+            return !!order && order.status !== "PAID" && order.status !== "CANCELED";
+        });
+
+        if (validIds.length === 0) {
+            toast.error("Nenhum pedido elegivel", "Selecione pedidos pendentes para marcar como pagos.");
+            return;
+        }
+
+        if (!confirm(`Marcar ${validIds.length} pedido(s) como pago?`)) return;
+
+        const tid = toast.loading("Processando acao em lote...");
+        const results = await Promise.all(
+            validIds.map(async (orderId) => {
+                const res = await fetch(`/api/admin/orders/${orderId}/mark-paid`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ method: "PIX" })
+                });
+                return { orderId, ok: res.ok };
+            })
+        );
+
+        const successCount = results.filter((r) => r.ok).length;
+        toast.removeToast(tid);
+        if (successCount === validIds.length) {
+            toast.success("Lote concluido", `${successCount} pedido(s) marcados como pagos.`);
+        } else {
+            toast.error("Lote parcial", `${successCount} de ${validIds.length} pedido(s) processados.`);
+        }
+        setSelectedIds([]);
+    };
+
+    const handleBulkCancel = async () => {
+        const validIds = selectedIds.filter((id) => {
+            const order = orders.find((item) => item.id === id);
+            return !!order && order.status !== "CANCELED";
+        });
+
+        if (validIds.length === 0) {
+            toast.error("Nenhum pedido elegivel", "Selecione pedidos ativos para cancelamento.");
+            return;
+        }
+
+        if (!confirm(`Cancelar ${validIds.length} pedido(s)?`)) return;
+
+        const tid = toast.loading("Cancelando lote...");
+        const results = await Promise.all(
+            validIds.map(async (orderId) => {
+                const res = await fetch(`/api/admin/orders/${orderId}/cancel`, {
+                    method: "PATCH",
+                });
+                return { orderId, ok: res.ok };
+            })
+        );
+
+        const successCount = results.filter((r) => r.ok).length;
+        toast.removeToast(tid);
+        if (successCount === validIds.length) {
+            toast.success("Lote cancelado", `${successCount} pedido(s) cancelados.`);
+        } else {
+            toast.error("Lote parcial", `${successCount} de ${validIds.length} cancelados.`);
+        }
+        setSelectedIds([]);
+    };
+
     const openWhatsApp = (phone: string, text?: string) => {
-        const cleanPhone = phone.replace(/\D/g, '');
-        const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text || "")}`;
+        const url = buildCustomerWhatsAppLink(phone, text || "");
         window.open(url, '_blank');
     };
 
@@ -105,6 +202,63 @@ function OrdersList() {
                 </div>
             </div>
 
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={() => setSelectedStatus("ALL")}
+                        className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${selectedStatus === "ALL" ? "bg-olive text-white" : "bg-paper2 text-ink/70"}`}
+                    >
+                        Todos ({orders.length})
+                    </button>
+                    {Object.keys(statusCounts).sort().map((status) => (
+                        <button
+                            key={status}
+                            onClick={() => setSelectedStatus(status)}
+                            className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${selectedStatus === status ? "bg-olive text-white" : "bg-paper2 text-ink/70"}`}
+                        >
+                            {status} ({statusCounts[status] || 0})
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-ink/50">Canal</label>
+                    <select
+                        value={selectedMethod}
+                        onChange={(e) => setSelectedMethod(e.target.value as "ALL" | "delivery" | "pickup")}
+                        className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                    >
+                        <option value="ALL">Todos</option>
+                        <option value="delivery">Entrega</option>
+                        <option value="pickup">Retirada</option>
+                    </select>
+                </div>
+            </div>
+
+            {selectedIds.length > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-olive/20 bg-olive/5 p-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-olive">{selectedIds.length} selecionado(s)</span>
+                    <button
+                        onClick={handleBulkMarkPaid}
+                        className="rounded-lg bg-olive px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-olive/90"
+                    >
+                        Marcar pago em lote
+                    </button>
+                    <button
+                        onClick={handleBulkCancel}
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-red-700 hover:bg-red-100"
+                    >
+                        Cancelar em lote
+                    </button>
+                    <button
+                        onClick={() => setSelectedIds([])}
+                        className="rounded-lg border border-ink/10 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-ink/60"
+                    >
+                        Limpar selecao
+                    </button>
+                </div>
+            )}
+
             {loading ? (
                 <div className="py-20 flex justify-center text-olive">
                     <Loader2 className="animate-spin" size={40} />
@@ -116,6 +270,14 @@ function OrdersList() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-paper2/50 text-xs font-bold uppercase tracking-wider text-ink/50">
                                 <tr>
+                                    <th className="px-3 py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={allVisibleSelected}
+                                            onChange={(e) => toggleSelectAllVisible(e.target.checked)}
+                                            aria-label="Selecionar todos visiveis"
+                                        />
+                                    </th>
                                     <th className="px-6 py-4">ID / Data</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Cliente</th>
@@ -127,13 +289,21 @@ function OrdersList() {
                             <tbody className="divide-y divide-ink/5">
                                 {filteredOrders.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-ink2 italic">
+                                        <td colSpan={7} className="px-6 py-10 text-center text-ink2 italic">
                                             Nenhum pedido encontrado.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredOrders.map((order) => (
                                         <tr key={order.id} className="hover:bg-paper2/30 transition-colors">
+                                            <td className="px-3 py-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.includes(order.id)}
+                                                    onChange={(e) => toggleSelect(order.id, e.target.checked)}
+                                                    aria-label={`Selecionar pedido ${order.shortId || order.id.slice(0, 8)}`}
+                                                />
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="font-bold font-mono text-ink">#{order.shortId || order.id.slice(0, 8)}</div>
                                                 <div className="text-xs text-ink2">
@@ -223,6 +393,17 @@ function OrdersList() {
                         ) : (
                             filteredOrders.map((order) => (
                                 <div key={order.id} className="bg-white rounded-xl p-4 border border-ink/5 shadow-sm active:scale-[0.99] transition-transform">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <label className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-ink/50">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(order.id)}
+                                                onChange={(e) => toggleSelect(order.id, e.target.checked)}
+                                            />
+                                            Selecionar
+                                        </label>
+                                        <CheckSquare2 size={14} className="text-ink/30" />
+                                    </div>
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <div className="flex items-center gap-2">

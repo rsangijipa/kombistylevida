@@ -3,17 +3,8 @@ import { CustomerState } from "@/store/customerStore";
 import { CATALOG_MAP } from "@/data/catalog";
 import { DELIVERY_SLOTS } from "@/data/deliverySlots";
 import { Product, Combo } from "@/types/firestore";
-
-const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-
-if (!PHONE_NUMBER) {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error("Critical Configuration Error: NEXT_PUBLIC_WHATSAPP_NUMBER is not set.");
-    }
-    console.warn("NEXT_PUBLIC_WHATSAPP_NUMBER is missing. Using dev fallback.");
-}
-
-const FINAL_NUMBER = PHONE_NUMBER || "556981123681";
+import { buildBusinessWhatsAppLink } from "@/config/business";
+import { PACK_PRICE_CENTS } from "@/config/pricing";
 
 interface BuildMessageParams {
     cart: CartItem[];
@@ -99,7 +90,7 @@ export function buildOrderMessage({
 
     cart.forEach((item) => {
         if (item.type === 'PACK') {
-            const packPrice = item.size === 6 ? 8990 : 16990;
+            const packPrice = PACK_PRICE_CENTS[item.size];
             totalCents += packPrice * item.quantity;
             message += `📦 *${item.displayName}* (${item.quantity}x)\n`;
 
@@ -225,6 +216,5 @@ export function buildOrderMessage({
 }
 
 export function buildWhatsAppLink(message: string): string {
-    const encodedMsg = encodeURIComponent(message);
-    return `https://wa.me/${FINAL_NUMBER}?text=${encodedMsg}`;
+    return buildBusinessWhatsAppLink(message);
 }

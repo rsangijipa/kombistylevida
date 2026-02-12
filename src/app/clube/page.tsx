@@ -4,11 +4,12 @@ import React from "react";
 import { SiteShell } from "@/components/SiteShell";
 import { Check, Star, Truck, Zap } from "lucide-react";
 import Image from "next/image";
+import { buildBusinessWhatsAppLink } from "@/config/business";
 
 export default function SubscriptionPage() {
     const handleJoin = () => {
         const text = "Olá! Tenho interesse em ser Membro VIP do Clube Arikê 🌱. Como funciona?";
-        const url = `https://wa.me/5599999999999?text=${encodeURIComponent(text)}`;
+        const url = buildBusinessWhatsAppLink(text);
         window.open(url, "_blank");
     };
 

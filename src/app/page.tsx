@@ -10,6 +10,7 @@ import { ScientificSection } from "@/components/ScientificSection";
 import { FlavorModal } from "@/components/FlavorModal";
 import { CulturaVivaSection } from "@/components/CulturaVivaSection";
 import { FLAVORS, FlavorDetails } from "@/data/flavors";
+import { BUSINESS, buildBusinessWhatsAppLink } from "@/config/business";
 
 // Minimal data for Home (Top items)
 const flavors: FlavorDetails[] = FLAVORS;
@@ -48,13 +49,13 @@ export default function Page() {
                     {/* CTA Section */}
                     <div className="flex flex-col items-center md:items-end justify-center gap-1.5">
                         <a
-                            href="https://wa.me/5548999999999"
+                            href={buildBusinessWhatsAppLink()}
                             className="inline-flex h-10 items-center justify-center rounded-full bg-amber px-6 text-xs font-bold uppercase tracking-widest text-ink shadow-md transition-all hover:-translate-y-0.5 hover:bg-amber2 hover:shadow-lg active:scale-95 whitespace-nowrap"
                         >
                             Pedir no WhatsApp
                         </a>
                         <span className="text-[9px] font-bold uppercase tracking-widest text-ink/40">
-                            Entrega em Ariquemes e Região
+                            Entrega em {BUSINESS.deliveryRegion}
                         </span>
                     </div>
                 </div>

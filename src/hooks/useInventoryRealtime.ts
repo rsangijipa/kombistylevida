@@ -1,7 +1,5 @@
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Product } from '@/types/firestore';
 
 export function useInventoryRealtime() {
@@ -10,23 +8,41 @@ export function useInventoryRealtime() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // We listen to all products to build the real-time inventory grid
-        const q = query(collection(db, 'products'), orderBy('name'));
+        let cancelled = false;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Product[];
-            setProducts(data);
-            setLoading(false);
-        }, (err) => {
-            console.error("Error listening to inventory:", err);
-            setError(err.message);
-            setLoading(false);
-        });
+        const load = async () => {
+            try {
+                const res = await fetch('/api/admin/inventory', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(typeof data?.error === 'string' ? data.error : 'Erro ao carregar inventario');
+                }
 
-        return () => unsubscribe();
+                const map = (data || {}) as Record<string, Product>;
+                const list = Object.entries(map).map(([id, value]) => ({ ...value, id })) as Product[];
+                list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+                if (!cancelled) {
+                    setProducts(list);
+                    setError(null);
+                    setLoading(false);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setProducts([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar inventario');
+                    setLoading(false);
+                }
+            }
+        };
+
+        load();
+        const interval = window.setInterval(load, 15000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
     }, []);
 
     // Helper to get specific variant stock

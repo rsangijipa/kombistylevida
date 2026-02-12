@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Loader2, Lock, Unlock, RefreshCw, MapPin, Truck, Calendar as CalIcon, ChevronRight, User, Printer, Map as MapIcon } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Loader2, Lock, Unlock, RefreshCw, MapPin, Truck, ChevronRight, User, Printer, Map as MapIcon, CalendarDays, Filter } from "lucide-react";
 import { useSlotOrders } from "@/hooks/useSlotOrders";
 import { cn } from "@/lib/cn";
 import { OrderItem } from "@/types/firestore";
+import { buildCustomerWhatsAppLink } from "@/config/business";
+import { AuthProvider } from "@/context/AuthContext";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 // Types
 interface AdminSlot {
@@ -17,10 +20,23 @@ interface AdminSlot {
 }
 
 export default function AdminDeliveryPage() {
+    return (
+        <AuthProvider>
+            <AdminLayout>
+                <DeliveryContent />
+            </AdminLayout>
+        </AuthProvider>
+    );
+}
+
+function DeliveryContent() {
     const [slots, setSlots] = useState<AdminSlot[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState<AdminSlot | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [periodFilter, setPeriodFilter] = useState<"ALL" | "MORNING" | "AFTERNOON" | "EVENING">("ALL");
+    const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CRITICAL" | "FULL" | "CLOSED">("ALL");
+    const [dateFilter, setDateFilter] = useState<string>("ALL");
 
     // Range: Next 14 days (Server default)
     const fetchSlots = async () => {
@@ -39,6 +55,39 @@ export default function AdminDeliveryPage() {
     useEffect(() => {
         fetchSlots();
     }, []);
+
+    useEffect(() => {
+        if (!selectedSlot) return;
+        const updated = slots.find((slot) => slot.id === selectedSlot.id);
+        if (updated) setSelectedSlot(updated);
+    }, [slots, selectedSlot]);
+
+    const dateOptions = useMemo(() => {
+        return Array.from(new Set(slots.map((slot) => slot.date))).sort();
+    }, [slots]);
+
+    const filteredSlots = useMemo(() => {
+        return slots.filter((slot) => {
+            if (dateFilter !== "ALL" && slot.date !== dateFilter) return false;
+            if (periodFilter !== "ALL" && slot.window !== periodFilter) return false;
+
+            if (statusFilter === "CLOSED") return !slot.isOpen;
+            if (statusFilter === "OPEN") return slot.isOpen;
+            if (statusFilter === "FULL") return slot.isOpen && slot.reserved >= slot.capacity;
+            if (statusFilter === "CRITICAL") return slot.isOpen && slot.reserved < slot.capacity && slot.reserved / slot.capacity >= 0.8;
+
+            return true;
+        });
+    }, [slots, dateFilter, periodFilter, statusFilter]);
+
+    const overview = useMemo(() => {
+        const totalSlots = slots.length;
+        const openSlots = slots.filter((slot) => slot.isOpen).length;
+        const totalReserved = slots.reduce((acc, slot) => acc + slot.reserved, 0);
+        const totalCapacity = slots.reduce((acc, slot) => acc + slot.capacity, 0);
+        const occupancy = totalCapacity > 0 ? Math.round((totalReserved / totalCapacity) * 100) : 0;
+        return { totalSlots, openSlots, totalReserved, occupancy };
+    }, [slots]);
 
     const updateSlot = async (slotId: string, updates: Partial<AdminSlot>) => {
         setProcessing(true);
@@ -76,18 +125,20 @@ export default function AdminDeliveryPage() {
     };
 
     // Helper: Group by Date
-    const slotsByDate = slots.reduce((acc, slot) => {
+    const slotsByDate = filteredSlots.reduce((acc, slot) => {
         if (!acc[slot.date]) acc[slot.date] = [];
         acc[slot.date].push(slot);
         return acc;
     }, {} as Record<string, AdminSlot[]>);
 
+    const slotWindowOrder: Record<string, number> = { MORNING: 0, AFTERNOON: 1, EVENING: 2 };
+
     return (
         <div className="min-h-screen font-sans text-ink">
-            <header className="mb-8 flex items-end justify-between">
+            <header className="mb-8 flex items-end justify-between gap-4">
                 <div>
                     <h1 className="font-serif text-3xl font-bold text-ink">Logística & Entregas</h1>
-                    <p className="text-ink2 mt-1">Gerencie a capacidade dos motoristas e slots.</p>
+                    <p className="text-ink2 mt-1">Gerencie capacidade, ocupação e manifesto de rota por janela.</p>
                 </div>
                 <button
                     onClick={fetchSlots}
@@ -97,6 +148,56 @@ export default function AdminDeliveryPage() {
                     Atualizar
                 </button>
             </header>
+
+            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <KpiCard label="Slots" value={overview.totalSlots.toString()} />
+                <KpiCard label="Abertos" value={overview.openSlots.toString()} />
+                <KpiCard label="Reservas" value={overview.totalReserved.toString()} />
+                <KpiCard label="Ocupacao" value={`${overview.occupancy}%`} />
+            </div>
+
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/50">
+                    <Filter size={14} />
+                    Filtros
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                    >
+                        <option value="ALL">Todas as datas</option>
+                        {dateOptions.map((date) => (
+                            <option key={date} value={date}>{new Date(`${date}T12:00`).toLocaleDateString("pt-BR")}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={periodFilter}
+                        onChange={(e) => setPeriodFilter(e.target.value as "ALL" | "MORNING" | "AFTERNOON" | "EVENING")}
+                        className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                    >
+                        <option value="ALL">Todos os periodos</option>
+                        <option value="MORNING">Manha</option>
+                        <option value="AFTERNOON">Tarde</option>
+                        <option value="EVENING">Noite</option>
+                    </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as "ALL" | "OPEN" | "CRITICAL" | "FULL" | "CLOSED")}
+                        className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                    >
+                        <option value="ALL">Todos os status</option>
+                        <option value="OPEN">Abertos</option>
+                        <option value="CRITICAL">Criticos (80%+)</option>
+                        <option value="FULL">Lotados</option>
+                        <option value="CLOSED">Fechados</option>
+                    </select>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* 1. Calendar Heatmap */}
@@ -109,6 +210,7 @@ export default function AdminDeliveryPage() {
                         Object.entries(slotsByDate).sort().map(([date, daySlots]) => {
                             const dateObj = new Date(date + "T12:00");
                             const isToday = new Date().toDateString() === dateObj.toDateString();
+                            const sortedDaySlots = [...daySlots].sort((a, b) => slotWindowOrder[a.window] - slotWindowOrder[b.window]);
 
                             return (
                                 <div key={date} className={cn(
@@ -128,13 +230,13 @@ export default function AdminDeliveryPage() {
                                                 {dateObj.toLocaleDateString('pt-BR', { month: 'long', day: 'numeric' })}
                                             </h3>
                                             <p className="text-xs text-ink/50 font-medium">
-                                                {daySlots.reduce((acc, s) => acc + s.reserved, 0)} entregas agendadas
+                                                {sortedDaySlots.reduce((acc, s) => acc + s.reserved, 0)} entregas agendadas
                                             </p>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        {daySlots.map(slot => (
+                                        {sortedDaySlots.map(slot => (
                                             <div
                                                 key={slot.id}
                                                 onClick={() => setSelectedSlot(slot)}
@@ -255,6 +357,15 @@ export default function AdminDeliveryPage() {
     );
 }
 
+function KpiCard({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40">{label}</p>
+            <p className="mt-1 font-serif text-2xl font-bold text-ink">{value}</p>
+        </div>
+    );
+}
+
 // Sub-component for Orders List (Reused logic)
 // Sub-component for Orders List (Reused logic)
 function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
@@ -270,6 +381,15 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
             groups[hood].push(o);
         });
         return groups;
+    }, [orders]);
+
+    const sortedOrders = useMemo(() => {
+        return [...orders].sort((a, b) => {
+            const hoodA = (a.customer?.neighborhood || "Outros").toLowerCase();
+            const hoodB = (b.customer?.neighborhood || "Outros").toLowerCase();
+            if (hoodA !== hoodB) return hoodA.localeCompare(hoodB);
+            return (a.customer?.name || "").localeCompare(b.customer?.name || "");
+        });
     }, [orders]);
 
     const handlePrint = () => {
@@ -351,7 +471,7 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 space-y-3 font-sans scrollbar-thin scrollbar-thumb-ink/10">
-                {orders.map(order => (
+                {sortedOrders.map(order => (
                     <div key={order.id} className="bg-white border border-ink/5 rounded-xl p-3 shadow-sm hover:border-olive/30 transition-colors group">
                         <div className="flex justify-between items-start mb-1">
                             <div className="flex items-center gap-2">
@@ -381,7 +501,7 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
 
                         <div className="mt-2 pl-8 flex justify-end">
                             <a
-                                href={`https://wa.me/${order.customer?.phone?.replace(/\D/g, '')}`}
+                                href={buildCustomerWhatsAppLink(order.customer?.phone || "")}
                                 target="_blank"
                                 className="text-[10px] font-bold uppercase tracking-wider text-olive hover:underline flex items-center gap-1"
                             >

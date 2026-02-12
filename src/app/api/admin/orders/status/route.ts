@@ -6,11 +6,16 @@ import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logEvent, logError } from "@/lib/logger";
 import { adminGuard } from "@/lib/auth/adminGuard";
+import { writeAuditEvent } from "@/lib/audit";
 
 export async function POST(request: Request) {
+    let admin: { uid?: string; email?: string; role?: string } | null = null;
     try {
-        await adminGuard();
-    } catch {
+        admin = await adminGuard();
+    } catch (error) {
+        if (error instanceof Error && error.message === "FORBIDDEN") {
+            return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+        }
         return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
 
@@ -78,6 +83,16 @@ export async function POST(request: Request) {
         });
 
         logEvent('order_status_updated', { orderId, status, actor });
+
+        await writeAuditEvent({
+            action: "ORDER_STATUS_UPDATED",
+            target: `orders/${orderId}`,
+            actorUid: admin?.uid,
+            actorEmail: admin?.email,
+            role: admin?.role,
+            details: `Status atualizado para ${status}`,
+            metadata: { orderId, status, actor: actor || 'admin' },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error: unknown) {

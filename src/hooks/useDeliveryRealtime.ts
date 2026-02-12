@@ -1,7 +1,5 @@
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/firestore';
 
 export interface DeliverySlot {
@@ -16,9 +14,9 @@ export interface DeliverySlot {
 export function useDeliveryWeekRealtime(startDate: Date) {
     const [slots, setSlots] = useState<DeliverySlot[]>([]);
     const [loadedRangeKey, setLoadedRangeKey] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Calculate week range strings
         const start = new Date(startDate);
         const end = new Date(startDate);
         end.setDate(end.getDate() + 7);
@@ -27,23 +25,37 @@ export function useDeliveryWeekRealtime(startDate: Date) {
         const endStr = end.toISOString().split('T')[0];
         const rangeKey = `${startStr}:${endStr}:DELIVERY`;
 
-        const q = query(
-            collection(db, 'deliveryDays'),
-            where('date', '>=', startStr),
-            where('date', '<=', endStr),
-            where('mode', '==', 'DELIVERY')
-        );
+        let cancelled = false;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => doc.data() as DeliverySlot);
-            setSlots(data);
-            setLoadedRangeKey(rangeKey);
-        }, (err) => {
-            console.error("Error listening to delivery slots:", err);
-            setLoadedRangeKey(rangeKey);
-        });
+        const load = async () => {
+            try {
+                const res = await fetch(`/api/admin/delivery/slots?start=${startStr}&end=${endStr}&mode=DELIVERY`, { cache: 'no-store' });
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    throw new Error(typeof body?.error === 'string' ? body.error : 'Failed to load delivery slots');
+                }
+                const data = await res.json();
+                if (!cancelled) {
+                    setSlots(Array.isArray(data) ? (data as DeliverySlot[]) : []);
+                    setError(null);
+                    setLoadedRangeKey(rangeKey);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setSlots([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar agenda');
+                    setLoadedRangeKey(rangeKey);
+                }
+            }
+        };
 
-        return () => unsubscribe();
+        load();
+        const interval = window.setInterval(load, 15000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
     }, [startDate]);
 
     const currentStart = new Date(startDate).toISOString().split('T')[0];
@@ -52,56 +64,67 @@ export function useDeliveryWeekRealtime(startDate: Date) {
     const currentEnd = currentEndDate.toISOString().split('T')[0];
     const currentRangeKey = `${currentStart}:${currentEnd}:DELIVERY`;
     const loading = loadedRangeKey !== currentRangeKey;
-    return { slots, loading };
+    return { slots, loading, error };
 }
 
 export function useDeliveryDayRealtime(dateStr: string | null) {
     const [dayData, setDayData] = useState<DeliverySlot | null>(null);
     const [orders, setOrders] = useState<Order[]>([]); // Detailed orders for that day
     const [loadedForDate, setLoadedForDate] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!dateStr) return;
 
-        // 1. Listen to Day Capacity
-        // Note: We need a composite ID or query. 
-        // Our backend uses `YYYY-MM-DD_DELIVERY` usually.
-        // Let's assume DELIVERY mode for now or query by date.
-        const qSlots = query(
-            collection(db, 'deliveryDays'),
-            where('date', '==', dateStr),
-            where('mode', '==', 'DELIVERY')
-        );
+        let cancelled = false;
 
-        const unsubSlots = onSnapshot(qSlots, (snap) => {
-            if (!snap.empty) {
-                setDayData(snap.docs[0].data() as DeliverySlot);
-            } else {
-                setDayData(null);
+        const load = async () => {
+            try {
+                const [slotsRes, ordersRes] = await Promise.all([
+                    fetch(`/api/admin/delivery/slots?start=${dateStr}&end=${dateStr}&mode=DELIVERY`, { cache: 'no-store' }),
+                    fetch(`/api/admin/orders?date=${dateStr}`, { cache: 'no-store' }),
+                ]);
+
+                if (!slotsRes.ok || !ordersRes.ok) {
+                    const [slotsBody, ordersBody] = await Promise.all([
+                        slotsRes.json().catch(() => ({})),
+                        ordersRes.json().catch(() => ({})),
+                    ]);
+                    const message = typeof slotsBody?.error === 'string'
+                        ? slotsBody.error
+                        : (typeof ordersBody?.error === 'string' ? ordersBody.error : 'Failed to load day data');
+                    throw new Error(message);
+                }
+
+                const slotsData = await slotsRes.json();
+                const ordersData = await ordersRes.json();
+
+                const activeOrders = Array.isArray(ordersData)
+                    ? (ordersData as Order[]).filter((order) => order.status !== 'CANCELED')
+                    : [];
+
+                if (!cancelled) {
+                    setDayData(Array.isArray(slotsData) && slotsData.length > 0 ? (slotsData[0] as DeliverySlot) : null);
+                    setOrders(activeOrders);
+                    setError(null);
+                    setLoadedForDate(dateStr);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setDayData(null);
+                    setOrders([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar detalhes do dia');
+                    setLoadedForDate(dateStr);
+                }
             }
-            setLoadedForDate(dateStr);
-        });
+        };
 
-        // 2. Listen to Orders for that day
-        // This validates "Pedidos do dia atualizam em tempo real"
-        const qOrders = query(
-            collection(db, 'orders'),
-            where('schedule.date', '==', dateStr),
-            where('status', 'in', ['CONFIRMED', 'PAID', 'IN_PRODUCTION', 'OUT_FOR_DELIVERY', 'DELIVERED']) // Only active orders
-        );
-
-        const unsubOrders = onSnapshot(qOrders, (snap) => {
-            const list = snap.docs.map(d => ({
-                id: d.id,
-                ...d.data()
-            })) as Order[];
-            setOrders(list);
-            setLoadedForDate(dateStr);
-        });
+        load();
+        const interval = window.setInterval(load, 10000);
 
         return () => {
-            unsubSlots();
-            unsubOrders();
+            cancelled = true;
+            window.clearInterval(interval);
         };
     }, [dateStr]);
 
@@ -111,5 +134,6 @@ export function useDeliveryDayRealtime(dateStr: string | null) {
         dayData: isLoaded ? dayData : null,
         orders: isLoaded ? orders : [],
         loading: !!dateStr && !isLoaded,
+        error,
     };
 }

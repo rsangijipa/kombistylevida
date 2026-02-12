@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LoginScreen } from "@/components/admin/LoginScreen";
-import { LayoutDashboard, ShoppingCart, Calendar, Users, Package, Settings, LogOut, Truck, FileText, MessageSquare, Tag, ShoppingBag } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Calendar, Users, Package, Settings, LogOut, Truck, FileText, MessageSquare, Tag, ShoppingBag, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -19,16 +19,14 @@ const NAV_ITEMS = [
     { label: "Combos", href: "/admin/combos", icon: ShoppingBag },
     { label: "Blog & Conteúdo", href: "/admin/content/posts", icon: FileText },
     { label: "Depoimentos", href: "/admin/testimonials", icon: MessageSquare },
+    { label: "Auditoria", href: "/admin/audit", icon: ShieldCheck },
     { label: "Configs", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, loading, logout, isAdmin } = useAuth();
+    const { user, loading, logout, role } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-
-    const [role, setRole] = useState<string | null>(null);
-    const [roleLoading, setRoleLoading] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -36,52 +34,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         }
     }, [user, loading, router]);
 
-    // Fetch Role effect
-    useEffect(() => {
-        async function determineRole() {
-            if (!user) return;
-
-            // Strategy: 
-            // 1. If Super Admin (Hardcoded) -> Role = 'admin'
-            // 2. If has Admin Claim (via script) -> Role = 'admin'. Skip Firestore.
-            // 3. Else -> Fetch Firestore for granular roles (staff, content).
-
-            if (user.email === 'admin@kombucha.com') {
-                setRole('admin');
-                setRoleLoading(false);
-                return;
-            }
-
-            if (isAdmin) {
-                setRole('admin');
-                setRoleLoading(false);
-                return;
-            }
-
-            try {
-                const { doc, getDoc, setDoc } = await import("firebase/firestore");
-                const { db } = await import("@/lib/firebase");
-
-                const ref = doc(db, "memberships", user.uid);
-                const snap = await getDoc(ref);
-                if (snap.exists()) {
-                    setRole(snap.data().role);
-                } else {
-                    // Safe Default: Create as STAFF (pending approval)
-                    await setDoc(ref, { role: 'staff', email: user.email });
-                    setRole('staff');
-                }
-            } catch (e) {
-                console.error("Error fetching role", e);
-            } finally {
-                setRoleLoading(false);
-            }
-        }
-
-        if (user && !loading) determineRole();
-    }, [user, loading, isAdmin]);
-
-    if (loading || (user && roleLoading)) {
+    if (loading) {
         return <div className="flex h-screen items-center justify-center bg-paper text-olive">Carregando permissões...</div>;
     }
 
@@ -92,7 +45,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col h-screen items-center justify-center bg-paper text-ink p-6 text-center">
             <h2 className="text-xl font-bold text-olive mb-2">Acesso Restrito</h2>
             <p className="mb-6 max-w-md text-ink/70">
-                Sua conta não possui permissões administrativas ou houve um erro ao carregar seu perfil.
+                Sua conta não possui claim de acesso administrativo. Solicite ao administrador a atribuicao de role (admin, staff ou content).
             </p>
             <button
                 onClick={() => logout()}
@@ -116,7 +69,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         if (role === 'staff') {
             // Staff sees everything EXCEPT content management (maybe? user request said "content" role exists, implies separation)
             // Or Staff can see Orders, Schedule, Customers, Inventory.
-            return ['/admin', '/admin/orders', '/admin/delivery', '/admin/schedule', '/admin/customers', '/admin/inventory'].includes(item.href);
+            return ['/admin', '/admin/orders', '/admin/delivery', '/admin/agenda', '/admin/customers', '/admin/inventory', '/admin/audit'].includes(item.href);
         }
 
         return false;

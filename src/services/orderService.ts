@@ -1,5 +1,6 @@
 import { CartItem } from "@/store/cartStore";
 import { CustomerState } from "@/store/customerStore";
+import { PACK_PRICE_CENTS } from "@/config/pricing";
 
 interface CreateOrderParams {
     cart: CartItem[];
@@ -27,7 +28,7 @@ export async function createOrder(params: CreateOrderParams): Promise<{ orderId:
     let totalCents = 0;
     cart.forEach(item => {
         if (item.type === 'PACK') {
-            totalCents += (item.size === 6 ? 8990 : 16990) * item.quantity;
+            totalCents += PACK_PRICE_CENTS[item.size] * item.quantity;
         } else {
             // We'd need catalog access here, but simpler: Let server handle it or pass 0
             // CartDrawer calculated it for UI. 

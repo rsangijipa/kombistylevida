@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product } from '@/data/catalog';
+import { Product } from '@/types/firestore';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/cn';
 

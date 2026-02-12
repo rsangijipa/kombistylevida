@@ -147,8 +147,12 @@ export async function GET(request: Request) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
         }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         console.error("Error fetching schedule:", error);
-        return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Failed to fetch schedule';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -222,8 +226,12 @@ export async function POST(request: Request) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
         }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         console.error("Error updating schedule:", error);
-        return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Failed to update schedule';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 

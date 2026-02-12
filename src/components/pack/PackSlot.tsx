@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
-import { Product } from '@/data/catalog';
+import { X } from 'lucide-react';
+import { Product } from '@/types/firestore';
 import { cn } from '@/lib/cn';
 
 interface PackSlotProps {

@@ -1,40 +1,48 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/firestore';
 
 export function useCustomerOrders(phone: string | null) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadedPhone, setLoadedPhone] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!phone) return;
 
-        const q = query(
-            collection(db, 'orders'),
-            where('customer.phone', '==', phone),
-            // We can try orderBy if index exists, else sort client side.
-            // Safe bet: sort client side for now to avoid blocking on index creation.
-            // orderBy('createdAt', 'desc') 
-        );
+        let cancelled = false;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Order[];
+        const load = async () => {
+            try {
+                const res = await fetch(`/api/admin/orders?customerPhone=${encodeURIComponent(phone)}&limit=200`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(typeof data?.error === 'string' ? data.error : 'Erro ao carregar pedidos do cliente');
+                }
 
-            // Client-side sort
-            data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                const list = Array.isArray(data) ? (data as Order[]) : [];
+                list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-            setOrders(data);
-            setLoadedPhone(phone);
-        }, (err) => {
-            console.error("Error fetching customer orders:", err);
-            setLoadedPhone(phone);
-        });
+                if (!cancelled) {
+                    setOrders(list);
+                    setError(null);
+                    setLoadedPhone(phone);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setOrders([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar pedidos do cliente');
+                    setLoadedPhone(phone);
+                }
+            }
+        };
 
-        return () => unsubscribe();
+        load();
+        const interval = window.setInterval(load, 15000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
     }, [phone]);
 
     const loading = !!phone && loadedPhone !== phone;
@@ -42,5 +50,6 @@ export function useCustomerOrders(phone: string | null) {
     return {
         orders: phone ? orders : [],
         loading,
+        error,
     };
 }

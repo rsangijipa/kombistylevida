@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { Product } from '@/types/firestore';
 import { adminGuard } from '@/lib/auth/adminGuard';
+import { writeAuditEvent } from '@/lib/audit';
 
 export async function GET() {
     try {
@@ -20,13 +21,20 @@ export async function GET() {
         });
         return NextResponse.json(inventory);
     } catch (error) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 }
 
 export async function POST(request: Request) {
+    let admin: { uid?: string; email?: string; role?: string } | null = null;
     try {
-        await adminGuard();
+        admin = await adminGuard();
         const body = await request.json();
         const { productId, amount, type, variantKey } = body;
 
@@ -80,9 +88,31 @@ export async function POST(request: Request) {
             });
         });
 
+        await writeAuditEvent({
+            action: 'INVENTORY_ADJUSTED',
+            target: `products/${productId}`,
+            actorUid: admin?.uid,
+            actorEmail: admin?.email,
+            role: admin?.role,
+            details: `${type} ${amount} (${variantKey || '300ml'})`,
+            metadata: {
+                productId,
+                amount,
+                type,
+                variantKey: variantKey || '300ml',
+                reason: body.reason || 'Manual Adjustment',
+            },
+        });
+
         return NextResponse.json({ success: true });
 
     } catch (error: unknown) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         console.error("Inventory Adjust Error", error);
         return NextResponse.json({ error: "Failed to adjust" }, { status: 500 });
     }

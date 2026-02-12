@@ -1,41 +1,49 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/firestore';
 
 export function useSlotOrders(date?: string, slotId?: string) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadedKey, setLoadedKey] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const requestKey = date && slotId ? `${date}:${slotId}` : null;
 
     useEffect(() => {
         if (!date || !slotId) return;
 
-        const q = query(
-            collection(db, 'orders'),
-            where('schedule.date', '==', date),
-            where('schedule.slotId', '==', slotId)
-            // Note: composite index might be needed if we add orderBy('createdAt')
-            // Let's sort client-side to avoid index requirement block
-        );
+        let cancelled = false;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Order[];
+        const load = async () => {
+            try {
+                const res = await fetch(`/api/admin/orders?date=${date}&slotId=${slotId}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(typeof data?.error === 'string' ? data.error : 'Erro ao carregar pedidos do slot');
+                }
 
-            // Client-side sort
-            data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                const list = Array.isArray(data) ? (data as Order[]) : [];
+                list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-            setOrders(data);
-            setLoadedKey(`${date}:${slotId}`);
-        }, (err) => {
-            console.error("Error listening to slot orders:", err);
-            setLoadedKey(`${date}:${slotId}`);
-        });
+                if (!cancelled) {
+                    setOrders(list);
+                    setError(null);
+                    setLoadedKey(`${date}:${slotId}`);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setOrders([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar pedidos do slot');
+                    setLoadedKey(`${date}:${slotId}`);
+                }
+            }
+        };
 
-        return () => unsubscribe();
+        load();
+        const interval = window.setInterval(load, 10000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
     }, [date, slotId]);
 
     const loading = !!requestKey && loadedKey !== requestKey;
@@ -43,5 +51,6 @@ export function useSlotOrders(date?: string, slotId?: string) {
     return {
         orders: requestKey ? orders : [],
         loading,
+        error,
     };
 }

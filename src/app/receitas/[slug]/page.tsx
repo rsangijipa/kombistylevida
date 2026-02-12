@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { Recipe } from "@/types/firestore";
 import Link from "next/link";
 import { ArrowLeft, Share2, Clock, ChefHat, Users, CheckCircle2, AlertCircle, MessageCircle, Heart } from "lucide-react";
+import { buildBusinessWhatsAppLink } from "@/config/business";
 
 // Since it's a dynamic route, we receive params.
 // But this is a Client Component so we use the hook or receive params via props if it was Server.
@@ -87,9 +88,8 @@ export default function RecipeDetailPage() {
         );
     }
 
-    const whatsappMessage = recipe.ctaWhatsAppText
-        ? encodeURIComponent(recipe.ctaWhatsAppText)
-        : encodeURIComponent(`Olá! Vi a receita de *${recipe.title}* e gostaria de saber quais kombuchas combinam com ela! 🌿`);
+    const ctaText = recipe.ctaWhatsAppText || `Olá! Vi a receita de *${recipe.title}* e gostaria de saber quais kombuchas combinam com ela! 🌿`;
+    const whatsappLink = buildBusinessWhatsAppLink(ctaText);
 
     return (
         <div className="min-h-screen bg-paper text-ink pb-32">
@@ -201,7 +201,7 @@ export default function RecipeDetailPage() {
                         <div className="mt-8 pt-8 border-t border-dashed border-ink/10 text-center">
                             <p className="text-sm text-ink/60 mb-3">Faltou algum ingrediente?</p>
                             <a
-                                href={`https://wa.me/5548999999999?text=${whatsappMessage}`}
+                                href={whatsappLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center justify-center gap-2 w-full py-3 bg-green-50 text-green-700 font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-green-100 transition-colors border border-green-100"
@@ -314,7 +314,7 @@ export default function RecipeDetailPage() {
             {/* Sticky Mobile CTA or Bottom CTA */}
             <div className="fixed bottom-6 right-6 z-40 hidden md:block animate-in slide-in-from-bottom duration-1000 delay-1000">
                 <a
-                    href={`https://wa.me/5548999999999?text=${whatsappMessage}`}
+                    href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 pl-4 pr-6 py-4 bg-olive text-white rounded-full shadow-2xl hover:bg-olive/90 hover:scale-105 transition-all"
@@ -332,7 +332,7 @@ export default function RecipeDetailPage() {
             {/* Mobile Bottom Bar */}
             <div className="md:hidden fixed bottom-0 inset-x-0 p-4 bg-white border-t border-ink/10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-40">
                 <a
-                    href={`https://wa.me/5548999999999?text=${whatsappMessage}`}
+                    href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex justify-center items-center gap-2 w-full py-4 bg-olive text-white rounded-xl font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-transform"

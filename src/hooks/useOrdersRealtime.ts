@@ -1,7 +1,5 @@
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, where, QueryConstraint } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/firestore';
 
 export interface OrderFilters {
@@ -13,38 +11,54 @@ export interface OrderFilters {
 export function useOrdersRealtime(filters?: OrderFilters) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadedFilterKey, setLoadedFilterKey] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const filterKey = JSON.stringify(filters || {});
 
     useEffect(() => {
-        const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+        let cancelled = false;
 
-        if (filters?.status) {
-            constraints.unshift(where('status', '==', filters.status));
-        }
-        if (filters?.customerId) {
-            constraints.unshift(where('customer.id', '==', filters.customerId));
-        }
+        const load = async () => {
+            try {
+                const params = new URLSearchParams();
+                params.set('limit', String(filters?.limitCount || 100));
+                if (filters?.status) params.set('status', filters.status);
 
-        constraints.push(limit(filters?.limitCount || 100));
+                const res = await fetch(`/api/admin/orders?${params.toString()}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
 
-        const q = query(collection(db, 'orders'), ...constraints);
+                if (!res.ok) {
+                    throw new Error(typeof data?.error === 'string' ? data.error : 'Erro ao carregar pedidos');
+                }
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Order[];
-            setOrders(data);
-            setLoadedFilterKey(filterKey);
-        }, (err) => {
-            console.error("Error listening to orders:", err);
-            setLoadedFilterKey(filterKey);
-        });
+                const list = Array.isArray(data) ? (data as Order[]) : [];
+                const filtered = filters?.customerId
+                    ? list.filter((order) => order.customer?.id === filters.customerId)
+                    : list;
 
-        return () => unsubscribe();
+                if (!cancelled) {
+                    setOrders(filtered);
+                    setError(null);
+                    setLoadedFilterKey(filterKey);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setOrders([]);
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar pedidos');
+                    setLoadedFilterKey(filterKey);
+                }
+            }
+        };
+
+        load();
+        const interval = window.setInterval(load, 10000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
     }, [filterKey, filters?.customerId, filters?.limitCount, filters?.status]);
 
     const loading = loadedFilterKey !== filterKey;
 
-    return { orders, loading };
+    return { orders, loading, error };
 }

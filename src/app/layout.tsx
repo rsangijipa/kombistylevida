@@ -18,7 +18,10 @@ const sans = Inter({
     display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+    metadataBase: new URL(siteUrl),
     title: "Kombucha Arikê | Artesanal de Verdade",
     description: "Kombucha fermentada naturalmente em Ariquemes - RO, feita com ingredientes reais e carinho. Descubra o equilíbrio entre saúde e sabor.",
     keywords: ["kombucha", "fermentação natural", "probióticos", "saúde", "bem-estar", "bebida artesanal", "chá fermentado", "Ariquemes", "Rondônia"],
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
         description: "Kombucha artesanal de verdade. Fermentação lenta, ingredientes naturais e muita vida. Feito em Ariquemes - RO.",
         type: "website",
         locale: "pt_BR",
-        images: ["/images/home-hero-bg.jpg"],
+        images: ["/images/hero-new.jpg"],
     },
     twitter: {
         card: "summary_large_image",

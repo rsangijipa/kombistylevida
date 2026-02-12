@@ -90,6 +90,9 @@ export async function POST(request: Request) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
         }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         logError('schedule_sync_failed', error);
         const message = error instanceof Error ? error.message : 'Internal error';
         return NextResponse.json({ error: message }, { status: 500 });

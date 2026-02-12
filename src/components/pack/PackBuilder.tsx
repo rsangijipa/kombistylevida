@@ -1,20 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import { PRODUCTS, Product } from "@/data/catalog";
+import { Product } from "@/types/firestore";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/cn";
-import { useRouter } from "next/navigation";
 import { PackSlot } from "./PackSlot";
 import { FlavorDraggable } from "./FlavorDraggable";
 import { PackSummary } from "./PackSummary";
+import { useCatalog } from "@/context/CatalogContext";
+import { PACK_PRICE_CENTS } from "@/config/pricing";
 
 export function PackBuilder() {
+    const { products, loading } = useCatalog();
     const [packSize, setPackSize] = useState<6 | 12>(6);
     const [slots, setSlots] = useState<(Product | null)[]>(Array(6).fill(null));
     const [lastAddedIndex, setLastAddedIndex] = useState<number | null>(null);
     const { addPack } = useCartStore();
-    const router = useRouter();
 
     // Resize slots when pack size changes
     React.useEffect(() => {
@@ -70,8 +71,7 @@ export function PackBuilder() {
     };
 
     const filledCount = slots.filter(s => s !== null).length;
-    // Simple price logic: Sum of items.
-    const totalPrice = slots.reduce((acc, curr) => acc + (curr?.priceCents || 0), 0);
+    const totalPrice = PACK_PRICE_CENTS[packSize];
 
     return (
         <div className="flex flex-col gap-8 pb-32">
@@ -120,16 +120,21 @@ export function PackBuilder() {
             <div className="space-y-4">
                 <h3 className="text-center font-serif text-xl font-bold text-ink">Escolha os Sabores</h3>
                 <div className="grid gap-3 px-4 max-w-lg mx-auto w-full">
-                    {PRODUCTS.map((product) => (
-                        <FlavorDraggable
-                            key={product.id}
-                            product={product}
-                            disabled={filledCount >= packSize}
-                            // Mocking availability for now, P2 will hook this to real stock
-                            availableQty={99}
-                            onAdd={() => addToFirstEmptySlot(product)}
-                        />
-                    ))}
+                    {loading ? (
+                        Array.from({ length: 4 }).map((_, index) => (
+                            <div key={index} className="h-[72px] rounded-xl border border-ink/10 bg-white animate-pulse" />
+                        ))
+                    ) : (
+                        products.map((product) => (
+                            <FlavorDraggable
+                                key={product.id}
+                                product={product}
+                                disabled={filledCount >= packSize}
+                                availableQty={99}
+                                onAdd={() => addToFirstEmptySlot(product)}
+                            />
+                        ))
+                    )}
                 </div>
             </div>
 

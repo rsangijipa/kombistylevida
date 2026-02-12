@@ -12,6 +12,8 @@ import { createOrder } from "@/services/orderService";
 import { upsertCustomer } from "@/services/customerService";
 import { buildOrderMessage, buildWhatsAppLink, validateOrder } from "@/lib/whatsapp";
 import { useCatalog } from "@/context/CatalogContext"; // New Import
+import { buildBusinessWhatsAppLink } from "@/config/business";
+import { PACK_PRICE_CENTS } from "@/config/pricing";
 
 export function CartDrawer() {
     const { items, isOpen, removeItem, updateQuantity, toggleCart, selectedDate, selectedSlotId, notes, setNotes, clearCart, bottlesToReturn, setBottlesToReturn } = useCartStore();
@@ -111,9 +113,7 @@ export function CartDrawer() {
             toggleCart(false);
 
             // 3. Open WhatsApp
-            // 3. Open WhatsApp
-            const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "556981123681";
-            const link = `https://wa.me/${waNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+            const link = buildBusinessWhatsAppLink(whatsappMessage);
             window.open(link, "_blank");
 
         } catch (e: unknown) {
@@ -137,7 +137,7 @@ export function CartDrawer() {
 
     const subtotal = items.reduce((acc, item) => {
         if (item.type === 'PACK') {
-            const priceCents = item.size === 6 ? 8990 : 16990;
+            const priceCents = PACK_PRICE_CENTS[item.size];
             return acc + (priceCents * item.quantity);
         }
 
@@ -233,7 +233,7 @@ export function CartDrawer() {
                             items.map((item) => {
                                 // 1. HANDLE CUSTOM PACKS
                                 if (item.type === 'PACK') {
-                                    const priceCents = item.size === 6 ? 8990 : 16990;
+                                    const priceCents = PACK_PRICE_CENTS[item.size];
 
                                     return (
                                         <div key={item.id} className="flex gap-4 items-start bg-paper p-4 rounded-xl border border-ink/5 shadow-sm">
@@ -436,8 +436,8 @@ export function CartDrawer() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {useCartStore.getState().bottlesToReturn > 0 && (
-                                            <span className="text-xs font-bold text-olive">{useCartStore.getState().bottlesToReturn} un.</span>
+                                        {bottlesToReturn > 0 && (
+                                            <span className="text-xs font-bold text-olive">{bottlesToReturn} un.</span>
                                         )}
                                         {/* Simple toggle for MVP: 0 or 6? Or Input? Let's use numeric input styled small */}
                                         {/* Actually, user prompt said "Checkbox 'Tenho garrafas'". A checkbox is boolean. But dossier/logic implied quantity. Let's do a simple checkbox that sets it to "1" (flag) or a small stepper.

@@ -15,6 +15,15 @@ import { adminAuth } from "@/lib/firebase/admin";
  */
 import { cookies } from "next/headers";
 
+type AllowedRole = "admin" | "staff" | "content";
+
+function extractRole(decodedToken: Record<string, unknown>): AllowedRole | null {
+    const role = decodedToken.role;
+    if (role === "admin" || role === "staff" || role === "content") return role;
+    if (decodedToken.admin === true) return "admin";
+    return null;
+}
+
 /**
  * Validates the request authentication for Admin routes.
  * Supports both Bearer Token (API clients) and Session Cookie (Browser/Middleware).
@@ -40,9 +49,9 @@ export async function adminGuard() {
             throw new Error("UNAUTHORIZED");
         }
 
-        // P0 Requirement: Check for correct claim
-        // Fallback to hardcoded super-admin for safety during transition
-        const isAdmin = decodedToken.role === 'admin' || decodedToken.admin === true || decodedToken.email === 'admin@kombucha.com';
+        // RBAC only via claims (no email fallback)
+        const role = extractRole(decodedToken as Record<string, unknown>);
+        const isAdmin = role === "admin";
 
         if (!isAdmin) {
             throw new Error("FORBIDDEN");
@@ -51,6 +60,10 @@ export async function adminGuard() {
         return decodedToken;
 
     } catch (error) {
+        if (error instanceof Error && (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN")) {
+            throw error;
+        }
+
         console.error("Admin Guard Validation Failed:", error);
         // Log the specific error for debugging
         if (decodedToken) {

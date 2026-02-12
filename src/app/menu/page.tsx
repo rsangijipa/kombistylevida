@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { SiteShell } from "@/components/SiteShell";
-import { PRODUCTS, BUNDLES } from "@/data/catalog";
+import { BUNDLES as STATIC_BUNDLES } from "@/data/catalog";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/cn";
 import { ShoppingBag, Plus, Minus } from "lucide-react";
 import Image from "next/image";
+import { useCatalog } from "@/context/CatalogContext";
 
 export default function MenuPage() {
     const { items, addItem, removeItem, addBundle, toggleCart } = useCartStore();
+    const { products, combos, loading } = useCatalog();
+
+    const comboCards = combos.map((combo) => {
+        const fallback = STATIC_BUNDLES.find((item) => item.id === combo.id);
+        return {
+            ...combo,
+            description: combo.description || fallback?.description || "",
+            badge: combo.badge || fallback?.badge,
+            imageSrc: fallback?.imageSrc,
+        };
+    });
 
     // Helper to get cart qty for a product
     // Helper to get Qty for a product from cart (summing direct products and maybe packs if we want, but for now just direct)
@@ -54,7 +66,7 @@ export default function MenuPage() {
                 </div>
 
                 {/* COMBOS (Opcional: Se houver, manter estilo) */}
-                {BUNDLES.length > 0 && (
+                {comboCards.length > 0 && (
                     <section className="mb-16">
                         <div className="mb-8 flex items-center justify-center gap-4">
                             <div className="h-[1px] w-12 bg-ink/10" />
@@ -63,7 +75,7 @@ export default function MenuPage() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto px-4">
-                            {BUNDLES.map((bundle, index) => (
+                            {comboCards.map((bundle, index) => (
                                 <div
                                     key={bundle.id}
                                     className="relative group overflow-hidden bg-paper rounded-xl shadow-sm transition-all duration-700 hover:-translate-y-2 hover:shadow-paper animate-in fade-in slide-in-from-bottom-4"
@@ -127,8 +139,15 @@ export default function MenuPage() {
                         <div className="h-[1px] w-12 bg-ink/10" />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-                        {PRODUCTS.map((prod, index) => {
+                    {loading ? (
+                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <div key={index} className="h-[430px] rounded-xl bg-paper animate-pulse border border-ink/5" />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+                            {products.map((prod, index) => {
                             const qty = getQty(prod.id);
                             return (
                                 <article
@@ -161,7 +180,7 @@ export default function MenuPage() {
                                                 {prod.name}
                                             </h3>
                                             <p className="text-sm font-serif text-ink2/70 mb-6 flex-1 leading-relaxed px-2">
-                                                {prod.shortDesc}
+                                                {prod.shortDesc || "Fermentacao natural com ingredientes reais."}
                                             </p>
 
                                             <div className="mt-auto w-full pt-6 border-t border-ink/5 flex flex-col gap-3">
@@ -193,8 +212,9 @@ export default function MenuPage() {
                                     <div className="absolute inset-0 bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
                                 </article>
                             );
-                        })}
-                    </div>
+                            })}
+                        </div>
+                    )}
                 </section>
             </div>
 

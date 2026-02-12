@@ -33,8 +33,12 @@ export async function GET(request: Request) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
         }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         console.error("Error fetching slots:", error);
-        return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Failed to fetch slots';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -79,8 +83,12 @@ export async function PATCH(request: Request) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
         }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+        }
         console.error("Error updating slot:", error);
-        return NextResponse.json({ error: "Failed to update slot" }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Failed to update slot';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 

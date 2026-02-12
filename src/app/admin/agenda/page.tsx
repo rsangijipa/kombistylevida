@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { Loader2, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, MapPin, ExternalLink, CalendarDays, Filter } from "lucide-react";
 import { useDeliveryWeekRealtime, useDeliveryDayRealtime } from "@/hooks/useDeliveryRealtime";
 
 export default function AgendaPage() {
@@ -17,23 +17,66 @@ export default function AgendaPage() {
 
 function AgendaManager() {
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
+    const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "FULL" | "CLOSED">("ALL");
 
     // 1. Weekly Slots Hook
-    const { slots, loading } = useDeliveryWeekRealtime(weekStart);
+    const { slots, loading, error: weekError } = useDeliveryWeekRealtime(weekStart);
 
     // Detail Modal State
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [editCapacity, setEditCapacity] = useState<number>(0);
 
     // 2. Daily Details Hook
-    const { orders: detailOrders, loading: detailLoading, dayData: realtimeDayData } = useDeliveryDayRealtime(selectedDate);
+    const { orders: detailOrders, loading: detailLoading, dayData: realtimeDayData, error: dayError } = useDeliveryDayRealtime(selectedDate);
 
     // Derived State
-    const weekDays = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate() + i);
-        return d;
-    });
+    const weekDays = useMemo(() => {
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(weekStart);
+            d.setDate(d.getDate() + i);
+            return d;
+        });
+    }, [weekStart]);
+
+    const weekDayCards = useMemo(() => {
+        return weekDays.map((date) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayDataItem = slots.find((s) => s.date === dateStr && (s.mode || 'DELIVERY') === 'DELIVERY');
+            const isOpen = dayDataItem ? !dayDataItem.closed : true;
+            const capacity = dayDataItem?.dailyCapacityOverride || 10;
+            const bookedCount = dayDataItem?.dailyBooked || 0;
+            const isFull = bookedCount >= capacity;
+            const occupancy = capacity > 0 ? Math.min(100, Math.round((bookedCount / capacity) * 100)) : 0;
+            return {
+                date,
+                dateStr,
+                isOpen,
+                capacity,
+                bookedCount,
+                isFull,
+                occupancy,
+            };
+        });
+    }, [slots, weekDays]);
+
+    const filteredWeekDayCards = useMemo(() => {
+        return weekDayCards.filter((day) => {
+            if (statusFilter === "OPEN") return day.isOpen;
+            if (statusFilter === "FULL") return day.isOpen && day.isFull;
+            if (statusFilter === "CLOSED") return !day.isOpen;
+            return true;
+        });
+    }, [statusFilter, weekDayCards]);
+
+    const overview = useMemo(() => {
+        const totalDays = weekDayCards.length;
+        const openDays = weekDayCards.filter((d) => d.isOpen).length;
+        const closedDays = totalDays - openDays;
+        const totalBooked = weekDayCards.reduce((acc, d) => acc + d.bookedCount, 0);
+        const totalCapacity = weekDayCards.reduce((acc, d) => acc + d.capacity, 0);
+        const occupancy = totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : 0;
+        return { totalDays, openDays, closedDays, totalBooked, occupancy };
+    }, [weekDayCards]);
 
     const handleNextWeek = () => {
         const next = new Date(weekStart);
@@ -118,21 +161,49 @@ function AgendaManager() {
                 </div>
             </div>
 
+            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+                <KpiCard label="Dias" value={overview.totalDays.toString()} />
+                <KpiCard label="Abertos" value={overview.openDays.toString()} />
+                <KpiCard label="Fechados" value={overview.closedDays.toString()} />
+                <KpiCard label="Pedidos" value={overview.totalBooked.toString()} />
+                <KpiCard label="Ocupacao" value={`${overview.occupancy}%`} />
+            </div>
+
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/50">
+                    <CalendarDays size={14} />
+                    Semana de {weekDays[0].toLocaleDateString('pt-BR')} a {weekDays[6].toLocaleDateString('pt-BR')}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-ink/50"><Filter size={12} /> Status</span>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as "ALL" | "OPEN" | "FULL" | "CLOSED")}
+                        className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                    >
+                        <option value="ALL">Todos</option>
+                        <option value="OPEN">Abertos</option>
+                        <option value="FULL">Lotados</option>
+                        <option value="CLOSED">Fechados</option>
+                    </select>
+                </div>
+            </div>
+
+            {weekError && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                    Nao foi possivel atualizar a agenda em tempo real agora ({weekError}). Tentando novamente automaticamente.
+                </div>
+            )}
+
             {loading ? (
                 <div className="py-20 flex justify-center text-olive"><Loader2 className="animate-spin" size={40} /></div>
             ) : (
                 <div className="overflow-x-auto pb-4">
                     <div className="min-w-[1000px] grid grid-cols-7 gap-4">
-                        {weekDays.map(date => {
-                            const dateStr = date.toISOString().split('T')[0];
-                            const dayDataItem = slots.find(s => s.date === dateStr && (s.mode || 'DELIVERY') === 'DELIVERY');
+                        {filteredWeekDayCards.map((day) => {
+                            const { date, dateStr, isOpen, isFull, bookedCount, capacity, occupancy } = day;
                             const isToday = dateStr === new Date().toISOString().split('T')[0];
-
-                            // Default Logic
-                            const isOpen = dayDataItem ? !dayDataItem.closed : true; // Default TRUE
-                            const capacity = dayDataItem?.dailyCapacityOverride || 10;
-                            const bookedCount = dayDataItem?.dailyBooked || 0; // Simplified
-                            const isFull = bookedCount >= capacity;
 
                             return (
                                 <div key={dateStr} className={`flex flex-col gap-3 rounded-xl border p-4 transition-colors ${isToday ? 'border-olive bg-olive/5 ring-1 ring-olive/20' : 'border-ink/10 bg-white'}`}>
@@ -152,6 +223,12 @@ function AgendaManager() {
                                         </div>
                                         <div className="text-2xl font-mono font-bold">
                                             {bookedCount}/{capacity}
+                                        </div>
+                                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/70">
+                                            <div
+                                                className={`h-full ${isOpen ? (isFull ? 'bg-red-500' : 'bg-green-500') : 'bg-ink/30'}`}
+                                                style={{ width: `${occupancy}%` }}
+                                            />
                                         </div>
                                     </div>
 
@@ -174,6 +251,12 @@ function AgendaManager() {
                             );
                         })}
                     </div>
+
+                    {filteredWeekDayCards.length === 0 && (
+                        <div className="mt-6 rounded-xl border border-dashed border-ink/10 bg-white p-8 text-center text-sm italic text-ink/50">
+                            Nenhum dia encontrado para o filtro selecionado.
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -221,6 +304,12 @@ function AgendaManager() {
 
                         {/* Orders List */}
                         <h3 className="font-bold text-lg text-ink mb-4">Pedidos Agendados</h3>
+
+                        {dayError && (
+                            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                                Falha ao carregar detalhes deste dia ({dayError}).
+                            </div>
+                        )}
 
                         {detailLoading ? (
                             <div className="py-10 text-center"><Loader2 className="animate-spin inline text-olive" /></div>
@@ -297,6 +386,15 @@ function AgendaManager() {
                 </div>
             )}
         </AdminLayout>
+    );
+}
+
+function KpiCard({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ink/40">{label}</p>
+            <p className="mt-1 font-serif text-2xl font-bold text-ink">{value}</p>
+        </div>
     );
 }
 

@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { Order } from "@/types/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminGuard } from "@/lib/auth/adminGuard";
+import { writeAuditEvent } from "@/lib/audit";
 
 type ProductVariant = {
     size?: string;
@@ -20,10 +21,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+    let admin: { uid?: string; email?: string; role?: string } | null = null;
     try {
-        await adminGuard();
+        admin = await adminGuard();
         const { id: orderId } = await context.params;
-        const updatedBy = "admin"; // Placeholder
+        const updatedBy = admin?.email || admin?.uid || "admin";
 
         await adminDb.runTransaction(async (t) => {
             const orderRef = adminDb.collection("orders").doc(orderId);
@@ -91,10 +93,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             });
         });
 
+        await writeAuditEvent({
+            action: "ORDER_CANCELED",
+            target: `orders/${orderId}`,
+            actorUid: admin?.uid,
+            actorEmail: admin?.email,
+            role: admin?.role,
+            details: "Pedido cancelado via admin",
+            metadata: { orderId },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
+        if (error instanceof Error && error.message === 'FORBIDDEN') {
+            return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
         }
         console.error("Cancel Error:", error);
         const message = error instanceof Error ? error.message : 'Internal error';
