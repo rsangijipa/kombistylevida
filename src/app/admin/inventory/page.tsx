@@ -16,7 +16,7 @@ export default function InventoryPage() {
 }
 
 function InventoryManager() {
-    const { products, loading } = useInventoryRealtime();
+    const { products, loading, error, refresh } = useInventoryRealtime();
     const toast = useToast();
 
     // DYNAMIC GRID: Derived purely from Realtime Firestore Data
@@ -120,7 +120,19 @@ function InventoryManager() {
             <div className="mb-8">
                 <h1 className="font-serif text-3xl font-bold text-ink">Estoque</h1>
                 <p className="text-ink2">Gerencie a produção em tempo real.</p>
+                <button
+                    onClick={refresh}
+                    className="mt-3 rounded-full border border-ink/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink/60 hover:bg-paper2"
+                >
+                    Atualizar inventario
+                </button>
             </div>
+
+            {error && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                    Falha ao atualizar inventario ({error}). Tentando novamente automaticamente.
+                </div>
+            )}
 
             {loading ? (
                 <div className="py-20 flex justify-center text-olive">

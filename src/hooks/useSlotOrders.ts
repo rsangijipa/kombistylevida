@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Order } from '@/types/firestore';
 
 export function useSlotOrders(date?: string, slotId?: string) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadedKey, setLoadedKey] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
     const requestKey = date && slotId ? `${date}:${slotId}` : null;
+
+    const refresh = useCallback(() => {
+        setReloadKey((prev) => prev + 1);
+    }, []);
 
     useEffect(() => {
         if (!date || !slotId) return;
@@ -44,7 +49,7 @@ export function useSlotOrders(date?: string, slotId?: string) {
             cancelled = true;
             window.clearInterval(interval);
         };
-    }, [date, slotId]);
+    }, [date, slotId, reloadKey]);
 
     const loading = !!requestKey && loadedKey !== requestKey;
 
@@ -52,5 +57,6 @@ export function useSlotOrders(date?: string, slotId?: string) {
         orders: requestKey ? orders : [],
         loading,
         error,
+        refresh,
     };
 }

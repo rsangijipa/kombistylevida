@@ -14,7 +14,10 @@ function Skel({ className }: { className?: string }) {
 }
 
 export default function AdminPage() {
-    const { stats, loading, error } = useDashboardStats();
+    const [period, setPeriod] = useState<'today' | '7d' | '30d'>('7d');
+    const { stats, loading, error, refresh } = useDashboardStats(period);
+
+    const periodLabel = period === 'today' ? 'Hoje' : period === '30d' ? '30 dias' : '7 dias';
 
     return (
         <AuthProvider>
@@ -29,6 +32,25 @@ export default function AdminPage() {
                             </span>
                             <p className="text-ink2 text-sm">Tempo Real Ativo</p>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={period}
+                            onChange={(e) => setPeriod(e.target.value as 'today' | '7d' | '30d')}
+                            className="rounded-full border border-ink/10 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink/60"
+                        >
+                            <option value="today">Hoje</option>
+                            <option value="7d">7 dias</option>
+                            <option value="30d">30 dias</option>
+                        </select>
+
+                        <button
+                            onClick={refresh}
+                            className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink/60 hover:bg-paper2"
+                        >
+                            <Loader2 size={14} className={loading ? "animate-spin" : ""} /> Atualizar
+                        </button>
                     </div>
                 </div>
 
@@ -46,7 +68,7 @@ export default function AdminPage() {
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <ShoppingCart size={64} className="text-olive rotate-[-15deg]" />
                         </div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Pedidos (Hoje)</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Pedidos ({periodLabel})</h3>
                         <div className="mt-2 min-h-[36px] relative z-10">
                             {loading ? <Skel className="h-9 w-16" /> : (
                                 <p className="text-3xl font-bold text-olive">{stats?.ordersToday ?? 0}</p>
@@ -76,7 +98,7 @@ export default function AdminPage() {
                         <div className="absolute top-4 right-4 text-purple-100">
                             <Package size={48} />
                         </div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Packs (Hoje)</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40 relative z-10">Packs ({periodLabel})</h3>
                         <div className="mt-2 min-h-[36px] relative z-10">
                             {loading ? <Skel className="h-9 w-12" /> : (
                                 <p className="text-3xl font-bold text-purple-600">{stats?.packsSold ?? 0}</p>
@@ -129,7 +151,7 @@ export default function AdminPage() {
                     {/* Sales History Chart */}
                     <div className="rounded-xl border border-ink/10 bg-white p-6 shadow-sm">
                         <div className="mb-6 flex items-center justify-between">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">Vendas (Últimos 7 dias)</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-ink/40">Vendas ({periodLabel})</h3>
                             <TrendingUp size={16} className="text-ink/40" />
                         </div>
 

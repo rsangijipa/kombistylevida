@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface DashboardStats {
     ordersToday: number;
@@ -8,6 +8,8 @@ export interface DashboardStats {
     lowStockCount: number;
     salesHistory: { date: string; value: number }[];
     topFlavors: { name: string; quantity: number }[];
+    period?: 'today' | '7d' | '30d';
+    periodDays?: number;
 }
 
 const EMPTY_STATS: DashboardStats = {
@@ -20,17 +22,22 @@ const EMPTY_STATS: DashboardStats = {
     topFlavors: [],
 };
 
-export function useDashboardStats() {
+export function useDashboardStats(period: 'today' | '7d' | '30d' = '7d') {
     const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const refresh = useCallback(() => {
+        setReloadKey((prev) => prev + 1);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
 
         const load = async () => {
             try {
-                const res = await fetch('/api/admin/stats', { cache: 'no-store' });
+                const res = await fetch(`/api/admin/stats?period=${period}`, { cache: 'no-store' });
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
@@ -47,6 +54,8 @@ export function useDashboardStats() {
                         lowStockCount: Number(data.lowStockCount || 0),
                         salesHistory: Array.isArray(data.salesHistory) ? data.salesHistory : [],
                         topFlavors: Array.isArray(data.topFlavors) ? data.topFlavors : [],
+                        period: data.period,
+                        periodDays: Number(data.periodDays || 0),
                     });
                     setError(null);
                     setLoading(false);
@@ -67,7 +76,7 @@ export function useDashboardStats() {
             cancelled = true;
             window.clearInterval(interval);
         };
-    }, []);
+    }, [reloadKey, period]);
 
-    return { stats, loading, error };
+    return { stats, loading, error, refresh };
 }

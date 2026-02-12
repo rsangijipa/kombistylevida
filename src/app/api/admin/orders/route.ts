@@ -14,10 +14,13 @@ export async function GET(request: Request) {
         const slotId = searchParams.get('slotId');
         const customerPhone = searchParams.get('customerPhone');
         const status = searchParams.get('status');
+        const cursor = searchParams.get('cursor');
+        const paginated = searchParams.get('paginated') === '1';
         const limitParam = Number(searchParams.get('limit') || '50');
         const limitCount = Number.isFinite(limitParam) ? Math.min(200, Math.max(1, limitParam)) : 50;
 
         let query = adminDb.collection("orders") as FirebaseFirestore.Query;
+        const canUseCursor = !date && !customerPhone;
 
         if (date) {
             // Filter by Scheduled Date
@@ -28,22 +31,37 @@ export async function GET(request: Request) {
         } else if (customerPhone) {
             query = query.where("customer.phone", "==", customerPhone).limit(limitCount);
         } else {
-            // Default: specific sort only if not filtering by custom fields that might need index
-            // If filtering by schedule.date, we might need composite index if we also sort by createdAt.
-            // For now, let's keep it simple.
-            query = query.orderBy("createdAt", "desc").limit(limitCount);
+            query = query.orderBy("createdAt", "desc").limit(paginated ? limitCount + 1 : limitCount);
+            if (paginated && cursor) {
+                query = query.startAfter(cursor);
+            }
         }
 
-        if (status) {
+        if (status && !paginated) {
             query = query.where("status", "==", status);
         }
 
         const snap = await query.get();
 
-        const orders = snap.docs.map(doc => ({
+        let orders = snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as Order[];
+
+        if (status && paginated) {
+            orders = orders.filter((order) => order.status === status);
+        }
+
+        if (paginated && canUseCursor) {
+            const hasMore = orders.length > limitCount;
+            const pageItems = hasMore ? orders.slice(0, limitCount) : orders;
+            const nextCursor = hasMore ? pageItems[pageItems.length - 1]?.createdAt : null;
+            return NextResponse.json({
+                items: pageItems,
+                hasMore,
+                nextCursor,
+            });
+        }
 
         return NextResponse.json(orders);
     } catch (error: unknown) {

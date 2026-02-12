@@ -18,7 +18,7 @@ export default function OrdersPage() {
 }
 
 function OrdersList() {
-    const { orders, loading } = useOrdersRealtime({ limitCount: 100 });
+    const { orders, loading, error, refresh, hasMore, loadMore, loadingMore } = useOrdersRealtime({ limitCount: 100 });
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
     const [selectedMethod, setSelectedMethod] = useState<"ALL" | "delivery" | "pickup">("ALL");
@@ -176,6 +176,36 @@ function OrdersList() {
         toast.success("Mensagem copiada!");
     };
 
+    const exportFilteredCsv = () => {
+        if (filteredOrders.length === 0) {
+            toast.error("Nada para exportar", "Ajuste os filtros para exportar pedidos.");
+            return;
+        }
+
+        const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+        const header = ["id", "data", "status", "cliente", "telefone", "canal", "slot", "total_centavos"];
+
+        const rows = filteredOrders.map((order) => [
+            order.id,
+            order.createdAt || "",
+            order.status || "",
+            order.customer?.name || "",
+            order.customer?.phone || "",
+            order.customer?.deliveryMethod || "",
+            order.schedule?.slotLabel || order.schedule?.slotId || "",
+            String(order.totalCents || order.pricing?.totalCents || 0),
+        ]);
+
+        const csv = [header, ...rows].map((row) => row.map((cell) => escape(String(cell))).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <AdminLayout>
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -200,6 +230,19 @@ function OrdersList() {
                         className="w-full rounded-xl border border-ink/10 bg-white pl-10 pr-4 py-3 text-sm outline-none focus:border-olive focus:ring-1 focus:ring-olive/30 shadow-sm md:w-72 transition-all"
                     />
                 </div>
+
+                <button
+                    onClick={refresh}
+                    className="rounded-full border border-ink/10 bg-white px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink/60 hover:bg-paper2"
+                >
+                    Atualizar
+                </button>
+                <button
+                    onClick={exportFilteredCsv}
+                    className="rounded-full border border-ink/10 bg-white px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink/60 hover:bg-paper2"
+                >
+                    Exportar CSV
+                </button>
             </div>
 
             <div className="mb-6 flex flex-col gap-3 rounded-xl border border-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
@@ -234,6 +277,12 @@ function OrdersList() {
                     </select>
                 </div>
             </div>
+
+            {error && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                    Falha ao carregar pedidos ({error}). Atualizacao automatica segue ativa.
+                </div>
+            )}
 
             {selectedIds.length > 0 && (
                 <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-olive/20 bg-olive/5 p-3">
@@ -474,6 +523,18 @@ function OrdersList() {
                         )}
                     </div>
                 </>
+            )}
+
+            {!loading && hasMore && (
+                <div className="mt-4 flex justify-center">
+                    <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="rounded-full border border-ink/10 bg-white px-5 py-2 text-xs font-bold uppercase tracking-wider text-ink/70 hover:bg-paper disabled:opacity-50"
+                    >
+                        {loadingMore ? "Carregando..." : "Carregar mais pedidos"}
+                    </button>
+                </div>
             )}
         </AdminLayout>
     );

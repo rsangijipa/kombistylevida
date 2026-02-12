@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Order } from '@/types/firestore';
 
 export function useCustomerOrders(phone: string | null) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadedPhone, setLoadedPhone] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const refresh = useCallback(() => {
+        setReloadKey((prev) => prev + 1);
+    }, []);
 
     useEffect(() => {
         if (!phone) return;
@@ -43,7 +48,7 @@ export function useCustomerOrders(phone: string | null) {
             cancelled = true;
             window.clearInterval(interval);
         };
-    }, [phone]);
+    }, [phone, reloadKey]);
 
     const loading = !!phone && loadedPhone !== phone;
 
@@ -51,5 +56,6 @@ export function useCustomerOrders(phone: string | null) {
         orders: phone ? orders : [],
         loading,
         error,
+        refresh,
     };
 }

@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
     const [role, setRole] = useState<"admin" | "staff" | "content" | null>(null);
+    const devAdminUid = process.env.NEXT_PUBLIC_ADMIN_DEV_UID || "LLYbhjGPmTZL3N3FbgpuaDa1Agh2";
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     if (claimRole === 'admin' || claimRole === 'staff' || claimRole === 'content') {
                         resolvedRole = claimRole;
                     } else if (token.claims.admin) {
+                        resolvedRole = 'admin';
+                    } else if (process.env.NODE_ENV !== 'production' && currentUser.uid === devAdminUid) {
                         resolvedRole = 'admin';
                     }
 

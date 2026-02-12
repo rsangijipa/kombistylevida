@@ -12,9 +12,22 @@ import { useCustomersRealtime } from "@/hooks/useCustomersRealtime";
 import type { User as FirebaseUser } from "firebase/auth";
 
 export default function CustomersPage() {
+    return (
+        <AuthProvider>
+            <CustomersContent />
+        </AuthProvider>
+    );
+}
+
+function CustomersContent() {
     const { user } = useAuth();
-    const { customers, loading } = useCustomersRealtime();
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const { customers, loading, error, refresh, hasMore, loadMore, loadingMore } = useCustomersRealtime(50, debouncedSearch);
+    const [selectedPhones, setSelectedPhones] = useState<string[]>([]);
+    const [bulkPoints, setBulkPoints] = useState(1);
+    const [bulkReason, setBulkReason] = useState("");
+    const [bulkBusy, setBulkBusy] = useState(false);
 
     // Detail Modal State
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -45,17 +58,101 @@ export default function CustomersPage() {
         }
     };
 
-    const filteredCustomers = customers.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.phone.includes(searchTerm)
-    );
+    useEffect(() => {
+        const t = window.setTimeout(() => setDebouncedSearch(searchTerm), 250);
+        return () => window.clearTimeout(t);
+    }, [searchTerm]);
+
+    const filteredCustomers = customers;
+
+    const allVisibleSelected = filteredCustomers.length > 0 && filteredCustomers.every((c) => selectedPhones.includes(c.phone));
+
+    const toggleSelectCustomer = (phone: string, checked: boolean) => {
+        setSelectedPhones((prev) => {
+            if (checked) return Array.from(new Set([...prev, phone]));
+            return prev.filter((item) => item !== phone);
+        });
+    };
+
+    const toggleSelectAllVisible = (checked: boolean) => {
+        if (checked) {
+            setSelectedPhones((prev) => Array.from(new Set([...prev, ...filteredCustomers.map((customer) => customer.phone)])));
+            return;
+        }
+        const visibleSet = new Set(filteredCustomers.map((customer) => customer.phone));
+        setSelectedPhones((prev) => prev.filter((phone) => !visibleSet.has(phone)));
+    };
+
+    const handleBulkVip = async (isSubscriber: boolean) => {
+        if (!user || selectedPhones.length === 0) return;
+        if (!confirm(`${isSubscriber ? 'Ativar' : 'Remover'} VIP para ${selectedPhones.length} cliente(s)?`)) return;
+
+        setBulkBusy(true);
+        try {
+            const res = await fetch('/api/admin/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'BULK_SET_SUBSCRIPTION',
+                    phones: selectedPhones,
+                    isSubscriber,
+                })
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            setSelectedPhones([]);
+            refresh();
+        } catch {
+            alert('Falha no ajuste em lote de VIP.');
+        } finally {
+            setBulkBusy(false);
+        }
+    };
+
+    const handleBulkPoints = async (direction: 'ADD' | 'REMOVE') => {
+        if (!user || selectedPhones.length === 0) return;
+
+        const delta = direction === 'ADD' ? bulkPoints : -bulkPoints;
+        if (delta === 0) return;
+        if (!confirm(`Aplicar ${delta} ponto(s) para ${selectedPhones.length} cliente(s)?`)) return;
+
+        setBulkBusy(true);
+        try {
+            const res = await fetch('/api/admin/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'BULK_ADJUST_CREDITS',
+                    phones: selectedPhones,
+                    delta,
+                    reason: bulkReason || 'Ajuste manual em lote',
+                })
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            setSelectedPhones([]);
+            setBulkReason('');
+            refresh();
+        } catch {
+            alert('Falha no ajuste em lote de pontos.');
+        } finally {
+            setBulkBusy(false);
+        }
+    };
 
     return (
-        <AuthProvider>
             <AdminLayout>
                 <div className="space-y-6 animate-in fade-in">
                     <div className="flex items-center justify-between">
                         <h1 className="text-2xl font-bold text-olive font-serif">Gestão de Clientes</h1>
+                        <button
+                            onClick={refresh}
+                            className="rounded-full border border-ink/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink/60 hover:bg-paper2"
+                        >
+                            Atualizar
+                        </button>
                     </div>
 
                     {/* Search */}
@@ -70,13 +167,117 @@ export default function CustomersPage() {
                         />
                     </div>
 
+                    {filteredCustomers.length > 0 && (
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => toggleSelectAllVisible(!allVisibleSelected)}
+                                className="text-[10px] font-bold uppercase tracking-wider text-ink/50 hover:text-ink/80"
+                            >
+                                {allVisibleSelected ? 'Desmarcar clientes visiveis' : 'Selecionar clientes visiveis'}
+                            </button>
+                        </div>
+                    )}
+
                     {/* List */}
+                    {error && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                            Falha ao atualizar clientes ({error}). Tentando novamente automaticamente.
+                        </div>
+                    )}
+
+                    {selectedPhones.length > 0 && (
+                        <div className="rounded-xl border border-olive/20 bg-olive/5 p-4">
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-bold uppercase tracking-wider text-olive">{selectedPhones.length} selecionado(s)</span>
+                                <button
+                                    onClick={() => setSelectedPhones([])}
+                                    className="rounded-full border border-ink/10 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink/60"
+                                >
+                                    Limpar
+                                </button>
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-3">
+                                <button
+                                    disabled={bulkBusy}
+                                    onClick={() => handleBulkVip(true)}
+                                    className="rounded-lg bg-amber px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+                                >
+                                    Ativar VIP em lote
+                                </button>
+                                <button
+                                    disabled={bulkBusy}
+                                    onClick={() => handleBulkVip(false)}
+                                    className="rounded-lg border border-amber/40 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-amber"
+                                >
+                                    Remover VIP em lote
+                                </button>
+                                <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-2 py-2">
+                                    <button
+                                        disabled={bulkBusy}
+                                        onClick={() => setBulkPoints((prev) => Math.max(1, prev - 1))}
+                                        className="h-7 w-7 rounded border border-ink/10 text-ink/60"
+                                    >
+                                        -
+                                    </button>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={bulkPoints}
+                                        onChange={(e) => setBulkPoints(Math.max(1, Number(e.target.value) || 1))}
+                                        className="w-14 rounded border border-ink/10 px-2 py-1 text-center text-sm font-bold"
+                                    />
+                                    <button
+                                        disabled={bulkBusy}
+                                        onClick={() => setBulkPoints((prev) => prev + 1)}
+                                        className="h-7 w-7 rounded border border-ink/10 text-ink/60"
+                                    >
+                                        +
+                                    </button>
+                                    <button
+                                        disabled={bulkBusy}
+                                        onClick={() => handleBulkPoints('ADD')}
+                                        className="ml-auto rounded bg-olive px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
+                                    >
+                                        + pontos
+                                    </button>
+                                    <button
+                                        disabled={bulkBusy}
+                                        onClick={() => handleBulkPoints('REMOVE')}
+                                        className="rounded border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-red-700"
+                                    >
+                                        - pontos
+                                    </button>
+                                </div>
+                            </div>
+
+                            <input
+                                type="text"
+                                value={bulkReason}
+                                onChange={(e) => setBulkReason(e.target.value)}
+                                placeholder="Motivo do ajuste em lote (opcional)"
+                                className="mt-3 w-full rounded-lg border border-ink/10 bg-white px-3 py-2 text-xs"
+                            />
+                        </div>
+                    )}
+
                     {loading ? (
                         <div className="text-center py-12 text-ink/40">Carregando clientes...</div>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                             {filteredCustomers.map(customer => (
                                 <div key={customer.phone} className="bg-paper border border-ink/5 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <label className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-ink/50">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedPhones.includes(customer.phone)}
+                                                onChange={(e) => toggleSelectCustomer(customer.phone, e.target.checked)}
+                                            />
+                                            Selecionar
+                                        </label>
+                                    </div>
+
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-3 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
                                         <div className="flex items-center gap-3">
@@ -133,6 +334,18 @@ export default function CustomersPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {!loading && hasMore && (
+                        <div className="flex justify-center">
+                            <button
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                                className="rounded-full border border-ink/10 bg-white px-5 py-2 text-xs font-bold uppercase tracking-wider text-ink/70 hover:bg-paper disabled:opacity-50"
+                            >
+                                {loadingMore ? 'Carregando...' : 'Carregar mais clientes'}
+                            </button>
                         </div>
                     )}
 
@@ -235,16 +448,16 @@ export default function CustomersPage() {
                     )}
                 </div>
             </AdminLayout>
-        </AuthProvider>
     );
 }
 
 // Subcomponents
 
 function CustomerOrderHistory({ phone }: { phone: string }) {
-    const { orders, loading } = useCustomerOrders(phone);
+    const { orders, loading, error } = useCustomerOrders(phone);
 
     if (loading) return <div className="p-4 text-center text-xs text-ink/40">Carregando histórico...</div>;
+    if (error) return <div className="p-4 text-center text-xs text-amber-700 border border-amber-200 bg-amber-50 rounded-xl">Falha ao carregar historico ({error}).</div>;
     if (orders.length === 0) return <div className="p-4 text-center text-xs text-ink/40 border border-dashed border-ink/10 rounded-xl">Nenhum pedido encontrado.</div>;
 
     return (

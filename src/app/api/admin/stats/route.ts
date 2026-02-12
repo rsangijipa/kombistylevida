@@ -12,12 +12,20 @@ type LegacyOrderItem = OrderItem & {
     subItems?: { name?: string; quantity?: number; qty?: number }[];
 };
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
         await adminGuard();
 
+        const { searchParams } = new URL(request.url);
+        const period = (searchParams.get('period') || '7d').toLowerCase();
+
+        const periodDays = period === 'today' ? 1 : period === '30d' ? 30 : 7;
+
         const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfRange = new Date(startOfToday);
+        startOfRange.setDate(startOfRange.getDate() - (periodDays - 1));
+        const startOfDay = startOfRange.toISOString();
 
         // 1. Orders Today 
         const todaySnap = await adminDb.collection('orders')
@@ -90,11 +98,8 @@ export async function GET() {
         });
 
         // 4. Sales History
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
         const historySnap = await adminDb.collection('orders')
-            .where('createdAt', '>=', sevenDaysAgo.toISOString())
+            .where('createdAt', '>=', startOfRange.toISOString())
             .get();
 
         const salesMap: Record<string, number> = {};
@@ -126,8 +131,8 @@ export async function GET() {
 
         // Format History
         const salesHistory = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
+        for (let i = periodDays - 1; i >= 0; i--) {
+            const d = new Date(startOfToday);
             d.setDate(d.getDate() - i);
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -154,7 +159,9 @@ export async function GET() {
             packsSold,
             returnsPending,
             salesHistory,
-            topFlavors
+            topFlavors,
+            period,
+            periodDays,
         });
 
     } catch (error: unknown) {

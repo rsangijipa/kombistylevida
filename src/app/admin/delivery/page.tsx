@@ -34,6 +34,7 @@ function DeliveryContent() {
     const [loading, setLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState<AdminSlot | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [periodFilter, setPeriodFilter] = useState<"ALL" | "MORNING" | "AFTERNOON" | "EVENING">("ALL");
     const [statusFilter, setStatusFilter] = useState<"ALL" | "OPEN" | "CRITICAL" | "FULL" | "CLOSED">("ALL");
     const [dateFilter, setDateFilter] = useState<string>("ALL");
@@ -42,11 +43,24 @@ function DeliveryContent() {
     const fetchSlots = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/delivery/slots'); // Public endpoint returns slots with stats
-            const data = await res.json();
-            setSlots(data.slots || []);
-        } catch (e) {
-            console.error(e);
+            const start = new Date();
+            const end = new Date();
+            end.setDate(end.getDate() + 14);
+            const startStr = start.toISOString().split('T')[0];
+            const endStr = end.toISOString().split('T')[0];
+
+            const res = await fetch(`/api/admin/delivery/slots?start=${startStr}&end=${endStr}&mode=DELIVERY`, { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(typeof data?.error === 'string' ? data.error : 'Erro ao carregar slots');
+            }
+
+            const list = Array.isArray(data) ? data as AdminSlot[] : [];
+            setSlots(list);
+            setError(null);
+        } catch (err) {
+            setSlots([]);
+            setError(err instanceof Error ? err.message : 'Erro ao carregar slots');
         } finally {
             setLoading(false);
         }
@@ -105,8 +119,7 @@ function DeliveryContent() {
             } else {
                 alert("Failed to update slot");
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
             alert("Error updating slot");
         } finally {
             setProcessing(false);
@@ -198,6 +211,12 @@ function DeliveryContent() {
                     </select>
                 </div>
             </div>
+
+            {error && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                    Falha ao carregar logistica ({error}).
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* 1. Calendar Heatmap */}
@@ -369,7 +388,7 @@ function KpiCard({ label, value }: { label: string; value: string }) {
 // Sub-component for Orders List (Reused logic)
 // Sub-component for Orders List (Reused logic)
 function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
-    const { orders, loading } = useSlotOrders(date, slotId);
+    const { orders, loading, error, refresh } = useSlotOrders(date, slotId);
     const [viewMode, setViewMode] = useState<'list' | 'manifest'>('list');
 
     // Grouping Logic
@@ -402,6 +421,12 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
         <div className="flex flex-col gap-2 p-1">
             <div className="h-16 bg-ink/5 skeleton rounded-lg animate-pulse" />
             <div className="h-16 bg-ink/5 skeleton rounded-lg animate-pulse" />
+        </div>
+    );
+
+    if (error) return (
+        <div className="flex-1 border border-amber-200 bg-amber-50 rounded-xl flex items-center justify-center text-xs text-amber-700 p-4">
+            Falha ao carregar pedidos deste slot ({error}).
         </div>
     );
 
@@ -462,12 +487,20 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-end mb-2 px-1">
-                <button
-                    onClick={() => setViewMode('manifest')}
-                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink/50 hover:text-olive transition-colors"
-                >
-                    <MapIcon size={12} /> Ver Rotas / Manifesto
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={refresh}
+                        className="text-[10px] font-bold uppercase tracking-wider text-ink/40 hover:text-ink"
+                    >
+                        Atualizar
+                    </button>
+                    <button
+                        onClick={() => setViewMode('manifest')}
+                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink/50 hover:text-olive transition-colors"
+                    >
+                        <MapIcon size={12} /> Ver Rotas / Manifesto
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-1 space-y-3 font-sans scrollbar-thin scrollbar-thumb-ink/10">

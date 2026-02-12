@@ -1,11 +1,17 @@
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Product } from '@/types/firestore';
 
 export function useInventoryRealtime() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const refresh = useCallback(() => {
+        setLoading(true);
+        setReloadKey((prev) => prev + 1);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -43,7 +49,7 @@ export function useInventoryRealtime() {
             cancelled = true;
             window.clearInterval(interval);
         };
-    }, []);
+    }, [reloadKey]);
 
     // Helper to get specific variant stock
     const getStock = (productId: string, variantKey?: string) => {
@@ -58,5 +64,5 @@ export function useInventoryRealtime() {
         return p.variants?.find(v => v.size === variantKey)?.stockQty || 0;
     };
 
-    return { products, loading, error, getStock };
+    return { products, loading, error, getStock, refresh };
 }
