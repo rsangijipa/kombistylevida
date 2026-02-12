@@ -28,6 +28,9 @@ html {
   --animate-floaty: floaty 6s ease-in-out infinite;
   --animate-drift: drift 10s ease-in-out infinite;
   --animate-pulseSoft: pulseSoft 5s ease-in-out infinite;
+  --animate-aurora: aurora-drift 20s linear infinite;
+  --animate-float: float-soft 8s ease-in-out infinite;
+  --animate-shine: gradient-shift 12s ease infinite;
 
   @keyframes floaty {
 
@@ -62,6 +65,50 @@ html {
 
     50% {
       opacity: 0.55;
+    }
+  }
+
+  @keyframes aurora-drift {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes float-soft {
+
+    0%,
+    100% {
+      transform: translateY(0) rotate(0);
+    }
+
+    33% {
+      transform: translateY(-4px) rotate(0.5deg);
+    }
+
+    66% {
+      transform: translateY(-2px) rotate(-0.5deg);
     }
   }
 
@@ -216,6 +263,57 @@ button {
   ::placeholder {
     opacity: 0.7;
     color: var(--color-ink2);
+  }
+}
+
+/* Effects & Mixins */
+.fx-grain {
+  position: relative;
+}
+
+.fx-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.fx-watercolor {
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1000 1000' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01' numOctaves='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='50'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1000 1000' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01' numOctaves='5'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='50'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+.fx-aurora {
+  background: linear-gradient(135deg,
+      rgba(236, 188, 117, 0.1) 0%,
+      rgba(238, 206, 136, 0.15) 25%,
+      rgba(107, 122, 85, 0.1) 50%,
+      rgba(236, 188, 117, 0.15) 75%,
+      rgba(45, 42, 37, 0.05) 100%);
+  background-size: 400% 400%;
+  filter: blur(60px);
+  mix-blend-mode: soft-light;
+}
+
+.mask-fade-y {
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .fx-aurora {
+    filter: blur(20px);
+    background-size: 100% 100%;
   }
 }
 

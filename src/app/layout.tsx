@@ -40,6 +40,9 @@ export const metadata: Metadata = {
 };
 
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { LenisProvider } from "@/components/providers/LenisProvider";
+import { BackgroundEngine } from "@/components/visual/BackgroundEngine";
+import { ScrollProgressBar } from "@/components/motion/ScrollProgressBar";
 
 export default function RootLayout({
     children,
@@ -55,12 +58,16 @@ export default function RootLayout({
                     "antialiased selection:bg-amber/30 selection:text-ink text-ink leading-relaxed"
                 )}
             >
-                <CatalogProvider>
-                    <ToastProvider>
-                        {children}
-                    </ToastProvider>
-                    <ScrollToTop />
-                </CatalogProvider>
+                <LenisProvider>
+                    <CatalogProvider>
+                        <ToastProvider>
+                            <ScrollProgressBar />
+                            <BackgroundEngine />
+                            {children}
+                        </ToastProvider>
+                        <ScrollToTop />
+                    </CatalogProvider>
+                </LenisProvider>
             </body>
         </html>
     );

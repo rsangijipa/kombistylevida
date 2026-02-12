@@ -148,70 +148,70 @@ export default function MenuPage() {
                     ) : (
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
                             {products.map((prod, index) => {
-                            const qty = getQty(prod.id);
-                            return (
-                                <article
-                                    key={prod.id}
-                                    className="group relative flex flex-col justify-between bg-paper rounded-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-paper animate-in fade-in slide-in-from-bottom-4"
-                                    style={{ animationDelay: `${index * 100}ms` }}
-                                >
-                                    {/* Editorial Border */}
-                                    <div className="absolute inset-[8px] border border-ink/5 rounded-lg pointer-events-none z-20 group-hover:border-ink/15 transition-colors" />
+                                const qty = getQty(prod.id);
+                                return (
+                                    <article
+                                        key={prod.id}
+                                        className="group relative flex flex-col justify-between bg-paper rounded-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-paper animate-in fade-in slide-in-from-bottom-4"
+                                        style={{ animationDelay: `${index * 100}ms` }}
+                                    >
+                                        {/* Editorial Border */}
+                                        <div className="absolute inset-[8px] border border-ink/5 rounded-lg pointer-events-none z-20 group-hover:border-ink/15 transition-colors" />
 
-                                    <div className="relative z-10 p-6 flex flex-col items-center flex-1">
-                                        {/* Image Frame */}
-                                        <div className="relative mb-6 h-40 w-40 flex-shrink-0 transition-transform duration-700 group-hover:scale-105">
-                                            {prod.imageSrc ? (
-                                                <Image
-                                                    src={prod.imageSrc}
-                                                    alt={prod.name}
-                                                    fill
-                                                    className="object-contain drop-shadow-sm"
-                                                    sizes="(max-width: 768px) 150px, 200px"
-                                                />
-                                            ) : (
-                                                <div className="h-full w-full bg-ink/5 rounded-full" />
-                                            )}
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="text-center w-full flex-1 flex flex-col items-center">
-                                            <h3 className="font-serif text-2xl leading-none font-normal text-ink mb-3">
-                                                {prod.name}
-                                            </h3>
-                                            <p className="text-sm font-serif text-ink2/70 mb-6 flex-1 leading-relaxed px-2">
-                                                {prod.shortDesc || "Fermentacao natural com ingredientes reais."}
-                                            </p>
-
-                                            <div className="mt-auto w-full pt-6 border-t border-ink/5 flex flex-col gap-3">
-                                                <span className="font-serif text-lg text-ink block">
-                                                    R$ {((prod.priceCents || 0) / 100).toFixed(2).replace(".", ",")}
-                                                </span>
-
-                                                {/* Add Control */}
-                                                {qty === 0 ? (
-                                                    <button
-                                                        onClick={() => addItem(prod.id)}
-                                                        className="flex w-full h-[48px] justify-center items-center gap-2 rounded-full border border-ink/20 bg-transparent py-2.5 text-[10px] font-bold uppercase tracking-widest text-ink hover:bg-ink hover:text-paper transition-all touch-target"
-                                                    >
-                                                        <Plus size={14} />
-                                                        Adicionar
-                                                    </button>
+                                        <div className="relative z-10 p-6 flex flex-col items-center flex-1">
+                                            {/* Image Frame */}
+                                            <div className="relative mb-6 h-40 w-40 flex-shrink-0 transition-transform duration-700 group-hover:scale-105">
+                                                {prod.imageSrc ? (
+                                                    <Image
+                                                        src={prod.imageSrc}
+                                                        alt={prod.name}
+                                                        fill
+                                                        className="object-contain drop-shadow-sm"
+                                                        sizes="(max-width: 768px) 150px, 200px"
+                                                    />
                                                 ) : (
-                                                    <div className="flex w-full h-[48px] items-center justify-between rounded-full border border-ink/20 bg-paper px-1 py-1 shadow-inner touch-target">
-                                                        <button onClick={() => removeItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-90"><Minus size={18} /></button>
-                                                        <span className="text-sm font-bold w-full text-center select-none">{qty}</span>
-                                                        <button onClick={() => addItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-olive hover:bg-olive/10 rounded-full transition-colors active:scale-90"><Plus size={18} /></button>
-                                                    </div>
+                                                    <div className="h-full w-full bg-ink/5 rounded-full" />
                                                 )}
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    {/* Subtle Texture Tint */}
-                                    <div className="absolute inset-0 bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
-                                </article>
-                            );
+                                            {/* Content */}
+                                            <div className="text-center w-full flex-1 flex flex-col items-center">
+                                                <h3 className="font-serif text-2xl leading-none font-normal text-ink mb-3">
+                                                    {prod.name}
+                                                </h3>
+                                                <p className="text-sm font-serif text-ink2/70 mb-6 flex-1 leading-relaxed px-2">
+                                                    {prod.shortDesc || "Fermentacao natural com ingredientes reais."}
+                                                </p>
+
+                                                <div className="mt-auto w-full pt-6 border-t border-ink/5 flex flex-col gap-3">
+                                                    <span className="font-serif text-lg text-ink block">
+                                                        R$ {((prod.priceCents || 0) / 100).toFixed(2).replace(".", ",")}
+                                                    </span>
+
+                                                    {/* Add Control */}
+                                                    {qty === 0 ? (
+                                                        <button
+                                                            onClick={() => addItem(prod.id)}
+                                                            className="flex w-full h-[48px] justify-center items-center gap-2 rounded-full border border-ink/20 bg-transparent py-2.5 text-[10px] font-bold uppercase tracking-widest text-ink hover:bg-ink hover:text-paper transition-all touch-target"
+                                                        >
+                                                            <Plus size={14} />
+                                                            Adicionar
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex w-full h-[48px] items-center justify-between rounded-full border border-ink/20 bg-paper px-1 py-1 shadow-inner touch-target">
+                                                            <button onClick={() => removeItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-90"><Minus size={18} /></button>
+                                                            <span className="text-sm font-bold w-full text-center select-none">{qty}</span>
+                                                            <button onClick={() => addItem(prod.id)} className="h-full w-12 flex items-center justify-center text-ink/60 hover:text-olive hover:bg-olive/10 rounded-full transition-colors active:scale-90"><Plus size={18} /></button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Subtle Texture Tint */}
+                                        <div className="absolute inset-0 bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
+                                    </article>
+                                );
                             })}
                         </div>
                     )}
