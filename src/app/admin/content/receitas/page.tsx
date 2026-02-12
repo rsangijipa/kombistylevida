@@ -127,7 +127,7 @@ export default function AdminRecipesPage() {
         }
 
         try {
-            const recipeData = {
+            const recipeData: Partial<Recipe> & { updatedAt: string; createdAt?: string } = {
                 ...formData,
                 updatedAt: new Date().toISOString()
             };
@@ -138,7 +138,7 @@ export default function AdminRecipesPage() {
 
             if (!formData.id) {
                 // New
-                (recipeData as any).createdAt = new Date().toISOString();
+                recipeData.createdAt = new Date().toISOString();
             }
 
             const res = await fetch('/api/admin/recipes', {
@@ -248,7 +248,7 @@ export default function AdminRecipesPage() {
                                     <select
                                         className="w-full p-3 border border-ink/10 rounded-lg bg-paper2/50 focus:border-olive outline-none appearance-none"
                                         value={formData.category}
-                                        onChange={e => setFormData({ ...formData, category: e.target.value as any })}
+                                        onChange={e => setFormData({ ...formData, category: e.target.value as RecipeCategory })}
                                     >
                                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
@@ -259,7 +259,7 @@ export default function AdminRecipesPage() {
                                         <select
                                             className="w-full p-3 border border-ink/10 rounded-lg bg-paper2/50 focus:border-olive outline-none"
                                             value={formData.difficulty}
-                                            onChange={e => setFormData({ ...formData, difficulty: e.target.value as any })}
+                                            onChange={e => setFormData({ ...formData, difficulty: e.target.value as Recipe["difficulty"] })}
                                         >
                                             {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>

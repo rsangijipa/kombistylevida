@@ -10,9 +10,10 @@ export async function GET() {
         const snapshot = await adminDb.collection('posts').orderBy('publishedAt', 'desc').get();
         const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(posts);
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
     }
 }
@@ -27,9 +28,10 @@ export async function POST(request: Request) {
 
         await adminDb.collection('posts').doc(id).set(data);
         return NextResponse.json({ success: true });
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         return NextResponse.json({ error: "Failed to save" }, { status: 500 });
     }
 }
@@ -43,9 +45,10 @@ export async function DELETE(request: Request) {
 
         await adminDb.collection('posts').doc(id).delete();
         return NextResponse.json({ success: true });
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
     }
 }

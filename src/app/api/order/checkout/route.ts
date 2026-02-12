@@ -9,11 +9,62 @@ import { parseKvOrderCookie, hashToken } from "@/lib/security/token";
 import { Order, Customer } from "@/types/firestore";
 import { calculateOrder, CatalogProduct, CartItemInput } from "@/lib/pricing/calculator";
 
+type CheckoutCustomerPayload = {
+    phone: string;
+    name: string;
+    email?: string;
+    deliveryMethod?: string;
+    address?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+};
+
+type CheckoutCartItemPayload = {
+    type: 'BUNDLE' | 'PACK' | 'PRODUCT' | string;
+    productId?: string;
+    bundleId?: string;
+    quantity?: number;
+    qty?: number;
+    variant?: string;
+    variantKey?: string;
+    items?: Array<{ productId?: string; quantity?: number; qty?: number }>;
+};
+
+type CheckoutPayload = {
+    cart: CheckoutCartItemPayload[];
+    customer: CheckoutCustomerPayload;
+    selectedDate?: string | null;
+    selectedSlotId?: string | null;
+    notes?: string;
+    bottlesToReturn?: number;
+    idempotencyKey?: string;
+};
+
+type ProductVariantDoc = {
+    size: string;
+    price: number;
+    stockQty?: number;
+};
+
+type ProductDoc = {
+    name: string;
+    active?: boolean;
+    variants?: ProductVariantDoc[];
+    priceCents?: number;
+};
+
+type ComboDoc = {
+    name: string;
+    active?: boolean;
+    priceCents: number;
+};
+
 export async function POST(request: Request) {
-    let payload;
+    let payload: CheckoutPayload;
     try {
-        payload = await request.json();
-    } catch (e) {
+        payload = await request.json() as CheckoutPayload;
+    } catch {
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
@@ -84,6 +135,7 @@ export async function POST(request: Request) {
 
         for (const item of payload.cart) {
             if (item.type === 'BUNDLE') {
+                if (!item.bundleId) continue;
                 comboIds.add(item.bundleId);
                 cartInputs.push({
                     productId: item.bundleId,
@@ -92,7 +144,7 @@ export async function POST(request: Request) {
                 });
             } else if (item.type === 'PACK') {
                 if (item.items && Array.isArray(item.items)) {
-                    item.items.forEach((sub: any) => {
+                    item.items.forEach((sub) => {
                         if (sub.productId) {
                             productIds.add(sub.productId);
                             cartInputs.push({
@@ -135,7 +187,7 @@ export async function POST(request: Request) {
             const pDocs = await adminDb.getAll(...pRefs);
             pDocs.forEach(doc => {
                 if (doc.exists) {
-                    const data = doc.data() as any;
+                    const data = doc.data() as ProductDoc;
                     catalogMap[doc.id] = {
                         id: doc.id,
                         name: data.name,
@@ -143,7 +195,7 @@ export async function POST(request: Request) {
                         variants: {}
                     };
                     if (data.variants && Array.isArray(data.variants)) {
-                        data.variants.forEach((v: any) => {
+                        data.variants.forEach((v) => {
                             catalogMap[doc.id].variants[v.size] = {
                                 priceCents: v.price * 100,
                                 active: true,
@@ -165,7 +217,7 @@ export async function POST(request: Request) {
             const cDocs = await adminDb.getAll(...cRefs);
             cDocs.forEach(doc => {
                 if (doc.exists) {
-                    const data = doc.data() as any;
+                    const data = doc.data() as ComboDoc;
                     catalogMap[doc.id] = {
                         id: doc.id,
                         name: data.name,
@@ -239,7 +291,10 @@ export async function POST(request: Request) {
 
             // 2. LOGIC & VALIDATION
             // Stock Check
-            const stockUpdates: { ref: any, data: any }[] = [];
+            const stockUpdates: Array<{
+                ref: FirebaseFirestore.DocumentReference;
+                data: { variants: ProductVariantDoc[] };
+            }> = [];
 
             for (const input of cartInputs) {
                 if (comboIds.has(input.productId)) continue;
@@ -247,16 +302,17 @@ export async function POST(request: Request) {
                 const pDoc = productDocsMap.get(input.productId);
                 if (!pDoc) throw new Error(`Produto ${input.productId} não encontrado.`);
 
-                const pData = pDoc.data();
+                const pData = pDoc.data() as ProductDoc | undefined;
                 if (!pData || pData.active === false) throw new Error(`Produto ${pData?.name || input.productId} indisponível.`);
 
                 let variantIdx = -1;
                 let currentStock = 0;
+                const variants = Array.isArray(pData.variants) ? pData.variants : [];
 
-                if (pData.variants && Array.isArray(pData.variants)) {
-                    variantIdx = pData.variants.findIndex((v: any) => v.size.includes(input.variantKey));
+                if (variants.length > 0) {
+                    variantIdx = variants.findIndex((v) => v.size.includes(input.variantKey));
                     if (variantIdx !== -1) {
-                        currentStock = pData.variants[variantIdx].stockQty || 0;
+                        currentStock = variants[variantIdx].stockQty || 0;
                     }
                 }
 
@@ -273,8 +329,8 @@ export async function POST(request: Request) {
                         throw new Error(`Estoque insuficiente para ${pData.name} (${input.variantKey}). Disponível: ${currentStock}.`);
                     }
                     // Prepare update in memory
-                    pData.variants[variantIdx].stockQty = currentStock - input.quantity;
-                    stockUpdates.push({ ref: pDoc.ref, data: { variants: pData.variants } });
+                    variants[variantIdx].stockQty = currentStock - input.quantity;
+                    stockUpdates.push({ ref: pDoc.ref, data: { variants } });
                 } else {
                     // Variant requested but not found in backend
                     // This could happen if admin removed usage of '300ml' or changed keys
@@ -341,7 +397,7 @@ export async function POST(request: Request) {
                 const newCust: Customer = {
                     phone: payload.customer.phone,
                     name: payload.customer.name,
-                    email: payload.customer.email || null,
+                    email: payload.customer.email,
                     addresses: newAddress ? [newAddress] : [],
                     ecoPoints: 0,
                     orderCount: 1,
@@ -368,7 +424,7 @@ export async function POST(request: Request) {
             }
 
             // C. Order Write
-            const orderData: any = {
+            const orderData = {
                 id: orderId,
                 shortId: orderId.slice(0, 8),
                 status: 'PENDING',
@@ -409,7 +465,8 @@ export async function POST(request: Request) {
             // so that the Admin Schedule knows a slot is taken.
             // Assumption: mode is 'DELIVERY' (or we get it from payload if PICKUP supported)
             if (payload.selectedDate && payload.selectedSlotId) {
-                const mode = payload.customer.deliveryMethod === 'PICKUP' ? 'PICKUP' : 'DELIVERY';
+                const deliveryMethod = String(payload.customer.deliveryMethod || '').toLowerCase();
+                const mode = deliveryMethod === 'pickup' ? 'PICKUP' : 'DELIVERY';
                 const dayDocId = `${payload.selectedDate}_${mode}`;
                 const dayRef = adminDb.collection('deliveryDays').doc(dayDocId);
 
@@ -445,19 +502,22 @@ export async function POST(request: Request) {
             whatsappMessage: safeWhatsappMessage
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Internal Error";
+        const stack = error instanceof Error ? error.stack : undefined;
+
         // P2: Structured Log Error
         console.error(JSON.stringify({
             level: 'error',
             event: 'checkout_failed',
-            error: error.message,
-            stack: error.stack,
+            error: message,
+            stack,
             payload: { ...payload, cart: '...' } // Redact cart for brevity if needed
         }));
 
         return NextResponse.json({
-            error: error.message || "Internal Error",
-            stack: error.stack
+            error: message,
+            stack
         }, { status: 500 });
     }
 }

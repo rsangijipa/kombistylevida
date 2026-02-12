@@ -29,12 +29,6 @@ export function FlavorModal({ isOpen, onClose, flavor }: FlavorModalProps) {
     const { addItem } = useCartStore();
     const [btnText, setBtnText] = useState("Adicionar ao Carrinho");
     const [selectedSize, setSelectedSize] = useState<"300ml" | "500ml">("300ml");
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-        return () => setMounted(false);
-    }, []);
 
     // Lock body scroll when open
     useEffect(() => {
@@ -59,7 +53,7 @@ export function FlavorModal({ isOpen, onClose, flavor }: FlavorModalProps) {
     };
 
     if (!isOpen || !flavor) return null;
-    if (!mounted) return null;
+    if (typeof document === "undefined") return null;
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] overflow-y-auto">

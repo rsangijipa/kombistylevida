@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         if (action === 'UPDATE_STATUS') {
             if (!id || !status) return NextResponse.json({ error: "Missing ID or Status" }, { status: 400 });
 
-            const update: any = {
+            const update: Record<string, unknown> = {
                 status,
                 updatedAt: new Date().toISOString()
             };

@@ -58,7 +58,7 @@ export async function GET(request: Request) {
         const slotsToReturn: DeliverySlot[] = [];
         const slotsBatch = adminDb.batch();
         let batchCount = 0;
-        const slotRefs: any[] = [];
+        const slotRefs: FirebaseFirestore.DocumentReference[] = [];
 
         for (let i = 1; i <= days; i++) {
             const d = new Date(now);
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
                 const newSlot: DeliverySlot = {
                     id: snap.id,
                     date,
-                    window: window as any,
+                    window,
                     capacity: 10,
                     reserved: 0,
                     isOpen: true,
@@ -98,9 +98,10 @@ export async function GET(request: Request) {
             meta: { generated: batchCount, range: `${days} days` }
         });
 
-    } catch (e: any) {
-        console.error("[Slots Error]", e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+    } catch (error: unknown) {
+        console.error("[Slots Error]", error);
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 

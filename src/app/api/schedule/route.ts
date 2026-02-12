@@ -3,7 +3,11 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
+type DayScheduleAggregate = {
+    count: number;
+    revenue: number;
+    orders: Array<{ id: string } & Record<string, unknown>>;
+};
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -38,7 +42,7 @@ export async function GET(request: Request) {
             .get();
 
         // Aggregate by Day
-        const days: Record<string, { count: number, revenue: number, orders: any[] }> = {};
+        const days: Record<string, DayScheduleAggregate> = {};
 
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -52,7 +56,7 @@ export async function GET(request: Request) {
 
             days[dateStr].count += 1;
             days[dateStr].revenue += (data.totalCents || 0);
-            days[dateStr].orders.push({ id: doc.id, ...data });
+            days[dateStr].orders.push({ id: doc.id, ...(data as Record<string, unknown>) });
         });
 
         // Convert to Array
@@ -62,8 +66,9 @@ export async function GET(request: Request) {
         }));
 
         return NextResponse.json({ data: result });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Schedule API Error", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

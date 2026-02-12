@@ -5,9 +5,11 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { logEvent, logError } from "@/lib/logger";
 import { Order } from "@/types/firestore";
+import { adminGuard } from "@/lib/auth/adminGuard";
 
 export async function POST(request: Request) {
     try {
+        await adminGuard();
         const { days = 30 } = await request.json().catch(() => ({}));
 
         const now = new Date();
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
             // However, Cancel API handles decrement. This Sync is for "Disappeared" orders (added but not counted).
             // So Updates are safe.
 
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 dailyBooked: data.daily,
                 updatedAt: new Date().toISOString()
             };
@@ -84,8 +86,12 @@ export async function POST(request: Request) {
         logEvent('schedule_sync_success', { processedDays: count, ordersScanned: ordersSnap.size });
 
         return NextResponse.json({ success: true, processed: count });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         logError('schedule_sync_failed', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

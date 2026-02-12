@@ -12,9 +12,10 @@ export async function GET() {
         const snapshot = await adminDb.collection('recipes').orderBy('createdAt', 'desc').get();
         const recipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return NextResponse.json(recipes);
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         console.error("GET /api/admin/recipes error:", error);
         return NextResponse.json({ error: "Failed to fetch recipes" }, { status: 500 });
     }
@@ -36,9 +37,10 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ success: true, id });
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         console.error("POST /api/admin/recipes error:", error);
         return NextResponse.json({ error: "Failed to save recipe" }, { status: 500 });
     }
@@ -56,9 +58,10 @@ export async function DELETE(request: Request) {
 
         await adminDb.collection('recipes').doc(id).delete();
         return NextResponse.json({ success: true });
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         console.error("DELETE /api/admin/recipes error:", error);
         return NextResponse.json({ error: "Failed to delete recipe" }, { status: 500 });
     }

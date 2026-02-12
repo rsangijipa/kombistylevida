@@ -305,8 +305,8 @@ export interface AuditLog { // Updated to match Phase 6 spec
     action: string; // POST_CREATE, POST_PUBLISH, TESTIMONIAL_APPROVE...
     entity: string; // "posts" | "testimonials"
     entityId: string;
-    before?: any;
-    after?: any;
+    before?: unknown;
+    after?: unknown;
     reason?: string;
     createdAt: string;
 }

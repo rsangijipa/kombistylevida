@@ -5,6 +5,13 @@ import { adminDb } from '@/lib/firebase/admin';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+type PublicPost = {
+    id: string;
+    slug: string;
+    publishedAt?: string;
+    [key: string]: unknown;
+};
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -27,7 +34,7 @@ export async function GET(request: Request) {
             .where('status', 'in', ['PUBLISHED', 'published'])
             .get();
 
-        const posts = snapshot.docs.map(doc => {
+        const posts: PublicPost[] = snapshot.docs.map(doc => {
             const data = doc.data();
             // Map legacy/admin imageSrc to coverImage standard
             if (data.imageSrc && !data.coverImage) {
@@ -42,7 +49,7 @@ export async function GET(request: Request) {
         });
 
         // Sort in memory to avoid index requirement
-        posts.sort((a: any, b: any) => {
+        posts.sort((a, b) => {
             const dateA = new Date(a.publishedAt || 0).getTime();
             const dateB = new Date(b.publishedAt || 0).getTime();
             return dateB - dateA;

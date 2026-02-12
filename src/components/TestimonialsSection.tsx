@@ -54,7 +54,7 @@ export function TestimonialsSection() {
                                 </div>
 
                                 <p className="text-ink/80 italic text-sm leading-relaxed flex-1">
-                                    "{t.text}"
+                                    &ldquo;{t.text}&rdquo;
                                 </p>
 
                                 <div className="mt-4 flex items-center gap-3 pt-4 border-t border-ink/5">

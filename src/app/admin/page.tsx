@@ -9,13 +9,12 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { SalesChart } from "@/components/admin/charts/SalesChart";
 
+function Skel({ className }: { className?: string }) {
+    return <span className={cn("animate-pulse bg-ink/5 rounded inline-block", className)} />;
+}
+
 export default function AdminPage() {
     const { stats, loading, error } = useDashboardStats();
-
-    // Skeleton Component
-    const Skel = ({ className }: { className?: string }) => (
-        <span className={cn("animate-pulse bg-ink/5 rounded inline-block", className)} />
-    );
 
     return (
         <AuthProvider>

@@ -207,7 +207,7 @@ function PostsManager() {
                                     <select
                                         className="w-full rounded-lg border border-ink/10 bg-paper2 p-3 text-sm text-ink outline-none focus:border-olive"
                                         value={editing.status}
-                                        onChange={e => setEditing({ ...editing, status: e.target.value as any })}
+                                        onChange={e => setEditing({ ...editing, status: e.target.value as BlogPost["status"] })}
                                     >
                                         <option value="draft">Rascunho</option>
                                         <option value="published">Publicado</option>

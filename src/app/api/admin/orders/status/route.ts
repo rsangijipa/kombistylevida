@@ -5,12 +5,19 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { logEvent, logError } from "@/lib/logger";
+import { adminGuard } from "@/lib/auth/adminGuard";
 
 export async function POST(request: Request) {
+    try {
+        await adminGuard();
+    } catch {
+        return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+    }
+
     let body;
     try {
         body = await request.json();
-    } catch (e) {
+    } catch {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
@@ -33,11 +40,10 @@ export async function POST(request: Request) {
             }
 
             const orderData = orderDoc.data();
-            const currentStatus = orderData?.status;
             const alreadyAwarded = orderData?.ecoPointsAwarded || false;
 
             // Simple update - no stock changes allowed here
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 status,
                 updatedAt: new Date().toISOString(),
                 lastStatusUpdateBy: actor || 'admin'
@@ -74,8 +80,9 @@ export async function POST(request: Request) {
         logEvent('order_status_updated', { orderId, status, actor });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logError('order_status_update_failed', error, { orderId });
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

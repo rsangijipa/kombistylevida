@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Lock, Unlock, RefreshCw, MapPin, Truck, Calendar as CalIcon, ChevronRight, User, Printer, Map as MapIcon } from "lucide-react";
 import { useSlotOrders } from "@/hooks/useSlotOrders";
 import { cn } from "@/lib/cn";
+import { OrderItem } from "@/types/firestore";
 
 // Types
 interface AdminSlot {
@@ -321,7 +322,7 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
                                             {order.customer.address}, {order.customer.number || "S/N"} {order.customer.complement ? `- ${order.customer.complement}` : ''}
                                         </div>
                                         <div className="text-xs italic text-ink/50 mt-1">
-                                            {order.items.map((i: any) => `${i.quantity}x ${i.productName}`).join(', ')}
+                                            {order.items.map((item: OrderItem) => `${item.quantity}x ${item.productName}`).join(', ')}
                                         </div>
                                         {/* Phone for Driver */}
                                         <div className="text-[10px] font-mono mt-1 text-ink/40">
@@ -369,7 +370,7 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
                             </p>
 
                             <div className="bg-paper2/50 rounded-lg p-2 space-y-1">
-                                {order.items?.map((item: any, i: number) => (
+                                {order.items?.map((item: OrderItem, i: number) => (
                                     <div key={i} className="flex justify-between text-[11px] text-ink/80">
                                         <span>{item.quantity}x {item.productName}</span>
                                         <span className="opacity-50">{item.variantKey}</span>

@@ -66,7 +66,8 @@ export async function POST() {
         await batch.commit();
 
         return NextResponse.json({ success: true, count });
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

@@ -19,7 +19,7 @@ export default function SettingsPage() {
 
 function SettingsContent() {
     const [loading, setLoading] = useState(false);
-    const [currentSettings, setCurrentSettings] = useState<any>(null);
+    const [currentSettings, setCurrentSettings] = useState<Record<string, unknown> | null>(null);
     const [message, setMessage] = useState("");
 
     // Load current settings
@@ -122,7 +122,7 @@ function SettingsContent() {
                         </h2>
                         <p className="text-sm text-amber-900/70 mb-6">
                             Use esta ferramenta se perceber discrepâncias entre a Agenda e os Pedidos reais.
-                            Isso vai recalcular todos os contadores de "Booked" baseados nos pedidos ativos dos próximos 30 dias.
+                            Isso vai recalcular todos os contadores de &ldquo;Booked&rdquo; baseados nos pedidos ativos dos próximos 30 dias.
                         </p>
 
                         <button

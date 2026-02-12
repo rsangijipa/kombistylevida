@@ -43,7 +43,7 @@ function InventoryManager() {
                 imageSrc: product.imageSrc,
                 size: '300ml',
                 isVariant: false,
-                currentStock: (product as any).stockQty || 0,
+                currentStock: product.stockQty || 0,
                 reserved: (product.reservedStock || 0)
             }];
         });
@@ -105,10 +105,11 @@ function InventoryManager() {
                 const txt = await res.text();
                 throw new Error(txt);
             }
-        } catch (e: any) {
-            console.error(e);
+        } catch (error: unknown) {
+            console.error(error);
+            const message = error instanceof Error ? error.message : "Erro desconhecido";
             toast.removeToast(tid);
-            toast.error("Erro ao atualizar", e.message);
+            toast.error("Erro ao atualizar", message);
         } finally {
             setProcessing(false);
         }

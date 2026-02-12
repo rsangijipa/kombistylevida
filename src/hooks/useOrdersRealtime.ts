@@ -12,11 +12,10 @@ export interface OrderFilters {
 
 export function useOrdersRealtime(filters?: OrderFilters) {
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadedFilterKey, setLoadedFilterKey] = useState<string | null>(null);
+    const filterKey = JSON.stringify(filters || {});
 
     useEffect(() => {
-        setLoading(true);
-
         const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
 
         if (filters?.status) {
@@ -36,14 +35,16 @@ export function useOrdersRealtime(filters?: OrderFilters) {
                 ...doc.data()
             })) as Order[];
             setOrders(data);
-            setLoading(false);
+            setLoadedFilterKey(filterKey);
         }, (err) => {
             console.error("Error listening to orders:", err);
-            setLoading(false);
+            setLoadedFilterKey(filterKey);
         });
 
         return () => unsubscribe();
-    }, [JSON.stringify(filters)]); // Deep compare dependency
+    }, [filterKey, filters?.customerId, filters?.limitCount, filters?.status]);
+
+    const loading = loadedFilterKey !== filterKey;
 
     return { orders, loading };
 }

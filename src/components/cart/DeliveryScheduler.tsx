@@ -87,15 +87,16 @@ export function DeliveryScheduler() {
             // Re-fetch to update capacities
             fetchSlots();
 
-        } catch (e: any) {
-            console.error("Reserve failed", e);
-            if (e.message === "Unauthorized" || e.message?.includes("Unauthorized")) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Erro desconhecido";
+            console.error("Reserve failed", error);
+            if (message === "Unauthorized" || message.includes("Unauthorized")) {
                 // Session lost (cookie expired/missing), but we have orderId.
                 // Re-init to get a fresh cookie/order.
                 await initCart();
                 setError("Sessão atualizada. Por favor, tente reservar novamente.");
             } else {
-                setError(e.message || "Erro desconhecido");
+                setError(message);
             }
         } finally {
             setReserving(false);

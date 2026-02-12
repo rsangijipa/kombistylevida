@@ -75,7 +75,7 @@ export default function DepoimentosPage() {
                                         </div>
                                     )}
                                     <p className="font-serif text-lg text-ink italic leading-relaxed">
-                                        "{t.text}"
+                                        &ldquo;{t.text}&rdquo;
                                     </p>
                                 </div>
 

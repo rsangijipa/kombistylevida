@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
-import { Loader2, ChevronLeft, ChevronRight, Info, MapPin, ExternalLink } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, MapPin, ExternalLink } from "lucide-react";
 import { useDeliveryWeekRealtime, useDeliveryDayRealtime } from "@/hooks/useDeliveryRealtime";
 
 export default function AgendaPage() {
@@ -24,18 +24,9 @@ function AgendaManager() {
     // Detail Modal State
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [editCapacity, setEditCapacity] = useState<number>(0);
-    const [dayData, setDayData] = useState<any>(null);
 
     // 2. Daily Details Hook
     const { orders: detailOrders, loading: detailLoading, dayData: realtimeDayData } = useDeliveryDayRealtime(selectedDate);
-
-    // Sync realtime day data to local dayData state
-    useEffect(() => {
-        if (realtimeDayData) {
-            setDayData(realtimeDayData);
-            setEditCapacity(realtimeDayData.dailyCapacityOverride || 10);
-        }
-    }, [realtimeDayData]);
 
     // Derived State
     const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -62,6 +53,8 @@ function AgendaManager() {
 
     const openDetail = (date: string) => {
         setSelectedDate(date);
+        const currentDay = slots.find((slot) => slot.date === date && (slot.mode || 'DELIVERY') === 'DELIVERY');
+        setEditCapacity(currentDay?.dailyCapacityOverride || 10);
     };
 
     const saveCapacity = async () => {
@@ -73,6 +66,7 @@ function AgendaManager() {
                 body: JSON.stringify({
                     action: 'UPDATE_DAILY_CAPACITY',
                     date: selectedDate,
+                    mode: 'DELIVERY',
                     value: editCapacity
                 })
             });
@@ -81,7 +75,7 @@ function AgendaManager() {
                 // No manual refresh needed
                 setSelectedDate(null); // close
             }
-        } catch (e) {
+        } catch {
             alert("Erro ao atualizar capacidade.");
         }
     };
@@ -95,13 +89,14 @@ function AgendaManager() {
                 body: JSON.stringify({
                     action: 'TOGGLE_DAY',
                     date,
+                    mode: 'DELIVERY',
                     value: currentOpen // if true, it means we are setting closed=true
                 })
             });
             if (res.ok) {
                 // No manual refresh needed
             }
-        } catch (e) {
+        } catch {
             alert("Erro ao atualizar data.");
         }
     };
@@ -130,14 +125,13 @@ function AgendaManager() {
                     <div className="min-w-[1000px] grid grid-cols-7 gap-4">
                         {weekDays.map(date => {
                             const dateStr = date.toISOString().split('T')[0];
-                            const dayDataItem = slots.find(s => s.date === dateStr);
+                            const dayDataItem = slots.find(s => s.date === dateStr && (s.mode || 'DELIVERY') === 'DELIVERY');
                             const isToday = dateStr === new Date().toISOString().split('T')[0];
 
                             // Default Logic
                             const isOpen = dayDataItem ? !dayDataItem.closed : true; // Default TRUE
                             const capacity = dayDataItem?.dailyCapacityOverride || 10;
                             const bookedCount = dayDataItem?.dailyBooked || 0; // Simplified
-                            const percent = Math.min(100, (bookedCount / capacity) * 100);
                             const isFull = bookedCount >= capacity;
 
                             return (
@@ -218,8 +212,8 @@ function AgendaManager() {
                             </div>
                             <div className="text-right">
                                 <span className="text-xs font-bold uppercase tracking-widest text-ink/50 block">Ocupação Atual</span>
-                                <span className="text-2xl font-mono font-bold text-ink">
-                                    {dayData?.dailyBooked || 0}
+                                    <span className="text-2xl font-mono font-bold text-ink">
+                                    {realtimeDayData?.dailyBooked || 0}
                                     <span className="text-ink/30 text-lg"> / {editCapacity}</span>
                                 </span>
                             </div>
@@ -237,8 +231,12 @@ function AgendaManager() {
                         ) : (
                             <div className="space-y-3">
                                 {detailOrders.map(order => {
-                                    const addressLine1 = order.customerAddress ? `${order.customerAddress}, ${order.customerNumber || 'S/N'}${order.customerComplement ? ' - ' + order.customerComplement : ''}` : null;
-                                    const addressLine2 = order.customerNeighborhood ? `${order.customerNeighborhood}${order.customerCity ? ' - ' + order.customerCity : ''}` : (order.customerAddress ? 'Porto Velho' : null);
+                                    const addressLine1 = order.customer?.address
+                                        ? `${order.customer.address}, ${order.customer.number || 'S/N'}${order.customer.complement ? ' - ' + order.customer.complement : ''}`
+                                        : null;
+                                    const addressLine2 = order.customer?.neighborhood
+                                        ? `${order.customer.neighborhood} - Porto Velho`
+                                        : (order.customer?.address ? 'Porto Velho' : null);
 
                                     // Use 'dir' for "Traçar Rota"
                                     const mapsQuery = addressLine1
@@ -251,7 +249,7 @@ function AgendaManager() {
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono text-[10px] font-bold text-ink/40 bg-ink/5 px-1.5 py-0.5 rounded">#{order.shortId}</span>
-                                                    <div className="font-bold text-sm text-ink">{order.customerName}</div>
+                                                    <div className="font-bold text-sm text-ink">{order.customer?.name || 'Cliente'}</div>
                                                 </div>
                                                 <div className="text-right">
                                                     <span className="font-bold text-sm text-olive">R$ {(order.totalCents / 100).toFixed(2).replace('.', ',')}</span>
@@ -284,7 +282,7 @@ function AgendaManager() {
 
                                             <div className="flex justify-between items-center border-t border-ink/5 pt-3 mt-1">
                                                 <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">
-                                                    {order.slotLabel || 'Sem horário'}
+                                                    {order.schedule?.slotLabel || order.schedule?.slotId || 'Sem horário'}
                                                 </span>
                                                 <span className="text-[10px] uppercase font-bold text-ink/40 bg-gray-50 px-2 py-0.5 rounded-full border border-ink/5">
                                                     {order.status}

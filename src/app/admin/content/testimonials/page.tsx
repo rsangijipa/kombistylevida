@@ -282,7 +282,7 @@ function TestimonialCard({ tm, onApprove, onReject }: { tm: Testimonial, onAppro
             </div>
 
             <blockquote className="text-sm text-ink/80 italic bg-white/50 p-3 rounded relative min-h-[4rem]">
-                "{tm.text}"
+                &ldquo;{tm.text}&rdquo;
             </blockquote>
 
             {tm.status === 'REJECTED' && (

@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { useCustomerOrders } from "@/hooks/useCustomerOrders";
 
 import { useCustomersRealtime } from "@/hooks/useCustomersRealtime";
+import type { User as FirebaseUser } from "firebase/auth";
 
 export default function CustomersPage() {
     const { user } = useAuth();
@@ -286,7 +287,7 @@ function CustomerOrderHistory({ phone }: { phone: string }) {
 }
 
 
-function AdjustCreditsForm({ customer, user, onSuccess }: { customer: Customer, user: any, onSuccess: (delta: number) => void }) {
+function AdjustCreditsForm({ customer, user, onSuccess }: { customer: Customer, user: FirebaseUser | null, onSuccess: (delta: number) => void }) {
     const [adjustReason, setAdjustReason] = useState("");
     const [adjustValue, setAdjustValue] = useState(1);
     const [isAdjusting, setIsAdjusting] = useState(false);

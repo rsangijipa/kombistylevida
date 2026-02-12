@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 export function CustomerForm() {
     const {
-        name, phone, deliveryMethod, address, neighborhood, consentToSave,
+        name, phone, deliveryMethod, address, number, complement, neighborhood, consentToSave,
         setField, setConsent
     } = useCustomerStore();
 
@@ -79,7 +79,7 @@ export function CustomerForm() {
                             <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Número</label>
                             <input
                                 type="text"
-                                value={useCustomerStore((s) => s.number)}
+                                value={number}
                                 onChange={(e) => setField("number", e.target.value)}
                                 placeholder="123"
                                 className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"
@@ -102,7 +102,7 @@ export function CustomerForm() {
                         <label className="text-xs font-bold uppercase tracking-widest text-ink/50">Complemento (Opcional)</label>
                         <input
                             type="text"
-                            value={useCustomerStore((s) => s.complement)}
+                            value={complement}
                             onChange={(e) => setField("complement", e.target.value)}
                             placeholder="Apto 101, Ao lado da padaria..."
                             className="w-full h-[52px] rounded-md border border-ink/20 bg-paper px-3 text-sm text-ink outline-none focus:border-olive touch-target"

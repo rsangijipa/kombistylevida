@@ -5,7 +5,19 @@ import React, { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import { DayAvailability } from "@/services/scheduleService";
+import { Order } from "@/types/firestore";
 import { Loader2, Calendar as CalIcon, Settings, AlertTriangle, X, ChevronRight, Ban, CheckCircle, Smartphone } from "lucide-react";
+
+type SelectedSlot = {
+    dayDate: string;
+    slot: DayAvailability["slots"][number];
+};
+
+type SlotUpdatePayload = {
+    capacity?: number;
+    enabled?: boolean;
+    notes?: string;
+};
 
 export default function SchedulePage() {
     return (
@@ -21,7 +33,7 @@ function ScheduleDashboard() {
     const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
 
     // Panel State
-    const [selectedSlot, setSelectedSlot] = useState<{ dayDate: string; slot: any } | null>(null);
+    const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null);
     const [panelLoading, setPanelLoading] = useState(false);
 
     const load = async () => {
@@ -44,7 +56,7 @@ function ScheduleDashboard() {
     }, [mode]);
 
     // Refresh single slot or day logic could be optimized, here we reload all
-    const handleSlotUpdate = async (updates: any) => {
+    const handleSlotUpdate = async (updates: SlotUpdatePayload) => {
         if (!selectedSlot) return;
         setPanelLoading(true);
         try {
@@ -65,7 +77,7 @@ function ScheduleDashboard() {
                 // For now, close panel or just reload
                 setSelectedSlot(null);
             }
-        } catch (e) {
+        } catch {
             alert("Erro ao atualizar.");
         } finally {
             setPanelLoading(false);
@@ -86,7 +98,7 @@ function ScheduleDashboard() {
                 })
             });
             if (res.ok) load();
-        } catch (e) { }
+        } catch { }
     }
 
     return (
@@ -292,18 +304,33 @@ function ScheduleDashboard() {
 
 function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
     // Inline fetch component for simplicity
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loadedKey, setLoadedKey] = useState<string | null>(null);
+    const requestKey = `${date}:${slotId}`;
 
     useEffect(() => {
-        setLoading(true);
+        let canceled = false;
+
         fetch(`/api/admin/orders?date=${date}&slotId=${slotId}`)
             .then(res => res.json())
             .then(data => {
-                if (Array.isArray(data)) setOrders(data);
+                if (canceled) return;
+                if (Array.isArray(data)) setOrders(data as Order[]);
+                else setOrders([]);
+                setLoadedKey(requestKey);
             })
-            .finally(() => setLoading(false));
-    }, [date, slotId]);
+            .catch(() => {
+                if (canceled) return;
+                setOrders([]);
+                setLoadedKey(requestKey);
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [date, requestKey, slotId]);
+
+    const loading = loadedKey !== requestKey;
 
     if (loading) return <div className="text-center py-4"><Loader2 className="animate-spin inline" /></div>;
     if (orders.length === 0) return <div className="text-center py-4 text-ink/40 text-sm">Nenhum pedido encontrado para este horário.</div>;
@@ -320,7 +347,7 @@ function SlotOrdersList({ date, slotId }: { date: string, slotId: string }) {
                         {order.customer?.phone} • {order.customer?.neighborhood || "Sem bairro"}
                     </div>
                     <div className="space-y-1">
-                        {order.items?.map((item: any, i: number) => (
+                        {order.items?.map((item, i) => (
                             <div key={i} className="flex justify-between text-xs">
                                 <span>{item.quantity}x {item.productName}</span>
                                 <span className="text-ink/50">{item.variantKey}</span>

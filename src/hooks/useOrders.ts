@@ -5,11 +5,10 @@ import { Order } from '@/types/firestore';
 
 export function useOrders(limitCount = 100) {
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadedLimit, setLoadedLimit] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        setLoading(true);
         // Live listener
         const q = query(
             collection(db, 'orders'),
@@ -23,15 +22,17 @@ export function useOrders(limitCount = 100) {
                 ...doc.data()
             })) as Order[];
             setOrders(data);
-            setLoading(false);
+            setLoadedLimit(limitCount);
         }, (err) => {
             console.error("Error listening to orders:", err);
             setError(err.message);
-            setLoading(false);
+            setLoadedLimit(limitCount);
         });
 
         return () => unsubscribe();
     }, [limitCount]);
+
+    const loading = loadedLimit !== limitCount;
 
     return { orders, loading, error };
 }

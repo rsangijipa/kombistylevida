@@ -6,10 +6,9 @@ import { Customer } from '@/types/firestore';
 
 export function useCustomersRealtime(limitCount = 50) {
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadedLimit, setLoadedLimit] = useState<number | null>(null);
 
     useEffect(() => {
-        setLoading(true);
         const q = query(
             collection(db, 'customers'),
             orderBy('lastOrderAt', 'desc'),
@@ -22,14 +21,16 @@ export function useCustomersRealtime(limitCount = 50) {
                 ...doc.data()
             })) as Customer[];
             setCustomers(data);
-            setLoading(false);
+            setLoadedLimit(limitCount);
         }, (err) => {
             console.error("Error listening to customers:", err);
-            setLoading(false);
+            setLoadedLimit(limitCount);
         });
 
         return () => unsubscribe();
     }, [limitCount]);
+
+    const loading = loadedLimit !== limitCount;
 
     return { customers, loading };
 }

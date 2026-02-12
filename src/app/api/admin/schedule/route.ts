@@ -2,21 +2,41 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { adminGuard } from '@/lib/auth/adminGuard';
+import { DeliveryConfig, WeekdayTemplate } from '@/types/firestore';
 
-// Types (Mirrored from Firestore types but adapted for server usage)
-type DeliveryConfig = {
-    closedDates: string[];
-    cutoffPolicy: { type: string; dayBeforeAt?: string };
-    modes: {
-        [key: string]: {
-            enabled: boolean;
-            weekdayTemplates: Record<string, any>;
-        }
-    };
+type DeliveryMode = 'DELIVERY' | 'PICKUP';
+
+type DeliveryDayOverride = {
+    date: string;
+    overrideClosed?: boolean;
+    overrideDailyCapacity?: number;
+    dailyBooked?: number;
+    slots?: Record<string, { booked?: number }>;
+};
+
+type SlotAvailability = {
+    id: string;
+    label: string;
+    start: string;
+    end: string;
+    capacity: number;
+    booked: number;
+    available: number;
+    enabled: boolean;
+};
+
+type DayAvailability = {
+    date: string;
+    open: boolean;
+    reason?: string;
+    dailyCapacity: number;
+    dailyBooked: number;
+    slots: SlotAvailability[];
 };
 
 // Helper function to get schedule availability (Server Side)
-async function getScheduleAvailabilityServer(startDate: Date, days: number, mode: string) {
+async function getScheduleAvailabilityServer(startDate: Date, days: number, mode: DeliveryMode): Promise<DayAvailability[]> {
     // 1. Fetch Config
     const configSnap = await adminDb.collection('settings').doc('deliveryConfig').get();
     if (!configSnap.exists) return [];
@@ -41,19 +61,31 @@ async function getScheduleAvailabilityServer(startDate: Date, days: number, mode
         .where('mode', '==', mode)
         .get();
 
-    const dayDocs = snapshot.docs.map(d => d.data());
+    const dayDocs = snapshot.docs.map(d => d.data() as DeliveryDayOverride);
 
     // 4. Merge Logic
-    const result: any[] = [];
+    const result: DayAvailability[] = [];
     const now = new Date();
     const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
     for (const dateStr of datesToCheck) {
         const dateObj = new Date(dateStr + "T12:00:00");
         const dayOfWeek = WEEKDAYS[dateObj.getDay()];
-        const template = config.modes[mode].weekdayTemplates[dayOfWeek];
+        const template = config.modes[mode].weekdayTemplates[dayOfWeek] as WeekdayTemplate | undefined;
         const isClosedDate = config.closedDates.includes(dateStr);
         const dayOverride = dayDocs.find(d => d.date === dateStr);
+
+        if (!template) {
+            result.push({
+                date: dateStr,
+                open: false,
+                reason: 'No weekday template',
+                dailyCapacity: 0,
+                dailyBooked: dayOverride?.dailyBooked || 0,
+                slots: []
+            });
+            continue;
+        }
 
         let isOpen = template.open;
         if (isClosedDate) isOpen = false;
@@ -63,7 +95,7 @@ async function getScheduleAvailabilityServer(startDate: Date, days: number, mode
         const dailyBooked = dayOverride?.dailyBooked || 0;
 
         // Slots
-        const slots = template.slots.map((slotConfig: any) => {
+        const slots = template.slots.map((slotConfig: WeekdayTemplate['slots'][number]) => {
             const slotOverride = dayOverride?.slots?.[slotConfig.id];
             const booked = slotOverride?.booked || 0;
             const available = Math.max(0, slotConfig.capacity - booked);
@@ -97,14 +129,24 @@ async function getScheduleAvailabilityServer(startDate: Date, days: number, mode
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const days = parseInt(searchParams.get('days') || '14');
-        const mode = searchParams.get('mode') || 'DELIVERY';
+        const modeParam = (searchParams.get('mode') || 'DELIVERY').toUpperCase();
+
+        if (modeParam !== 'DELIVERY' && modeParam !== 'PICKUP') {
+            return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
+        }
+
+        const mode = modeParam as DeliveryMode;
 
         // Assuming start date is today
         const data = await getScheduleAvailabilityServer(new Date(), days, mode);
         return NextResponse.json(data);
     } catch (error) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         console.error("Error fetching schedule:", error);
         return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 });
     }
@@ -112,15 +154,35 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
+        await adminGuard();
+        const body = await request.json() as {
+            action?: string;
+            date?: string;
+            mode?: string;
+            open?: boolean;
+            slotId?: string;
+            capacity?: number;
+            notes?: string;
+            enabled?: boolean;
+        };
         const { action, date, mode, open, slotId, capacity, notes, enabled } = body;
 
-        const docId = `${date}_${mode}`;
+        const normalizedMode = String(mode || 'DELIVERY').toUpperCase();
+        if (normalizedMode !== 'DELIVERY' && normalizedMode !== 'PICKUP') {
+            return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
+        }
+
+        if (!date) {
+            return NextResponse.json({ error: 'Missing date' }, { status: 400 });
+        }
+
+        const docId = `${date}_${normalizedMode}`;
         const ref = adminDb.collection('deliveryDays').doc(docId);
 
         if (action === 'TOGGLE_DAY') {
             await ref.set({
-                date, mode,
+                date,
+                mode: normalizedMode,
                 overrideClosed: open, // true means closed
                 updatedAt: new Date().toISOString()
             }, { merge: true });
@@ -132,7 +194,7 @@ export async function POST(request: Request) {
             // Firestore map update dot notation
             if (!slotId) return NextResponse.json({ error: "Missing Slot ID" }, { status: 400 });
 
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 updatedAt: new Date().toISOString()
             };
 
@@ -148,7 +210,7 @@ export async function POST(request: Request) {
             // However, set merge with dot notation on top level works, but for nested maps inside potentially new doc?
             // Safer to ensure doc exists or use set with nested object structure if new.
             // Simplified:
-            await ref.set({ date, mode }, { merge: true }); // Ensure doc
+            await ref.set({ date, mode: normalizedMode }, { merge: true }); // Ensure doc
             await ref.update(updateData);
 
             return NextResponse.json({ success: true });
@@ -157,6 +219,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
     } catch (error) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         console.error("Error updating schedule:", error);
         return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 });
     }

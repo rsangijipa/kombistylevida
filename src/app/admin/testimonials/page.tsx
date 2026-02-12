@@ -145,7 +145,7 @@ function AdminTestimonialsContent() {
                                     )}
 
                                     <p className="text-sm text-ink/80 italic leading-relaxed">
-                                        "{t.text}"
+                                        &ldquo;{t.text}&rdquo;
                                     </p>
 
                                     <div className="mt-4 text-[10px] text-ink/30 font-mono">

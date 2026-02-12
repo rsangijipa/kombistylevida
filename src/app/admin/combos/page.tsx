@@ -8,7 +8,7 @@ import { Loader2, Save, ShoppingBag, Plus, Trash2, Edit2, X } from "lucide-react
 import { PRODUCTS as CATALOG } from "@/data/catalog";
 
 // Helper Component for Icon
-const SimpleIcon = ({ name, size }: { name: any, size: number }) => {
+const SimpleIcon = ({ name, size }: { name: React.ComponentType<{ size?: number }>, size: number }) => {
     const Icon = name;
     return <Icon size={size} />;
 };
@@ -214,7 +214,7 @@ function CombosManager() {
                                         <select
                                             className="w-full border rounded-lg p-2 font-bold bg-white"
                                             value={editingCombo.size || '300ml'}
-                                            onChange={e => setEditingCombo(p => ({ ...p!, size: e.target.value as any }))}
+                                            onChange={e => setEditingCombo(p => ({ ...p!, size: e.target.value as Combo["size"] }))}
                                         >
                                             <option value="300ml">300ml</option>
                                             <option value="500ml">500ml</option>

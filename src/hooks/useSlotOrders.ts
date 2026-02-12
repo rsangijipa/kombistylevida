@@ -5,15 +5,11 @@ import { Order } from '@/types/firestore';
 
 export function useSlotOrders(date?: string, slotId?: string) {
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loadedKey, setLoadedKey] = useState<string | null>(null);
+    const requestKey = date && slotId ? `${date}:${slotId}` : null;
 
     useEffect(() => {
-        if (!date || !slotId) {
-            setOrders([]);
-            return;
-        }
-
-        setLoading(true);
+        if (!date || !slotId) return;
 
         const q = query(
             collection(db, 'orders'),
@@ -33,14 +29,19 @@ export function useSlotOrders(date?: string, slotId?: string) {
             data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             setOrders(data);
-            setLoading(false);
+            setLoadedKey(`${date}:${slotId}`);
         }, (err) => {
             console.error("Error listening to slot orders:", err);
-            setLoading(false);
+            setLoadedKey(`${date}:${slotId}`);
         });
 
         return () => unsubscribe();
     }, [date, slotId]);
 
-    return { orders, loading };
+    const loading = !!requestKey && loadedKey !== requestKey;
+
+    return {
+        orders: requestKey ? orders : [],
+        loading,
+    };
 }

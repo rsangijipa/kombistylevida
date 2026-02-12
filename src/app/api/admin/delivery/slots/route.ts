@@ -2,12 +2,19 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
+import { adminGuard } from '@/lib/auth/adminGuard';
 
 export async function GET(request: Request) {
     try {
+        await adminGuard();
         const { searchParams } = new URL(request.url);
         const start = searchParams.get('start'); // YYYY-MM-DD
         const end = searchParams.get('end');     // YYYY-MM-DD
+        const mode = (searchParams.get('mode') || 'DELIVERY').toUpperCase();
+
+        if (mode !== 'DELIVERY' && mode !== 'PICKUP') {
+            return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
+        }
 
         if (!start || !end) {
             return NextResponse.json({ error: "Missing start/end date" }, { status: 400 });
@@ -17,11 +24,15 @@ export async function GET(request: Request) {
         const snapshot = await adminDb.collection('deliveryDays')
             .where('date', '>=', start)
             .where('date', '<=', end)
+            .where('mode', '==', mode)
             .get();
 
         const data = snapshot.docs.map(doc => doc.data());
         return NextResponse.json(data);
     } catch (error) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         console.error("Error fetching slots:", error);
         return NextResponse.json({ error: "Failed to fetch slots" }, { status: 500 });
     }
@@ -29,17 +40,24 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
     try {
+        await adminGuard();
         const body = await request.json();
-        const { date, mode, slotId, action, value } = body;
+        const { date, mode, action, value } = body;
         // action: 'UPDATE_CAPACITY' | 'TOGGLE_SLOT' | 'TOGGLE_DAY'
 
         if (!date) return NextResponse.json({ error: "Missing date" }, { status: 400 });
 
-        const docRef = adminDb.collection('deliveryDays').doc(date);
+        const normalizedMode = String(mode || 'DELIVERY').toUpperCase();
+        if (normalizedMode !== 'DELIVERY' && normalizedMode !== 'PICKUP') {
+            return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
+        }
+        const docId = `${date}_${normalizedMode}`;
+        const docRef = adminDb.collection('deliveryDays').doc(docId);
 
         if (action === 'TOGGLE_DAY') {
             await docRef.set({
                 date,
+                mode: normalizedMode,
                 // If value is TRUE (closing), we set closed: true
                 closed: value,
                 updatedAt: new Date().toISOString()
@@ -47,6 +65,7 @@ export async function PATCH(request: Request) {
         } else if (action === 'UPDATE_DAILY_CAPACITY') {
             await docRef.set({
                 date,
+                mode: normalizedMode,
                 dailyCapacityOverride: value, // e.g. 15
                 updatedAt: new Date().toISOString()
             }, { merge: true });
@@ -57,6 +76,9 @@ export async function PATCH(request: Request) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         console.error("Error updating slot:", error);
         return NextResponse.json({ error: "Failed to update slot" }, { status: 500 });
     }

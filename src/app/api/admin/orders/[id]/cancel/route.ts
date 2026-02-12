@@ -2,12 +2,26 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { Order } from "@/types/firestore";
 import { FieldValue } from "firebase-admin/firestore";
+import { adminGuard } from "@/lib/auth/adminGuard";
+
+type ProductVariant = {
+    size?: string;
+    stockQty?: number;
+};
+
+type ProductEntry = {
+    ref: FirebaseFirestore.DocumentReference;
+    data: {
+        variants?: ProductVariant[];
+    };
+};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
     try {
+        await adminGuard();
         const { id: orderId } = await context.params;
         const updatedBy = "admin"; // Placeholder
 
@@ -29,7 +43,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             const items = customOrder.items || [];
             const productIds = new Set(items.map(i => i.productId));
 
-            const productsToUpdate = new Map<string, any>();
+            const productsToUpdate = new Map<string, ProductEntry>();
 
             // 1. Load Data
             const uniqueIds = Array.from(productIds);
@@ -37,7 +51,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             if (refs.length > 0) {
                 const docs = await t.getAll(...refs);
                 docs.forEach(d => {
-                    if (d.exists) productsToUpdate.set(d.id, { ref: d.ref, data: d.data() });
+                    if (d.exists) {
+                        productsToUpdate.set(d.id, {
+                            ref: d.ref,
+                            data: (d.data() as ProductEntry['data']) || {}
+                        });
+                    }
                 });
             }
 
@@ -45,7 +64,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             for (const item of items) {
                 const entry = productsToUpdate.get(item.productId);
                 if (entry && entry.data && entry.data.variants) {
-                    const idx = entry.data.variants.findIndex((v: any) => v.size && v.size.includes(item.variantKey));
+                    const idx = entry.data.variants.findIndex((v) => v.size && v.size.includes(item.variantKey || ''));
                     if (idx !== -1) {
                         const current = entry.data.variants[idx].stockQty || 0;
                         entry.data.variants[idx].stockQty = current + item.quantity;
@@ -69,12 +88,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
                     user: updatedBy,
                     details: `Canceled via Admin UI`
                 })
-            } as any);
+            });
         });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+        }
         console.error("Cancel Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Internal error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

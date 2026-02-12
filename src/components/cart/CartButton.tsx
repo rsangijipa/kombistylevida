@@ -10,7 +10,10 @@ export function CartButton({ className }: { className?: string }) {
     const [mounted, setMounted] = useState(false);
 
     // Avoid hydration mismatch
-    useEffect(() => setMounted(true), []);
+    useEffect(() => {
+        const timer = window.setTimeout(() => setMounted(true), 0);
+        return () => window.clearTimeout(timer);
+    }, []);
 
     const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
 

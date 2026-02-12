@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         const orderRef = adminDb.collection("orders").doc(auth.orderId);
         const slotRef = adminDb.collection("deliverySlots").doc(slotId);
 
-        let snapshot: any;
+        let snapshot: { slotId: string; expiresAt: string } | null = null;
 
         await adminDb.runTransaction(async (t) => {
             // READS
@@ -118,17 +118,18 @@ export async function POST(request: Request) {
             };
         });
 
-        return NextResponse.json({ success: true, ...snapshot });
+        return NextResponse.json({ success: true, ...(snapshot || {}) });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Reserve Error:", error);
-        const msg = error.message || "Unknown error";
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        const stack = error instanceof Error ? error.stack : undefined;
         if (msg.includes("Full") || msg.includes("Closed")) return NextResponse.json({ error: msg }, { status: 409 });
         if (msg.includes("Unauthorized")) return NextResponse.json({ error: msg }, { status: 401 });
         return NextResponse.json({
             error: "Reservation failed",
             details: msg,
-            stack: error.stack
+            stack
         }, { status: 500 });
     }
 }

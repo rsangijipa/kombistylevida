@@ -5,15 +5,10 @@ import { Order } from '@/types/firestore';
 
 export function useCustomerOrders(phone: string | null) {
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loadedPhone, setLoadedPhone] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!phone) {
-            setOrders([]);
-            return;
-        }
-
-        setLoading(true);
+        if (!phone) return;
 
         const q = query(
             collection(db, 'orders'),
@@ -33,14 +28,19 @@ export function useCustomerOrders(phone: string | null) {
             data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             setOrders(data);
-            setLoading(false);
+            setLoadedPhone(phone);
         }, (err) => {
             console.error("Error fetching customer orders:", err);
-            setLoading(false);
+            setLoadedPhone(phone);
         });
 
         return () => unsubscribe();
     }, [phone]);
 
-    return { orders, loading };
+    const loading = !!phone && loadedPhone !== phone;
+
+    return {
+        orders: phone ? orders : [],
+        loading,
+    };
 }

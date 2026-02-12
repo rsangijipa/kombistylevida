@@ -40,9 +40,10 @@ function OrdersList() {
 
             toast.removeToast(tid);
             toast.success("Pedido confirmado!", "Estoque atualizado com sucesso.");
-        } catch (e: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Erro desconhecido";
             toast.removeToast(tid);
-            toast.error("Erro ao processar", e.message);
+            toast.error("Erro ao processar", message);
         }
     };
 
@@ -60,9 +61,10 @@ function OrdersList() {
 
             toast.removeToast(tid);
             toast.success("Pedido cancelado", "Estoque foi estornado.");
-        } catch (e: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Erro desconhecido";
             toast.removeToast(tid);
-            toast.error("Erro ao cancelar", e.message);
+            toast.error("Erro ao cancelar", message);
         }
     };
 

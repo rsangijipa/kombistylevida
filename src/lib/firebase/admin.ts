@@ -6,6 +6,8 @@ import type { Firestore } from "firebase-admin/firestore";
 import fs from 'fs';
 import path from 'path';
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * FIREBASE ADMIN SDK INITIALIZATION (Lazy & Build-Safe)
  * 
@@ -84,8 +86,12 @@ function initAdmin(): App {
             credential: config ? cert(config) : undefined,
         });
         return initializedApp!;
-    } catch (error) {
-        if ((error as any).code === 'app/already-exists') {
+    } catch (error: unknown) {
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? (error as { code?: unknown }).code
+            : undefined;
+
+        if (code === 'app/already-exists') {
             initializedApp = getApp();
             return initializedApp!;
         }

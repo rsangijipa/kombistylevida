@@ -1,12 +1,22 @@
 export const runtime = 'nodejs';
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
-import { parseKvOrderCookie, hashToken } from "@/lib/security/token";
+import { adminAuth } from "@/lib/firebase/admin";
 
 export async function POST(request: Request) {
     try {
         const payload = await request.json();
+
+        const authHeader = request.headers.get("authorization");
+        const bearerPrefix = "Bearer ";
+
+        if (!authHeader || !authHeader.startsWith(bearerPrefix)) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const idToken = authHeader.slice(bearerPrefix.length).trim();
+        const decoded = await adminAuth.verifyIdToken(idToken);
+        const userId = decoded.uid;
 
         // 1. Validate Session (Must be logged in or have a valid guest session linked to a user?)
         // For Subscription, we ideally want a User ID from Auth.
@@ -23,8 +33,12 @@ export async function POST(request: Request) {
         // If not, we save it as "Pending Approval" logic.
 
         // Simple Validation
-        if (!payload.userId || !payload.items || !payload.frequency) {
+        if (!payload.items || !payload.frequency) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        if (payload.userId && payload.userId !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const subscriptionRef = adminDb.collection("subscriptions").doc();
@@ -39,7 +53,7 @@ export async function POST(request: Request) {
 
         await subscriptionRef.set({
             id: subscriptionRef.id,
-            userId: payload.userId,
+            userId,
             customer: payload.customer, // snapshot of address/contact
             items: payload.items,
             frequency: payload.frequency,
@@ -53,7 +67,15 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, subscriptionId: subscriptionRef.id });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const isAuthError =
+            (error instanceof Error && error.message.toLowerCase().includes("token")) ||
+            (typeof (error as { code?: unknown })?.code === "string" &&
+                (error as { code: string }).code.startsWith("auth/"));
+
+        if (isAuthError) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         console.error("Subscription Error:", error);
         return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 });
     }

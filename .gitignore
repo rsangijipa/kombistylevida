@@ -46,3 +46,5 @@ planar-outlook*.json
 client_secret*.json
 elosusgrupos*.json
 *creds.json
+debug_creds.txt
+*debug*creds*.txt

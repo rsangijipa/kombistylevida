@@ -4,20 +4,26 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
-    // 1. Protect /admin routes
-    if (path.startsWith('/admin')) {
+    const isAdminPage = path.startsWith('/admin');
+    const isAdminApi = path.startsWith('/api/admin');
+
+    // 1. Protect /admin pages and /api/admin endpoints
+    if (isAdminPage || isAdminApi) {
         // Skip login page itself if it exists inside /admin
         if (path === '/admin/login') {
             return NextResponse.next();
         }
 
         // Check for session cookie
-        // Using "soft gate" strategy as requested for P0 if no full session system exist
         const session = request.cookies.get('session') || request.cookies.get('__session');
+        const authHeader = request.headers.get('authorization');
+        const hasBearerToken = !!authHeader && authHeader.startsWith('Bearer ');
 
-        if (!session) {
-            // Redirect to root if no session, or /admin/login if we confirm it exists
-            // We use / for safety to avoid loops
+        if (!session && !hasBearerToken) {
+            if (isAdminApi) {
+                return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+            }
+
             const loginUrl = new URL('/admin/login', request.url);
             return NextResponse.redirect(loginUrl);
         }
@@ -29,5 +35,6 @@ export function middleware(request: NextRequest) {
 export const config = {
     matcher: [
         '/admin/:path*',
+        '/api/admin/:path*',
     ],
 };

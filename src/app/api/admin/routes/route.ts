@@ -20,19 +20,19 @@ export async function GET(request: Request) {
             .orderBy('createdAt', 'asc')
             .get();
 
-        const orders = snapshot.docs.map(doc => {
-            const data = doc.data();
-            // Ensure ID is included if needed, though usually in data or as doc.id
-            return { id: doc.id, ...data };
-        });
+        const orders: Array<{ id: string; status?: string } & Record<string, unknown>> = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as Record<string, unknown>)
+        }));
 
         // Filter canceled? Client side or here? Current service filters canceled.
-        const activeOrders = orders.filter((o: any) => o.status !== 'CANCELED');
+        const activeOrders = orders.filter((o) => o.status !== 'CANCELED');
 
         return NextResponse.json(activeOrders);
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
         console.error("Routes API Error:", error);
         return NextResponse.json({ error: "Failed to fetch routes" }, { status: 500 });

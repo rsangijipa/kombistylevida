@@ -10,7 +10,6 @@ export function useInventoryRealtime() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        setLoading(true);
         // We listen to all products to build the real-time inventory grid
         const q = query(collection(db, 'products'), orderBy('name'));
 

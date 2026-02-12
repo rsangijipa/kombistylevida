@@ -1,6 +1,12 @@
 import { randomBytes, timingSafeEqual, createHash } from "crypto";
 
-const ORDER_TOKEN_PEPPER = process.env.ORDER_TOKEN_PEPPER || "dev-pepper-do-not-use-in-prod";
+const configuredPepper = process.env.ORDER_TOKEN_PEPPER;
+
+if (!configuredPepper && process.env.NODE_ENV === "production") {
+    throw new Error("ORDER_TOKEN_PEPPER is required in production");
+}
+
+const ORDER_TOKEN_PEPPER = configuredPepper || "dev-pepper-do-not-use-in-prod";
 
 /**
  * Generates a strong, random 32-byte token encoded in base64url.

@@ -1,5 +1,0 @@
-Email: firebase-adminsdk-fbsvc@elosusgrupos.iam.gserviceaccount.com
-Key Start: "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w"
-Key Len: 1704
-Has Newline: true
-Has Escaped Newline: false

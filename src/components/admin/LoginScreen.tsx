@@ -13,6 +13,14 @@ export function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [isRegistering, setIsRegistering] = useState(false);
 
+    const getErrorCode = (error: unknown): string | null => {
+        if (typeof error === "object" && error !== null && "code" in error) {
+            const code = (error as { code?: unknown }).code;
+            return typeof code === "string" ? code : null;
+        }
+        return null;
+    };
+
     const syncSession = async (user: FirebaseUser) => {
         try {
             const token = await user.getIdToken();
@@ -44,12 +52,14 @@ export function LoginScreen() {
                 userCredential = await signInWithEmailAndPassword(auth, email, password);
             }
             await syncSession(userCredential.user);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setLoading(false);
             console.error(err);
-            if (err.code === 'auth/email-already-in-use') {
+            const errorCode = getErrorCode(err);
+
+            if (errorCode === 'auth/email-already-in-use') {
                 setError("Email já cadastrado.");
-            } else if (err.code === 'auth/weak-password') {
+            } else if (errorCode === 'auth/weak-password') {
                 setError("A senha deve ter pelo menos 6 caracteres.");
             } else {
                 setError("Falha na autenticação. Verifique os dados.");
@@ -64,7 +74,7 @@ export function LoginScreen() {
             const provider = new GoogleAuthProvider();
             const userCredential = await signInWithPopup(auth, provider);
             await syncSession(userCredential.user);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             setError("Erro com Google Login.");
             setLoading(false);

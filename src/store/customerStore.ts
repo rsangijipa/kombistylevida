@@ -17,6 +17,11 @@ export interface CustomerState {
     reset: () => void;
 }
 
+type PersistedCustomerState = Pick<
+    CustomerState,
+    "name" | "phone" | "deliveryMethod" | "address" | "number" | "complement" | "neighborhood" | "consentToSave"
+>;
+
 export const useCustomerStore = create<CustomerState>()(
     persist(
         (set) => ({
@@ -47,8 +52,20 @@ export const useCustomerStore = create<CustomerState>()(
             name: "kombi-customer-storage",
             partialize: (state) => {
                 // If consent is false, we DON'T save personal data to localStorage.
-                if (!state.consentToSave) return { consentToSave: false } as any;
-                return state;
+                if (!state.consentToSave) {
+                    return { consentToSave: false } as PersistedCustomerState;
+                }
+
+                return {
+                    name: state.name,
+                    phone: state.phone,
+                    deliveryMethod: state.deliveryMethod,
+                    address: state.address,
+                    number: state.number,
+                    complement: state.complement,
+                    neighborhood: state.neighborhood,
+                    consentToSave: state.consentToSave,
+                };
             },
         }
     )

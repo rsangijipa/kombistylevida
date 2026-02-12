@@ -22,8 +22,9 @@ export default function NoticiasIndexPage() {
                 const res = await fetch('/api/posts');
                 if (res.ok) {
                     const data = await res.json();
+                    const postList = Array.isArray(data) ? (data as Post[]) : [];
                     // Deduplicate by slug
-                    const uniquePosts = Array.from(new Map(data.map((p: any) => [p.slug, p])).values()) as Post[];
+                    const uniquePosts = Array.from(new Map(postList.map((p) => [p.slug, p])).values()) as Post[];
                     setPosts(uniquePosts);
                 }
             } catch (e) {

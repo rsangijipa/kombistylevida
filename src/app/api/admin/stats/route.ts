@@ -157,9 +157,10 @@ export async function GET() {
             topFlavors
         });
 
-    } catch (error: any) {
-        if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
         console.error("Stats Error:", error);
         return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
